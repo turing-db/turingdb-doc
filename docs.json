@@ -62,7 +62,7 @@
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/logo_spiral_turingdb_darktransparent.png"
+    "dark": "/logo/logo_spiral_turingdb_darkTransparent.png"
   },
   "navbar": {
     "links": [
