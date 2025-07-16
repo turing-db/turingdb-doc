@@ -81,8 +81,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/logo_spiral_turingdb_darkTransparent.png"
+    "light": "/logo/turingdb_logo.png",
+    "dark": "/logo/turingdb_logo.png"
   },
   "navbar": {
     "links": [
