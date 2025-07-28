@@ -1,4 +1,4 @@
-{
+om{
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "TuringDB",
@@ -17,59 +17,85 @@
             "group": "Get Started",
             "pages": [
               "index",
-              "quickstart",
-              "development"
+              "Get Started"
             ]
           },
           {
-            "group": "Essentials",
+            "group": "Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "groups": [
-          {
-            "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
+              "concepts/overview",
+              "concepts/columnar_storage",
+              "concepts/commits",
+              "concepts/dataparts",
+              "concepts/zero_locking",
+              "concepts/streaming_architecture"
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "Graph Development",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "SDK",
-        "groups": [
-          {
-            "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
+              "graph_dev/create_change",
+              "graph_dev/create_nodes_edges",
+              "graph_dev/submit_change",
+              "graph_dev/checkout"
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "AI Workflows",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "workflows/workflow_builder",
+              "workflows/execute_workflows",
+              "workflows/case_studies",
+              "workflows/get_results"
+            ]
+          },
+          {
+            "group": "Tutorials",
+            "pages": [
+              "tutorials/from_import_to_viz",
+              "tutorials/create_graph"
+            ]
+          },
+          {
+            "group": "Load & Import Data",
+            "pages": [
+              "import/load_graph",
+              "import/import_neo4j",
+              "import/import_gml"
+            ]
+          },
+          {
+            "group": "Query Language",
+            "pages": [
+              "query/cypher_subset",
+              "query/examples"
+            ]
+          },
+          {
+            "group": "Python SDK",
+            "pages": [
+              "pythonsdk/get_started",
+              "pythonsdk/reference"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "security/platform_architecture",
+              "security/authentication"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "troubles/troubles"
+            ]
+          },
+          {
+            "group": "Roadmap & Feedback",
+            "pages": [
+              "roadmap/roadmap",
+              "roadmap/feedback"
             ]
           }
         ]
