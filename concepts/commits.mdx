@@ -6,11 +6,9 @@ description: 'Git-like versioning in your graph database'
 
 TuringDB is a graph database that stores connected data (nodes and relationships) with **built-in version control**. The system combines graph database capabilities with **time travel**, enabling isolated workspaces, full change tracking, and safe collaboration—without merge conflicts or stale state worries.
 
-```md
 ![Version Control](/images/versioning_image.png)
-```
 
-With version control, you can explore ideas in parallel, test “what-if” hypotheses, reproduce past states, and audit data evolution. It's like Git—but for graph data.
+With version control, you can explore ideas in parallel, test "what-if" hypotheses, reproduce past states, and audit data evolution. It's like Git—but for graph data.
 
 ```mermaid
 gitGraph
@@ -27,8 +25,10 @@ gitGraph
     checkout main
     merge change-1
     commit id: "Production update"
-🧩 Core Concepts
-TuringDB’s versioning scheme borrows familiar concepts from Git and Perforce:
+```
+
+## 🧩 Core Concepts
+TuringDB's versioning scheme borrows familiar concepts from Git and Perforce:
 
 Commit: A unit of change. Commits include new nodes/edges, updates, or deletions.
 
@@ -44,47 +44,42 @@ Safely experiment in isolation
 
 Audit the entire commit history
 
-“Time travel” by checking out a past commit
+"Time travel" by checking out a past commit
 
 Reproduce previous analyses and results
 
 Roll back accidental or problematic changes
 
-⚙️ Usage Guide
+## ⚙️ Usage Guide
 1. Create and switch to a new Change
-graphql
-Copy
-Edit
+```graphql
 > change new "my-change"
 > checkout "my-change"
+```
 This creates a new branch (change) called my-change and switches your workspace to it.
 
 2. Modify the graph
 Make updates using Cypher-style queries:
 
-graphql
-Copy
-Edit
+```graphql
 > CREATE ...
 > SET ...
 > commit
+```
 A change can contain any number of commits. Each commit captures the exact transformation applied to the graph.
 
 3. Merge back to main
 Once you're happy with your updates:
 
-graphql
-Copy
-Edit
+```graphql
 > change submit
 > history
+```
 This submits your change to the main branch and merges all its commits. You can then inspect your updated graph history.
 
-🧪 Practical Example: Protein Interaction Study
+## 🧪 Practical Example: Protein Interaction Study
 🔍 Load the Reactome knowledge graph
-graphql
-Copy
-Edit
+```graphql
 > history
 
 +-----------------------+
@@ -94,10 +89,9 @@ Edit
 |   - 2,588,826 nodes   |
 |   - 10,042,846 edges  |
 +-----------------------+
+```
 🔎 Query original graph
-graphql
-Copy
-Edit
+```graphql
 > MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
   RETURN n,  m."displayName (String)"
    
@@ -110,28 +104,25 @@ Edit
 +--------+-----------------------------------------+
 | 514785 | L-cysteine 112 replaced with L-arginine |
 +--------+-----------------------------------------+
+```
 🌱 Start an isolated change
-graphql
-Copy
-Edit
+```graphql
 > change new "apoe4-update"
 > checkout "apoe4-update"
+```
 ➕ Add new data
-graphql
-Copy
-Edit
+```graphql
 > CREATE (at 514785)
            -[e:HasWikipediaPage]
            -(m:WikipediaPage {
               "displayName (String)": "APOE-4 wiki",
               "url (String)": "https://en.wikipedia.org/wiki/Apolipoprotein_E"
             })
+```
 This adds a WikipediaPage node and connects it to APOE-4.
 
 ✅ Submit the change
-graphql
-Copy
-Edit
+```graphql
 > change submit
 > history
 
@@ -146,14 +137,13 @@ Edit
 |   - 1 nodes           |
 |   - 1 edges           |
 +-----------------------+
-The current state of the graph’s history can be represented by the following diagram.
-```md
-![Graph History](/images/db_version_exemple.png)
 ```
+The current state of the graph's history can be represented by the following diagram.
+
+![Graph History](/images/db_version_exemple.png)
+
 🌳 Updated graph history
-mermaid
-Copy
-Edit
+```mermaid
 gitGraph
     commit id:"(701edb) Initial"
     commit id:"(be9643) Reactome"
@@ -162,11 +152,10 @@ gitGraph
     commit id: "(35fcd8) APOE-4 wiki page"
     checkout main
     merge "apoe4-update"
+```
 Now everyone sees the APOE-4 wiki connection as part of the main graph.
 
-graphql
-Copy
-Edit
+```graphql
 > MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
   RETURN n,  m."displayName (String)"
    
@@ -181,12 +170,11 @@ Edit
 +--------+-----------------------------------------+
 | 514785 | L-cysteine 112 replaced with L-arginine |
 +--------+-----------------------------------------+
+```
 ⏪ Time Travel
 Need to reproduce a past result? Just check out a previous commit:
 
-graphql
-Copy
-Edit
+```graphql
 > checkout be9643
 > MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
   RETURN n,  m."displayName (String)"
@@ -200,6 +188,7 @@ Edit
 +--------+-----------------------------------------+
 | 514785 | UniProt:P02649 APOE                     |
 +--------+-----------------------------------------+
-Poof—back in time. The Wikipedia node vanishes because it didn’t exist yet in this snapshot.
+```
+Poof—back in time. The Wikipedia node vanishes because it didn't exist yet in this snapshot.
 
 > TuringDB gives you Git-style power, but for graph data. Explore, simulate, track, and revert—all in real time.
