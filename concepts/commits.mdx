@@ -4,56 +4,204 @@ sidebarTitle: 'Versioning System'
 description: 'Add image, video, and other HTML elements'
 ---
 
-<img
-  style={{ borderRadius: '0.5rem' }}
-  src="https://mintlify-assets.b-cdn.net/bigbend.jpg"
-/>
+# 🔁 Version Control in TuringDB
 
-## Image
-
-### Using Markdown
-
-The [markdown syntax](https://www.markdownguide.org/basic-syntax/#images) lets you add images using the following code
+TuringDB is a graph database that stores connected data (nodes and relationships) with **built-in version control**. The system combines graph database capabilities with **time travel**, enabling isolated workspaces, full change tracking, and safe collaboration—without merge conflicts or stale state worries.
 
 ```md
-![title](/path/image.jpg)
+![Version Control](/images/versioning_image.png)
 ```
 
-Note that the image file size must be less than 5MB. Otherwise, we recommend hosting on a service like [Cloudinary](https://cloudinary.com/) or [S3](https://aws.amazon.com/s3/). You can then use that URL and embed.
+With version control, you can explore ideas in parallel, test “what-if” hypotheses, reproduce past states, and audit data evolution. It's like Git—but for graph data.
 
-### Using Embeds
+```mermaid
+gitGraph
+    commit id: "Initial data load"
+  
+    branch change-1
+    branch change-2
+    checkout change-1
+    commit id: "Add new nodes"
+    commit id: "Update relationships"
+    checkout change-2
+    commit id: "Test hypothesis A"
+    commit id: "Refine analysis"
+    checkout main
+    merge change-1
+    commit id: "Production update"
+🧩 Core Concepts
+TuringDB’s versioning scheme borrows familiar concepts from Git and Perforce:
 
-To get more customizability with images, you can also use [embeds](/writing-content/embed) to add images
+Commit: A unit of change. Commits include new nodes/edges, updates, or deletions.
 
-```html
-<img height="200" src="/path/image.jpg" />
+Main branch: Canonical history of all accepted and merged commits.
+
+Change: An isolated "branch" of the graph where you can make commits without affecting main.
+
+HEAD: The current tip of a Change or the main branch—i.e., the active snapshot of your graph.
+
+With these primitives, you can:
+
+Safely experiment in isolation
+
+Audit the entire commit history
+
+“Time travel” by checking out a past commit
+
+Reproduce previous analyses and results
+
+Roll back accidental or problematic changes
+
+⚙️ Usage Guide
+1. Create and switch to a new Change
+graphql
+Copy
+Edit
+> change new "my-change"
+> checkout "my-change"
+This creates a new branch (change) called my-change and switches your workspace to it.
+
+2. Modify the graph
+Make updates using Cypher-style queries:
+
+graphql
+Copy
+Edit
+> CREATE ...
+> SET ...
+> commit
+A change can contain any number of commits. Each commit captures the exact transformation applied to the graph.
+
+3. Merge back to main
+Once you're happy with your updates:
+
+graphql
+Copy
+Edit
+> change submit
+> history
+This submits your change to the main branch and merges all its commits. You can then inspect your updated graph history.
+
+🧪 Practical Example: Protein Interaction Study
+🔍 Load the Reactome knowledge graph
+graphql
+Copy
+Edit
+> history
+
++-----------------------+
+| Commit: 701edb        |
++-----------------------+
+| Commit: be9643 (HEAD) |
+|   - 2,588,826 nodes   |
+|   - 10,042,846 edges  |
++-----------------------+
+🔎 Query original graph
+graphql
+Copy
+Edit
+> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
+  RETURN n,  m."displayName (String)"
+   
++--------+-----------------------------------------+
+| 514785 | extracellular region                    |
++--------+-----------------------------------------+
+| 514785 | Homo sapiens                            |
++--------+-----------------------------------------+
+| 514785 | UniProt:P02649 APOE                     |
++--------+-----------------------------------------+
+| 514785 | L-cysteine 112 replaced with L-arginine |
++--------+-----------------------------------------+
+🌱 Start an isolated change
+graphql
+Copy
+Edit
+> change new "apoe4-update"
+> checkout "apoe4-update"
+➕ Add new data
+graphql
+Copy
+Edit
+> CREATE (at 514785)
+           -[e:HasWikipediaPage]
+           -(m:WikipediaPage {
+              "displayName (String)": "APOE-4 wiki",
+              "url (String)": "https://en.wikipedia.org/wiki/Apolipoprotein_E"
+            })
+This adds a WikipediaPage node and connects it to APOE-4.
+
+✅ Submit the change
+graphql
+Copy
+Edit
+> change submit
+> history
+
++-----------------------+
+| Commit: 701edb        |
++-----------------------+
+| Commit: be9643        |
+|   - 2,588,826 nodes   |
+|   - 10,042,846 edges  |
++-----------------------+
+| Commit: 35fcd8 (HEAD) |
+|   - 1 nodes           |
+|   - 1 edges           |
++-----------------------+
+The current state of the graph’s history can be represented by the following diagram.
+```md
+![Graph History](/images/db_version_exemple.png)
 ```
+🌳 Updated graph history
+mermaid
+Copy
+Edit
+gitGraph
+    commit id:"(701edb) Initial"
+    commit id:"(be9643) Reactome"
+    branch "apoe4-update"
+    checkout "apoe4-update"
+    commit id: "(35fcd8) APOE-4 wiki page"
+    checkout main
+    merge "apoe4-update"
+Now everyone sees the APOE-4 wiki connection as part of the main graph.
 
-## Embeds and HTML elements
+graphql
+Copy
+Edit
+> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
+  RETURN n,  m."displayName (String)"
+   
++--------+-----------------------------------------+
+| 514785 | **APOE-4 wiki**                             |
++--------+-----------------------------------------+
+| 514785 | extracellular region                    |
++--------+-----------------------------------------+
+| 514785 | Homo sapiens                            |
++--------+-----------------------------------------+
+| 514785 | UniProt:P02649 APOE                     |
++--------+-----------------------------------------+
+| 514785 | L-cysteine 112 replaced with L-arginine |
++--------+-----------------------------------------+
+⏪ Time Travel
+Need to reproduce a past result? Just check out a previous commit:
 
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/4KzFe50RQkQ"
-  title="YouTube video player"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-  style={{ width: '100%', borderRadius: '0.5rem' }}
-></iframe>
+graphql
+Copy
+Edit
+> checkout be9643
+> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
+  RETURN n,  m."displayName (String)"
+   
++--------+-----------------------------------------+
+| 514785 | New APOE-4 neighbour                    |
++--------+-----------------------------------------+
+| 514785 | extracellular region                    |
++--------+-----------------------------------------+
+| 514785 | Homo sapiens                            |
++--------+-----------------------------------------+
+| 514785 | UniProt:P02649 APOE                     |
++--------+-----------------------------------------+
+Poof—back in time. The Wikipedia node vanishes because it didn’t exist yet in this snapshot.
 
-<br />
-
-<Tip>
-
-Mintlify supports [HTML tags in Markdown](https://www.markdownguide.org/basic-syntax/#html). This is helpful if you prefer HTML tags to Markdown syntax, and lets you create documentation with infinite flexibility.
-
-</Tip>
-
-### iFrames
-
-Loads another HTML page within the document. Most commonly used for embedding videos.
-
-```html
-<iframe src="https://www.youtube.com/embed/4KzFe50RQkQ"> </iframe>
-```
+> TuringDB gives you Git-style power, but for graph data. Explore, simulate, track, and revert—all in real time.
