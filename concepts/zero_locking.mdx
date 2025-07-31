@@ -1,110 +1,62 @@
 ---
-title: Reusable Snippets
-sidebarTitle: 'Zero-Locking Architecture'
-description: Reusable, custom snippets to keep content in sync
+title: "🔓 Zero Locking Architecture"
+sidebarTitle: "Zero-Locking Architecture"
+description: "Zero-lock concurrency"
 ---
 
-import SnippetIntro from '/snippets/snippet-intro.mdx';
+**TuringDB has eliminated the plague of read locks.**  
+Our architecture is designed from the ground up to deliver **true snapshot isolation**—without sacrificing performance or scalability.
 
-<SnippetIntro />
 
-## Creating a custom snippet
+## 🚫 The Problem with Traditional Databases
 
-**Pre-condition**: You must create your snippet file in the `snippets` directory.
+In most RDBMS systems, **read queries are blocked by write operations**. This means:
 
-<Note>
-  Any page in the `snippets` directory will be treated as a snippet and will not
-  be rendered into a standalone page. If you want to create a standalone page
-  from the snippet, import the snippet into another file and call it as a
-  component.
-</Note>
+- Analytics pipelines stall during ingestion
+- Dashboards freeze under concurrent load
+- AI workloads suffer from stale or delayed data access
 
-### Default export
+This is a dealbreaker for real-time systems.
 
-1. Add content to your snippet file that you want to re-use across multiple
-   locations. Optionally, you can add variables that can be filled in via props
-   when you import the snippet.
 
-```mdx snippets/my-snippet.mdx
-Hello world! This is my content I want to reuse across pages. My keyword of the
-day is {word}.
-```
+## ✅ TuringDB’s Zero-Lock Architecture
 
-<Warning>
-  The content that you want to reuse must be inside the `snippets` directory in
-  order for the import to work.
-</Warning>
+TuringDB rewrites the rules.
 
-2. Import the snippet into your destination file.
+- Every **read transaction executes on its own immutable snapshot** of the graph.
+- **Writes never block reads**, and reads never interfere with writes.
+- **Snapshot Isolation is enabled by default**, with **no coordination cost**.
+- Built-in support for **massive parallelism**, powering:
+  - Real-time dashboards
+  - AI pipelines
+  - Batch analytics
 
-```mdx destination-file.mdx
----
-title: My title
-description: My Description
----
+📈 **Analytics stay fast, live, and responsive—always.**
 
-import MySnippet from '/snippets/path/to/my-snippet.mdx';
+## 🔍 How It Works
 
-## Header
+When a write query modifies the database, it creates a new **snapshot** behind the scenes. Read queries simply operate on whichever snapshot they start from—no locks, no contention.
 
-Lorem impsum dolor sit amet.
+This ensures:
 
-<MySnippet word="bananas" />
-```
+- **Consistent reads** at a fixed point in time
+- **Concurrent write throughput** without coordination bottlenecks
+- **Scalable multi-user workloads**
 
-### Reusable variables
 
-1. Export a variable from your snippet file:
+## 📊 Architecture Comparison
 
-```mdx snippets/path/to/custom-variables.mdx
-export const myName = 'my name';
+![Zero Locking Comparison](/images/zero_lock.png)
 
-export const myObject = { fruit: 'strawberries' };
-```
+> In TuringDB, **analytics never wait.** Read and write paths are completely decoupled.
 
-2. Import the snippet from your destination file and use the variable:
+## 🔄 Summary
 
-```mdx destination-file.mdx
----
-title: My title
-description: My Description
----
+| Feature                     | Traditional RDBMS     | TuringDB                  |
+|----------------------------|------------------------|----------------------------|
+| Read blocks on write       | ✅ Yes                 | ❌ Never                   |
+| Snapshot isolation         | ❌ Manual or expensive | ✅ Default & efficient     |
+| Concurrency under load     | 🚫 Bottlenecked        | 🚀 Massively parallel      |
+| Built for real-time graphs | ❌ No                  | ✅ Yes                     |
 
-import { myName, myObject } from '/snippets/path/to/custom-variables.mdx';
-
-Hello, my name is {myName} and I like {myObject.fruit}.
-```
-
-### Reusable components
-
-1. Inside your snippet file, create a component that takes in props by exporting
-   your component in the form of an arrow function.
-
-```mdx snippets/custom-component.mdx
-export const MyComponent = ({ title }) => (
-  <div>
-    <h1>{title}</h1>
-    <p>... snippet content ...</p>
-  </div>
-);
-```
-
-<Warning>
-  MDX does not compile inside the body of an arrow function. Stick to HTML
-  syntax when you can or use a default export if you need to use MDX.
-</Warning>
-
-2. Import the snippet into your destination file and pass in the props
-
-```mdx destination-file.mdx
----
-title: My title
-description: My Description
----
-
-import { MyComponent } from '/snippets/custom-component.mdx';
-
-Lorem ipsum dolor sit amet.
-
-<MyComponent title={'Custom title'} />
-```
+> TuringDB gives you **instant analytics** with **zero locking**, enabling a new class of real-time, high-frequency applications at scale.
