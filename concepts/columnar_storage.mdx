@@ -1,87 +1,195 @@
 ---
-title: 'Navigation'
-sidebarTitle: 'A Columnar Graph Database'
-description: 'The navigation field in docs.json defines the pages that go in the navigation menu'
+title: "Columnar Database Concepts"
+sidebarTitle: "A Columnar Graph Database"
+description: "Why TuringDB choose and managed to create a columnar graph database?"
 ---
 
-The navigation menu is the list of links on every website.
+# 🧠 Columnar Database Concept in TuringDB
 
-You will likely update `docs.json` every time you add a new page. Pages do not show up automatically.
+## Overview
 
-## Navigation syntax
+Traditional graph databases such as **Neo4J** or **MemGraph** typically execute queries by processing **one node or one edge at a time**. This row-by-row processing model, known as the *Volcano* model, limits performance in analytical workloads due to its inherently sequential execution model.
 
-Our navigation syntax is recursive which means you can make nested navigation groups. You don't need to include `.mdx` in page names.
+**TuringDB** departs from this classical architecture by adopting a **column-oriented, vectorized processing model**, enabling high-performance analytics on large-scale graphs by operating on **chunks of nodes and edges simultaneously**. This design opens the door to modern hardware optimizations like **SIMD vectorisation**, **cache locality**, and **fine-grained parallelism**, significantly outperforming traditional approaches on analytics tasks.
 
-<CodeGroup>
 
-```json Regular Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["quickstart"]
-        }
-      ]
-    }
-  ]
-}
+## 🌋 Why the Volcano Model Is Limiting Modern Analytics
+
+The classical *Volcano* model of query execution, introduced in early relational database systems, follows a pull-based, tuple-at-a-time execution model. Each operator in a query pipeline calls its child operator to retrieve the next tuple, processes it, and passes the result upward. This results in a **sequential, record-by-record** evaluation that fails to leverage the full power of contemporary processors.
+
+As noted in seminal research [Boncz et al., 2005](https://www.cidrdb.org/cidr2005/papers/P19.pdf), this model lacks natural concurrency and inhibits performance by preventing vectorised execution. That is, the query engine cannot take advantage of modern processor instructions (SIMD: Single Instruction, Multiple Data) which can apply the same operation to **multiple data elements simultaneously**.
+
+
+## 🧱 Enter Columnar Storage and Execution
+
+Columnar databases change the paradigm. Instead of storing data row-by-row, **they store each attribute (or property) in a separate column**, represented as a contiguous array in memory. This structure naturally aligns with analytical query patterns.
+
+### 🧬 Benefits of Columnar Layout
+
+- **Cache locality**: Analytical queries often focus on a subset of attributes (e.g., filtering by degree, computing average weight). With columnar storage, only relevant columns are scanned, improving cache efficiency and reducing memory bandwidth usage.
+- **Vectorisation**: Columns are stored as arrays, which means operations like `SUM`, `AVG`, or `FILTER` can be implemented as **tight, SIMD-optimized loops** over contiguous memory blocks.
+- **Parallelism**: Columns can be chunked and distributed across threads or cores, enabling highly parallel execution without the need for complex coordination.
+
+For example, in a row-oriented schema:
+
+```
+[customer_id, price]
+[1001, 50]
+[1002, 120]
 ```
 
-```json Nested Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": [
-            "quickstart",
-            {
-              "group": "Nested Reference Pages",
-              "pages": ["nested-reference-page"]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+In a columnar layout:
+
 ```
 
-</CodeGroup>
+customer_id = [1001, 1002]
+price       = [50, 120]
 
-## Folders
-
-Simply put your MDX files in folders and update the paths in `docs.json`.
-
-For example, to have a page at `https://yoursite.com/your-folder/your-page` you would make a folder called `your-folder` containing an MDX file called `your-page.mdx`.
-
-<Warning>
-
-You cannot use `api` for the name of a folder unless you nest it inside another folder. Mintlify uses Next.js which reserves the top-level `api` folder for internal server calls. A folder name such as `api-reference` would be accepted.
-
-</Warning>
-
-```json Navigation With Folder
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Group Name",
-          "pages": ["your-folder/your-page"]
-        }
-      ]
-    }
-  ]
-}
 ```
 
-## Hidden Pages
+A query like `AVG(price)` can be executed as a single vectorised pass over the `price` column, without touching the `customer_id` values.
 
-MDX files not included in `docs.json` will not show up in the sidebar but are accessible through the search bar and by linking directly to them.
+> For a practical overview of the differences, see TigerData’s comparison of column vs row-oriented databases.
+> 
+
+
+## 🔬 Columnar Execution in our Graph Database
+
+Despite the advantages, **graph databases have largely remained tied to the Volcano model**. Systems like Neo4J and MemGraph still process graph elements one-by-one, iterating through edges and nodes in a sequential and pointer-chasing fashion.
+
+This design significantly limits performance for:
+
+- Deep, multi-hop traversals
+- Graph-based aggregations (e.g., finding most connected nodes)
+- Real-time analytical dashboards
+- AI pipelines with graph-based feature extraction
+
+## 🚀 TuringDB: A Column-Oriented Graph Engine
+
+TuringDB brings the power of columnar processing to **graph data**.
+
+Instead of row-by-row traversal, TuringDB uses a **streaming, columnar query pipeline** that operates on **vectors (or chunks) of nodes and edges**. This is analogous to how column-store analytical databases operate, but adapted to the **structural and relational richness** of graphs.
+
+### 🧠 What This Enables
+
+- **Massive vectorised query execution** across node/edge properties
+- **SIMD acceleration** for graph filters, joins, and traversals
+- **Parallel scheduling** of analytical workloads on high-throughput systems
+- **Fast multi-hop reasoning**, without paying the performance penalty of pointer-based iteration
+
+By rethinking graph execution in terms of **columnar layout and vectorised operators**, TuringDB delivers **orders-of-magnitude faster analytics performance** on large, complex graphs.
+
+## 📝 References
+
+- Boncz, Peter A., et al. (2005). *MonetDB/X100: Hyper-pipelining Query Execution*. [CIDR 2005](https://www.cidrdb.org/cidr2005/papers/P19.pdf)
+- TigerData. *Columnar Databases vs Row-Oriented Databases: Which to Choose?* [Read here](https://www.tigerdata.com/learn/columnar-databases-vs-row-oriented-databases-which-to-choose)
+
+TuringDB is the **first graph database to fully leverage columnar storage and processing**, making it highly scalable on modern hardware for analytical graph workloads.
+
+---
+
+# 🚰 Streaming Execution Engine
+
+At the core of TuringDB’s performance lies its **Streaming Execution Engine**, a query execution pipeline purpose-built for modern hardware and analytical workloads.
+
+Unlike classical graph engines (e.g., Neo4J, MemGraph) that follow a **Volcano model**, processing **one node or edge at a time**, TuringDB introduces a **columnar, chunk-based, streaming execution pipeline** that operates on **arrays of graph data**.
+
+## 🔥 Traditional vs Streaming: A Quick Recap
+
+### 🧱 Traditional Volcano Model
+
+```
+SCAN → FILTER → FILTER → GET EDGES → GET EDGES
+```
+
+- Row-oriented and implies pointer-chasing for graph databases
+- One node/edge at a time
+- Poor CPU cache locality
+- Hard to parallelize
+- No vectorisation
+
+This model was designed for early relational systems and doesn't fit high-performance analytics, especially in graph workloads with millions of relationships.
+
+
+### 🧬 TuringDB’s Columnar Streaming Model
+
+```
+[Column of Nodes] → [Filter Column by Age] → [Filter Column by Location] → [Column of Edges]
+```
+
+- Works on **columns of nodes or edges** (stored in DataParts)
+- Filters, joins, and traversals are applied to **batches/chunks of data**
+- Leverages **SIMD vectorisation**
+- Easily parallelized across CPU cores
+- **Data locality** ensures fast memory access
+
+Each stage in the pipeline receives a **column**, transforms it, and passes the result to the next stage, just like in columnar engines like ClickHouse, Firebolt, or DuckDB, but adapted to **graph workloads**.
+
+![volcano vs columnar](/images/ColumnarvsVolcano.png)
+
+
+## 🔗 How It Works: DataParts + Column Flow
+
+TuringDB stores all nodes and edges in **DataParts**, which are:
+
+- Immutable
+- Column-oriented (arrays of nodes, arrays of edges)
+- Optimized for scanning and transformation
+
+The Streaming Engine processes **columns extracted from these DataParts**.
+
+### 📦 Example:
+
+- `SCAN NODES BY LABEL "Person"` → Returns a **column of node IDs**
+- `FILTER BY PROPERTY age > 25` → Produces a **smaller column**
+- `FILTER BY PROPERTY location = "California"` → Another transformation
+- `GET OUT EDGES` → Generates a column of edges to traverse next
+
+This creates a **tight loop of data transformation**, always operating on dense, contiguous memory blocks that are **hardware-optimized**.
+
+
+## 🤔 Why Hasn’t This Been Done in Graph DBs Before?
+
+Graphs are **arbitrarily connected**. In classical designs:
+
+- Each node/edge is stored as a distinct object
+- Memory is scattered and pointer-chasing is expensive on modern hardware
+- Collecting or grouping nodes and edges into columns is not obvious or costly
+- Being focused on analytical workloads with batch writes allows is to consider contiguous array-based storage of nodes and edges. This is difficult for traditional systems heavily focused on writes.
+
+That’s why major graph DBs have avoided columnar models.
+
+
+## 💡 The TuringDB Solution
+
+TuringDB reintroduces **contiguity** into graph systems through:
+
+### ✅ The DataPart System
+
+Each DataPart contains:
+
+- An **array of nodes**
+- An **array of out edges**
+- An array of in edges
+
+These arrays are laid out **contiguously in memory**, allowing us to:
+
+- Fall back on the proven model of column processing, just like relational database systems
+- Achieve vectorisation and cache-local execution, **on graphs**
+- Process millions of nodes and edges in milliseconds
+
+📈 Modern CPUs thrive on contiguous, predictable data access, TuringDB gives them just that.
+
+
+## 🧠 Summary
+
+| Feature | Traditional Graph DBs | TuringDB Streaming Engine |
+| --- | --- | --- |
+| Execution model | Tuple-at-a-time (Volcano) | Columnar Streaming |
+| Memory access | Scattered | Contiguous (DataParts) |
+| SIMD/vectorisation | ❌ Limited | ✅ Native |
+| Parallelism | Manual or limited | ✅ Chunk-based & automatic |
+| Read performance | 🐢 Slow on scale | ⚡ Millisecond-level |
+
+
+TuringDB’s Streaming Execution Engine is what finally brings **the big ideas of columnar analytics** to the **world of graph data**, without compromise.

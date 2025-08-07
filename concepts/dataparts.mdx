@@ -1,87 +1,107 @@
 ---
 title: 'The DataPart System'
-description: 'Text, title, and styling in standard markdown'
+description: 'DataParts are the units that allows us to be columnar and have version control'
 ---
 
-## Titles
+# 🧱 What are DataParts?
 
-Best used for section headers.
+In TuringDB, graphs are **versioned as a sequence of commits**. Each commit represents a snapshot of the graph's state at a given point in time.
 
-```md
-## Titles
+But under the hood, each commit is composed of **DataParts**, the fundamental unit of storage in TuringDB architecture.
+
+## 📦 DataParts Explained
+
+- Every commit is **partitioned into multiple DataParts**
+- **Nodes and edges** are stored within DataParts
+- Once written, a DataPart is **immutable**
+- Commits reference a collection of DataParts, **new and inherited from previous commits**
+
+🖼️ **Visualization**:
+
+*Imagine a commit as a big box. Inside it, multiple internal boxes labeled `DataPart 1`, `DataPart 2`, etc., each storing a portion of the graph.*
+
+
+## ⚡ Why DataParts?
+
+TuringDB is fundamentally a **read-optimized analytical graph database**, but DataParts are our answer to achieving **high-performance parallel batch writes and data imports**, especially for large-scale ingestion workloads.
+
+### 🔄 Benefits
+
+- **Write Parallelism**
+    
+    Multiple threads or processes can write concurrently to their own private DataPart, without coordination, synchronisation or locking overhead.
+    
+- **Batch Import Performance**
+    
+    Ingesting millions of nodes and edges becomes scalable and efficient, even in a system built for sub-millisecond analytics.
+    
+- **Snapshot Safety**
+    
+    Each commit references a **set of immutable DataParts**, allowing us to maintain consistent snapshots and rollback history without duplication.
+    
+
+## 🧠 How TuringDB Uses DataParts
+
+Each time you add new data or modify existing node/edge properties:
+
+- TuringDB creates a new **DataPart** to store the changes.
+- It **reuses existing DataParts** from the parent commit whenever possible.
+- This leads to efficient **incremental storage**, only new or changed data consumes additional memory.
+
+```
+Commit 1
+ ├── DataPart 1
+ ├── DataPart 2
+ ├── DataPart 3
+ └── DataPart 4
+
+Commit 2
+ ├── [references] DataPart 1
+ ├── [references] DataPart 2
+ ├── [references] DataPart 3
+ ├── [references] DataPart 4
+ └── [adds]   DataPart 5
 ```
 
-### Subtitles
+![DataParts in Commits](/images/DataParts-commits.png)
 
-Best used for subsection headers.
+🔒 Like `git` objects, DataParts are **immutable and sharable**, enabling:
 
-```md
-### Subtitles
-```
+- **Deduplication** of unchanged data
+- **Consistent time-travel** queries
+- **Audit-friendly storage history**
+  
 
-<Tip>
+## 📏 Tuning for Performance
 
-Each **title** and **subtitle** creates an anchor and also shows up on the table of contents on the right.
+TuringDB can efficiently read and traverse graphs with up to **200 DataParts per commit**. However, for **optimal read performance**, we aim to **consolidate down to a single DataPart per commit**.
 
-</Tip>
+> The fewer the DataParts, the faster the reads, due to improved locality, reduced CPU cache misses, and minimized lookup overhead.
+> 
 
-## Text Formatting
 
-We support most markdown formatting. Simply add `**`, `_`, or `~` around text to format it.
+## 🧭 Roadmap: Intelligent DataPart Merging
 
-| Style         | How to write it   | Result          |
-| ------------- | ----------------- | --------------- |
-| Bold          | `**bold**`        | **bold**        |
-| Italic        | `_italic_`        | _italic_        |
-| Strikethrough | `~strikethrough~` | ~strikethrough~ |
+We are actively developing policies and algorithms to **intelligently merge DataParts** in the background. The goal is to:
 
-You can combine these. For example, write `**_bold and italic_**` to get **_bold and italic_** text.
+- Automatically compact multiple DataParts into fewer ones
+- Detect hot paths and frequently accessed subgraphs
+- Optimize for query throughput and storage locality
 
-You need to use HTML to write superscript and subscript text. That is, add `<sup>` or `<sub>` around your text.
+In the future, commits will **start as multiple data parts for fast ingestion** and **converge toward compact forms** for analytical speed, combining the best of both worlds.
 
-| Text Size   | How to write it          | Result                 |
-| ----------- | ------------------------ | ---------------------- |
-| Superscript | `<sup>superscript</sup>` | <sup>superscript</sup> |
-| Subscript   | `<sub>subscript</sub>`   | <sub>subscript</sub>   |
 
-## Linking to Pages
+## 💡 Summary
 
-You can add a link by wrapping text in `[]()`. You would write `[link to google](https://google.com)` to [link to google](https://google.com).
+| Feature | Benefit |
+| --- | --- |
+| Immutable DataParts | Safe versioning and reuse |
+| Parallel write ingestion | High-performance batch processing |
+| Shared storage across commits | Lower memory usage, fast snapshots |
+| Merge roadmap | Compact layout for ultimate read speed |
 
-Links to pages in your docs need to be root-relative. Basically, you should include the entire folder path. For example, `[link to text](/writing-content/text)` links to the page "Text" in our components section.
+TuringDB uses **DataParts** to balance **high-speed writes**, **versioned safety**, and **read-optimized performance**, all in a single, cohesive engine.
 
-Relative links like `[link to text](../text)` will open slower because we cannot optimize them as easily.
+## 📝 Related Concepts
 
-## Blockquotes
-
-### Singleline
-
-To create a blockquote, add a `>` in front of a paragraph.
-
-> Dorothy followed her through many of the beautiful rooms in her castle.
-
-```md
-> Dorothy followed her through many of the beautiful rooms in her castle.
-```
-
-### Multiline
-
-> Dorothy followed her through many of the beautiful rooms in her castle.
->
-> The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.
-
-```md
-> Dorothy followed her through many of the beautiful rooms in her castle.
->
-> The Witch bade her clean the pots and kettles and sweep the floor and keep the fire fed with wood.
-```
-
-### LaTeX
-
-Mintlify supports [LaTeX](https://www.latex-project.org) through the Latex component.
-
-<Latex>8 x (vk x H1 - H2) = (0,1)</Latex>
-
-```md
-<Latex>8 x (vk x H1 - H2) = (0,1)</Latex>
-```
+- [ClickHouse: Parts](https://clickhouse.com/docs/parts) ,  A similar model used in high-performance columnar stores to enable immutability, versioning, and efficient compaction.
