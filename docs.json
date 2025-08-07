@@ -27,8 +27,7 @@
               "concepts/columnar_storage",
               "concepts/commits",
               "concepts/dataparts",
-              "concepts/zero_locking",
-              "concepts/streaming_architecture"
+              "concepts/zero_locking"
             ]
           },
           {
