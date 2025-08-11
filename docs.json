@@ -9,6 +9,20 @@
   },
   "favicon": "/favicon.png",
   "navigation": {
+  "global":  {
+    "anchors": [
+      {
+         "anchor": "Discord Community",
+         "icon": "house",
+         "href": "https://discord.gg/XcVVYWzr"
+      },
+      {
+         "anchor": "Github",
+         "icon": "github",
+         "href": "https://github.com/turing-db"
+      }
+    ]
+  },
     "tabs": [
       {
         "tab": "TuringDB",
