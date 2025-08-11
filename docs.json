@@ -9,20 +9,6 @@
   },
   "favicon": "/favicon.png",
   "navigation": {
-    "global":  {
-      "anchors": [
-        {
-           "anchor": "Discord Community",
-           "icon": "house",
-           "href": "https://discord.gg/XcVVYWzr"
-        },
-        {
-           "anchor": "Github",
-           "icon": "github",
-           "href": "https://github.com/turing-db"
-        }
-      ]
-    },
     "tabs": [
       {
         "tab": "TuringDB",
@@ -129,7 +115,18 @@
     "dark": "/logo/logo_turingdb_thick.png"
   },
   "navbar": {
-    "links": [
+    "links": [{
+        "label": "Discord",
+        "href": "https://discord.gg/XcVVYWzr"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/turing-db"
+      },
+      {
+        "label": "Website",
+        "href": "https://turingdb.ai"
+      }
     ],
     "primary": {
       "type": "button",
@@ -140,7 +137,9 @@
   "footer": {
     "socials": {
       "github": "https://github.com/turing-db",
-      "linkedin": "https://www.linkedin.com/company/turingdb-ai"
+      "linkedin": "https://www.linkedin.com/company/turingdb-ai",
+      "youtube": "https://www.youtube.com/@turingdb",
+      "discord": "https://discord.gg/XcVVYWzr"
     }
   }
 }
