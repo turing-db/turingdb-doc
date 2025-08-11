@@ -1,7 +1,7 @@
 ---
-title: "Create a Change"
-sidebarTitle: "Create a Change"
-description: "Creating a change on a TuringDB graph is similar to creating a new branch on a git repository. It gives you access to an isolated writable environment that has no impact on other users."
+title: 'List Changes'
+sidebarTitle: 'List Changes'
+description: 'List all the changes done on the graph database'
 ---
 
 <Tabs>
@@ -14,7 +14,7 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
          -H "Authorization: Bearer $MY_API_KEY" \
          -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
          -H "Accept: application/json" \
-         -d "CHANGE NEW"
+         -d "CHANGE LIST"
     ```
 
     - Response
@@ -32,11 +32,12 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
       "data": [
         [
           [
-            1 // Change ID
+            1,
+            0
           ]
         ]
       ],
-      "time": 0.055547
+      "time": 0.039308
     }
     ```
   </Tab>
@@ -51,7 +52,7 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
     		"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
     		Accept: "application/json",
     	},
-    	body: "CHANGE NEW",
+    	body: "CHANGE LIST",
     });
     ```
 
@@ -70,15 +71,16 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
       "data": [
         [
           [
-            1 // Change ID
+            1,
+            0
           ]
         ]
       ],
-      "time": 0.055547
+      "time": 0.039308
     }
     ```
   </Tab>
   <Tab title="Python SDK">
-    COMING
+    INCOMING
   </Tab>
 </Tabs>

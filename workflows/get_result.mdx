@@ -1,0 +1,55 @@
+---
+title: 'Get Outputs & Results'
+sidebarTitle: 'Get outputs & results'
+description: 'Find out how to get your outputs & results'
+---
+After successfully executing the workflow, it’s now time to get the outputs and results:
+
+1. ✅ **Import nodes and builder**
+2. ✅ **Create the workflow builder**
+3. ✅ **Define and add nodes**
+4. ✅ **Connect the nodes**
+5. ✅ **Build and visualize the pipeline**
+6. ✅ **Execute the pipeline**
+7. ➡️ **Get outputs and results**
+
+
+For both [✍️ Example 1](/build_workflows) and [📄 Example 2](/build_workflows) from Create Workflow section, here is how to execute workflows that have been built previously:
+
+1. ➡️ **Get outputs and results**
+
+```python
+# Execute pipeline and get resuls
+results = pipeline.execute()
+
+# Show results
+display(results)  # or simply `results` at the end of a notebook cell
+```
+
+output:
+
+```python
+{
+		'data':
+				FlowData(...),
+		'error': None,
+		'node_results': {
+				0: NodeResult(node_id=0, data=FlowData(...),
+				1: NodeResult(node_id=1, data=FlowData(...),
+				2: NodeResult(node_id=2, data=FlowData(...),
+				...
+		}            
+}
+```
+
+## Explore results
+
+- `results.data` : contains the state of `FlowData` object after the execution of the last node
+- `results.node_results` : dictionary containing the states of `FlowData` object after the execution of each node of the workflow. Using this field, we can traceback the intermediate steps of the workflow
+- `results.error` : if an error occurs during workflow execution, the error message will be saved in this field
+
+## Remarks
+
+- Workflow always goes to the end, even if an error occurs during the execution.
+- If no error occurred during execution, `results.error` is `None`
+- If an error occurred during execution, `results.error` contains the error message

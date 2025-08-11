@@ -1,0 +1,162 @@
+---
+title: "Time Travel"
+sidebarTitle: "Time Travel"
+description: "You can time travel in you graph databases and see the commit history"
+---
+
+<Tabs>
+  <Tab title="cURL">
+    ## Show Commit History
+
+    - Request
+
+    ```bash
+    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH" \
+         -H "Authorization: Bearer $MY_API_KEY" \
+         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+         -H "Accept: application/json" \
+         -d 'HISTORY'
+    ```
+
+    - Response
+
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [
+        [
+          [
+            "Commit: c81ea797ec8300ec",
+            "Commit: 359e021b17367042 - Part 1: 2 nodes, 1 edges",
+            "Commit: c0a6ce3c0315be7a - Part 1: 0 nodes, 0 edges",
+            "Commit: 8e867b80d25f43b0 (HEAD) - Part 1: 0 nodes, 0 edges"
+          ]
+        ]
+      ],
+      "time": 0.04167
+    }
+    ```
+
+    ## Read a Previous Commit
+
+    - Request
+
+      ```bash
+      curl "http://localhost:6666/query?graph=$GRAPH&commit=$COMMIT_HASH" \
+           -H "Authorization: Bearer $MY_API_KEY" \
+           -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+           -H "Accept: application/json" \
+           -d 'MATCH (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"}) RETURN n, e, m'
+      ```
+      - Response
+
+    ```bash
+    {
+      "header": {
+        "column_names": [
+          "n",
+          "e",
+          "m"
+        ],
+        "column_types": [
+          "UInt64",
+          "UInt64",
+          "UInt64"
+        ]
+      },
+      "data": [[[0],[0],[1]]],
+      "time": 0.216248
+    }
+    ```
+  </Tab>
+  <Tab title="Javascript">
+    ## Show Commit History
+
+    - Request
+
+      ```jsx
+      fetch(
+      	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}`,
+      	{
+      		method: "POST",
+      		headers: {
+      			Authorization: `Bearer ${MY_API_KEY}`,
+      			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+      			Accept: "application/json",
+      		},
+      		body: "HISTORY",
+      	},
+      );
+      ```
+    - Response
+
+      ```json
+      {
+        "header": {
+          "column_names": [],
+          "column_types": []
+        },
+        "data": [
+          [
+            [
+              "Commit: c81ea797ec8300ec",
+              "Commit: 359e021b17367042 - Part 1: 2 nodes, 1 edges",
+              "Commit: c0a6ce3c0315be7a - Part 1: 0 nodes, 0 edges",
+              "Commit: 8e867b80d25f43b0 (HEAD) - Part 1: 0 nodes, 0 edges"
+            ]
+          ]
+        ],
+        "time": 0.04167
+      }
+      ```
+
+      ## Read a Previous Commit
+
+      ```jsx
+      fetch(
+      	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&commit=${COMMIT_HASH}`,
+      	{
+      		method: "POST",
+      		headers: {
+      			Authorization: `Bearer ${MY_API_KEY}`,
+      			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+      			Accept: "application/json",
+      		},
+      		body: 'MATCH (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"}) RETURN n, e, m',
+      	},
+      );
+      ```
+      - Response
+
+      ```json
+      {
+        "header": {
+          "column_names": [
+            "n",
+            "e",
+            "m"
+          ],
+          "column_types": [
+            "UInt64",
+            "UInt64",
+            "UInt64"
+          ]
+        },
+        "data": [[[0],[0],[1]]],
+        "time": 0.216248
+      }
+      ```
+  </Tab>
+  <Tab title="Python SDK">
+    ## Show Commit History
+
+    COMING
+
+    ## Read a Previous Commit
+
+    COMING
+  </Tab>
+</Tabs>

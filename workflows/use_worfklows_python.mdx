@@ -1,0 +1,41 @@
+---
+title: "Use Workflows in Python"
+sidebarTitle: "Using a workflow"
+description: "Discover how to get started and use the workflows in Python"
+---
+
+### 🛠️ How to Build Workflows
+
+TuringDB lets you design and execute **analytical and agentic workflows** that combine:
+
+- File processing
+- LLM queries
+- Graph analytics
+- Graph memory via TuringDB
+
+This guide shows how to use these workflows step by step using the `workflowcommon` Python SDK.
+
+
+## 📦 Installation
+
+To get started, clone the `workflowcommon` repository and install it using `uv`:
+
+```bash
+git clone <https://github.com/turingdb/workflowcommon.git>
+cd workflowcommon
+uv pip install -e .
+```
+
+## ⚙️ Workflow Usage Basics
+
+We use the `FlowBuilder` class to define workflows using **nodes** and **connections**. Each node corresponds to a task (e.g., extract text, run an LLM, query TuringDB).
+
+### 🔄 Steps to use a workflow:
+
+1. **Import nodes and builder**
+2. **Create the workflow builder**
+3. **Define and add nodes**
+4. **Connect the nodes**
+5. **Build and visualize the pipeline**
+6. **Execute the pipeline**
+7. **Get outputs and results**

@@ -4,34 +4,25 @@ sidebarTitle: 'Checkout to a commit'
 description: 'Display inline code and code blocks'
 ---
 
-## Basic
+<Tabs>
+  <Tab title="First tab">
+    ☝️ Welcome to the content that you can only see inside the first tab.
 
-### Inline Code
+    You can add any number of components inside of tabs. For example, a code block:
+    ```java HelloWorld.java
+      class HelloWorld {
+          public static void main(String[] args) {
+              System.out.println("Hello, World!");
+          }
+      }
+    ```
+  </Tab>
+  <Tab title="Second tab" icon="leaf">
+    ✌️ Here's content that's only inside the second tab.
 
-To denote a `word` or `phrase` as code, enclose it in backticks (`).
-
-```
-To denote a `word` or `phrase` as code, enclose it in backticks (`).
-```
-
-### Code Block
-
-Use [fenced code blocks](https://www.markdownguide.org/extended-syntax/#fenced-code-blocks) by enclosing code in three backticks and follow the leading ticks with the programming language of your snippet to get syntax highlighting. Optionally, you can also write the name of your code after the programming language.
-
-```java HelloWorld.java
-class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}
-```
-
-````md
-```java HelloWorld.java
-class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}
-```
-````
+    This one has a <Icon icon="leaf" /> icon!
+  </Tab>
+  <Tab title="Third tab">
+    💪 Here's content that's only inside the third tab.
+  </Tab>
+</Tabs>

@@ -1,0 +1,524 @@
+---
+title: "Node References"
+sidebarTitle: 'Node References'
+description: "Here we descritbe how to use nodes in the workflows and the types of nodes already pre-built and available to use"
+---
+
+# 🧱 Node Reference
+
+This section documents all available **Workflow Nodes** in TuringDB.
+
+Workflows are made up of nodes, each representing a **task** like loading data, calling an API, querying a graph, or transforming text.
+
+## 📦 General Node Structure
+
+All nodes inherit from `BaseNode`, which defines the following core attributes:
+
+```json
+{
+  "id": int,
+  "inputs": int[],
+  "outputs": int[],
+  "node_type": str
+}
+```
+
+Each node also includes a `params` object, which contains the node-specific parameters.
+
+Many nodes also require or produce structured data types, such as:
+
+- `Entities`
+- `Gml`
+- `S3FileMetadata`
+- `PDFExtractedData`
+- `MarkdownContent`
+
+## 📖 Node Index
+
+- Text I/O
+- Graph Nodes
+- AI / LLM Nodes
+- Cloud Storage & File I/O
+- External API Nodes
+- PDF Nodes
+- Email / Output
+- Graph Memory Nodes (TuringDB)
+- Flow Control Nodes
+
+## ✍️ Text I/O
+
+### `InputText`
+
+Inputs raw text into the data flow.
+
+```json
+{
+  "output_field": "field_name",
+  "content": "Text to inject into workflow"
+}
+```
+
+**Inputs**: none
+
+**Output**: `{ "$output_field": str }`
+
+### `OutputText`
+
+Extracts and stores a text value from the workflow.
+
+```json
+{
+  "input_field": "source_field",
+  "output_field": "destination_field"
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": str }`
+
+## 🔗 Graph Nodes
+
+### `MistralEntityExtractor`
+
+Uses Mistral to extract entities and relationships from input text.
+
+```json
+{
+  "input_field": "pdf_text",
+  "output_field": "entities",
+  "api_key": "...",
+  "agent_id": "..."
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": Entities }`
+
+### `MistralGraphExplainer`
+
+Uses Mistral to generate a human-readable explanation of a graph (GML).
+
+```json
+{
+  "input_field": "gml_graph",
+  "output_field": "explanation",
+  "api_key": "...",
+  "agent_id": "..."
+}
+```
+
+**Input**: `$input_field [str | Gml]`
+
+**Output**: `{ "$output_field": str }`
+
+### `GmlGenerator`
+
+Converts a list of extracted entities into a GML graph.
+
+```json
+{
+  "input_field": "entities",
+  "output_field": "gml"
+}
+```
+
+**Input**: `$input_field [Entities]`
+
+**Output**: `{ "$output_field": Gml }`
+
+## 🤖 AI / LLM Nodes
+
+### `LLM`
+
+Generic node to call OpenAI, Anthropic, or Mistral models.
+
+```json
+{
+  "input_field": "query",
+  "output_field": "llm_response",
+  "llm_provider": "Anthropic",
+  "model": "claude-3-haiku",
+  "temperature": 0.5
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": MarkdownContent }`
+
+### `LLMTools`
+
+Calls OpenAI API with tool support (JSON tools).
+
+```json
+{
+  "input_field": "query",
+  "output_field": "llm_response",
+  "model": "gpt-4o",
+  "tools": [ { "type": "function", "function": { "name": "extract_date", ... } } ]
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": MarkdownContent }`
+
+### `DeepResearch`
+
+Uses OpenAI’s Deep Research API for richer web-grounded responses.
+
+```json
+{
+  "input_field": "research_query",
+  "output_field": "deep_result",
+  "model": "o4-mini-deep-research",
+  "wait_time": 15
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": MarkdownContent }`
+
+### `Text2Cypher`
+
+Generates Cypher queries from natural language input using LLM.
+
+```json
+{
+  "input_field": "user_query",
+  "output_field": "cypher_query",
+  "llm_provider": "OpenAI",
+  "node_labels": ["Person", "Company"],
+  "relationship_types": ["WORKS_AT", "KNOWS"]
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": str }`
+
+## ☁️ Cloud Storage & File I/O
+
+### `S3LoadFile`
+
+Loads file content from S3.
+
+```json
+{
+  "output_field": "pdf_base64",
+  "user_id": "user123",
+  "file_key": "report.pdf"
+}
+```
+
+**Input**: none
+
+**Output**: `{ "$output_field": str }`
+
+### `S3UploadFile`
+
+Uploads file content to S3.
+
+```json
+{
+  "input_field": "pdf_data",
+  "file_key": "generated.pdf",
+  "user_id": "user123"
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: none
+
+### `S3ListFiles`
+
+Lists files from a user's S3 bucket.
+
+```json
+{
+  "output_field": "file_list",
+  "user_id": "user123",
+  "max_item_count": 20
+}
+```
+
+**Input**: none
+
+**Output**: `{ "$output_field": List[S3FileMetadata] }`
+
+## 🌐 External API Nodes
+
+### `RestAPI`
+
+Call a REST API endpoint with GET/POST/etc.
+
+```json
+{
+  "output_field": "api_response",
+  "base_url": "https://api.example.com",
+  "endpoint": "/data",
+  "method": "GET"
+}
+```
+
+**Input**: none
+
+**Output**: `{ "$output_field": any }`
+
+### `FinancialDataRestAPI`
+
+Calls stock or financial data API.
+
+```json
+{
+  "output_field": "stock_prices",
+  "endpoint_type": "stock_prices",
+  "identifier": "AAPL",
+  "api_key": "..."
+}
+```
+
+**Input**: none
+
+**Output**: `{ "$output_field": any }`
+
+### `PolygonRestAPI`
+
+Fetches financial data from Polygon.io.
+
+```json
+{
+  "output_field": "market_data",
+  "endpoint_type": "aggregates",
+  "identifier": "AAPL",
+  "api_key": "..."
+}
+```
+
+**Input**: none
+
+**Output**: `{ "$output_field": any }`
+
+## 📄 PDF Nodes
+
+### `ExtractTextPDF`
+
+Extracts text from a PDF file (base64 encoded input).
+
+```json
+json
+CopyEdit{
+  "input_field": "pdf_base64",
+  "output_field": "pdf_text"
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": PDFExtractedData }`
+
+### `GeneratePDF`
+
+Generates a PDF file from Markdown or plain text.
+
+```json
+{
+  "input_field": "summary_markdown",
+  "output_field": "pdf_base64",
+  "input_type": "markdown"
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": PdfFileContent }`
+
+## 📧 Email / Output
+
+### `SendEmail`
+
+Sends email with content and optional attachments.
+
+```json
+{
+  "input_field": "summary",
+  "output_field": "email_status",
+  "from_email": "you@turingdb.ai",
+  "to_emails": ["user@example.com"],
+  "sendgrid_api_key": "SG.XXXX..."
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": str }`
+
+## 🧠 Graph Memory Nodes (TuringDB)
+
+### `TuringDBQuery`
+
+Sends a Cypher query to a TuringDB instance.
+
+```json
+{
+  "input_field": "query",
+  "output_field": "result",
+  "graph_name": "my-graph",
+  "instance_id": "...",
+  "auth_token": "..."
+}
+```
+
+**Input**: `$input_field [str]`
+
+**Output**: `{ "$output_field": str }`
+
+### `TuringDBWrite`
+
+Writes entities (nodes & edges) into a TuringDB graph.
+
+```json
+{
+  "input_field": "entities",
+  "graph_name": "my-graph",
+  "instance_id": "...",
+  "auth_token": "..."
+}
+```
+
+**Input**: `$input_field [Entities]`
+
+**Output**: none
+
+## 🔁 Flow Control Nodes
+
+### `Merge`
+
+Merges JSON from multiple inputs.
+
+**Inputs**: multiple
+
+**Output**: merged JSON object
+
+### `Control`
+
+Conditional branching node.
+
+```json
+{
+  "lhs_field": "valueA",
+  "rhs_field": "valueB",
+  "operator": "=="
+}
+```
+
+**Outputs**:
+
+- First: branch if condition is true
+- Second: branch if false
+
+### `ForEach`
+
+Loops over a list or dict.
+
+```json
+{
+  "collection_field": "items",
+  "current_field": "i"
+}
+```
+
+**Inputs**:
+
+- First: entry to loop
+- Second: end of loop
+
+**Outputs**:
+
+- First: one item in loop
+- Second: loop complete
+
+## 🧪 Example Graph
+
+```json
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": 0,
+        "node_type": "InputText",
+        "inputs": [],
+        "outputs": [1],
+        "params": {
+          "content": "Text to generate the gml from"
+        }
+      },
+      {
+        "id": 1,
+        "node_type": "MistralEntityExtractor",
+        "inputs": [0],
+        "outputs": [2]
+      },
+      {
+        "id": 2,
+        "node_type": "GmlGenerator",
+        "inputs": [1],
+        "outputs": [3]
+      },
+      {
+        "id": 3,
+        "node_type": "OutputText",
+        "inputs": [2],
+        "outputs": []
+      }
+    ]
+  }
+}
+```
+
+## 📚 Data Types
+
+```python
+class Entity(BaseModel):
+    id: int
+    label: str
+    entity_type: str
+
+class Relationship(BaseModel):
+    source: int
+    target: int
+    relationship_type: str
+
+class Entities(BaseModel):
+    entities: List[Entity]
+    relationships: List[Relationship]
+
+class Gml(BaseModel):
+    gml: str
+    node_count: int
+    rel_count: int
+
+class S3FileMetadata(BaseModel):
+    key: str
+    size: int
+    last_modified: str
+
+class MarkdownContent(BaseDict):
+    content: str
+
+class S3UploadSuccess(BaseDict):
+    success: bool
+    file_key: str
+    
+class PDFExtractedData(BaseDict):
+    model_config = {"arbitrary_types_allowed": True}
+    # tells Pydantic to accept types it doesn't natively support (like pandas DataFrames)
+
+    text: str
+    tables: Union[List[pd.DataFrame], List[str]]
+    all_content: Union[str, Any]
+```

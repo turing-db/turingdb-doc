@@ -1,59 +1,118 @@
 ---
-title: 'Images and Embeds'
-sidebarTitle: 'Create Nodes and Edges'
-description: 'Add image, video, and other HTML elements'
+title: "Create Nodes and Edges"
+sidebarTitle: "Create Nodes and Edges"
+description: "Once you have a valid change, you can start adding new nodes and edges to it"
 ---
 
-<img
-  style={{ borderRadius: '0.5rem' }}
-  src="https://mintlify-assets.b-cdn.net/bigbend.jpg"
-/>
+<Tabs>
+  <Tab title="cURL">
+    - Request
 
-## Image
+    ```bash
+    # Create nodes Jane and John + edge 'Jane knows John'
+    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
+         -H "Authorization: Bearer $MY_API_KEY" \
+         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+         -H "Accept: application/json" \
+         -d 'CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})'
+    ```
 
-### Using Markdown
+    - Response
+      TO ADD
+      - Request
 
-The [markdown syntax](https://www.markdownguide.org/basic-syntax/#images) lets you add images using the following code
+    ```bash
+    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
+         -H "Authorization: Bearer $MY_API_KEY" \
+         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+         -H "Accept: application/json" \
+         -d 'COMMIT'
+    ```
 
-```md
-![title](/path/image.jpg)
-```
+    - Response
 
-Note that the image file size must be less than 5MB. Otherwise, we recommend hosting on a service like [Cloudinary](https://cloudinary.com/) or [S3](https://aws.amazon.com/s3/). You can then use that URL and embed.
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.070778
+    }
+    ```
 
-### Using Embeds
+    ### Then, commit them
+  </Tab>
+  <Tab title="Javascript">
+    - Request
 
-To get more customizability with images, you can also use [embeds](/writing-content/embed) to add images
+    ```jsx
+    // Create nodes Jane and John + edge 'Jane knows John'
+    fetch(
+    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
+    	{
+    		method: "POST",
+    		headers: {
+    			Authorization: `Bearer ${MY_API_KEY}`,
+    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+    			Accept: "application/json",
+    		},
+    		body: 'CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})',
+    	},
+    );
+    ```
 
-```html
-<img height="200" src="/path/image.jpg" />
-```
+    - Response
 
-## Embeds and HTML elements
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.267249
+    }
+    
+    {
+    }
+    ```
 
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/4KzFe50RQkQ"
-  title="YouTube video player"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-  style={{ width: '100%', borderRadius: '0.5rem' }}
-></iframe>
+    ### Then, commit them
 
-<br />
+    - Request
 
-<Tip>
+    ```jsx
+    // Create nodes Jane and John + edge 'Jane knows John'
+    fetch(
+    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
+    	{
+    		method: "POST",
+    		headers: {
+    			Authorization: `Bearer ${MY_API_KEY}`,
+    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+    			Accept: "application/json",
+    		},
+    		body: 'COMMIT',
+    	},
+    );
+    ```
 
-Mintlify supports [HTML tags in Markdown](https://www.markdownguide.org/basic-syntax/#html). This is helpful if you prefer HTML tags to Markdown syntax, and lets you create documentation with infinite flexibility.
+    - Response
 
-</Tip>
-
-### iFrames
-
-Loads another HTML page within the document. Most commonly used for embedding videos.
-
-```html
-<iframe src="https://www.youtube.com/embed/4KzFe50RQkQ"> </iframe>
-```
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.070778
+    }
+    ```
+  </Tab>
+  <Tab title="Python SDK">
+    COMING
+  </Tab>
+</Tabs>
