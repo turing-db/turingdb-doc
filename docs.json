@@ -34,18 +34,23 @@
             "group": "Graph Development",
             "pages": [
               "graph_dev/create_change",
+              "graph_dev/list_changes",
               "graph_dev/create_nodes_edges",
               "graph_dev/submit_change",
-              "graph_dev/checkout"
+              "graph_dev/time_travelling",
+              "graph_dev/graph_examples"
             ]
           },
           {
             "group": "AI Workflows",
             "pages": [
-              "workflows/workflow_builder",
+              "workflows/workflow_concepts",
+              "workflows/nodes_references",
+              "workflows/use_workflows_python",
+              "workflows/build_worfklows",
               "workflows/execute_workflows",
-              "workflows/case_studies",
-              "workflows/get_results"
+              "workflows/get_results",
+              "workflows/workflow_exemples"
             ]
           },
           {
