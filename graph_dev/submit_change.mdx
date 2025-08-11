@@ -1,67 +1,72 @@
 ---
-title: 'Submit Change'
-sidebarTitle: 'Submit a Change'
-description: 'Submit changes done to the database (just like a commit being submited in git)'
+title: "Submit Change"
+sidebarTitle: "Submit a Change"
+description: "Submit changes done to the database (just like a commit being submited in git)"
 ---
 
 <Tabs>
   <Tab title="cURL">
-   - Request
+    - Request
 
-```bash
-# Submit a change to the graph you are working on
-curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
-     -H "Authorization: Bearer $MY_API_KEY" \
-     -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-     -H "Accept: application/json" \
-     -d 'CHANGE SUBMIT'
-```
+    ```bash
+    # Submit a change to the graph you are working on
+    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
+         -H "Authorization: Bearer $MY_API_KEY" \
+         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+         -H "Accept: application/json" \
+         -d 'CHANGE SUBMIT'
+    ```
 
-- Response
+    - Response
 
-```json
-{
-  "header": {
-    "column_names": [],
-    "column_types": []
-  },
-  "data": [],
-  "time": 0.055101
-}
-```
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.055101
+    }
+    ```
   </Tab>
   <Tab title="Javascript">
-   - Request
+    - Request
 
-```jsx
-fetch(
-	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
-	{
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${MY_API_KEY}`,
-			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-			Accept: "application/json",
-		},
-		body: "CHANGE SUBMIT",
-	},
-);
-```
+    ```jsx
+    fetch(
+    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
+    	{
+    		method: "POST",
+    		headers: {
+    			Authorization: `Bearer ${MY_API_KEY}`,
+    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+    			Accept: "application/json",
+    		},
+    		body: "CHANGE SUBMIT",
+    	},
+    );
+    ```
 
-- Response
+    - Response
 
-```json
-{
-  "header": {
-    "column_names": [],
-    "column_types": []
-  },
-  "data": [],
-  "time": 0.055101
-}
-```
+    ```json
+    {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.055101
+    }
+    ```
   </Tab>
   <Tab title="Python SDK">
-    INCOMING
+    ```python
+    # client.set_graph("my-graph")
+    # client.checkout(my_change)
+    client.query('CHANGE SUBMIT')
+    client.checkout("main")
+    ```
   </Tab>
 </Tabs>

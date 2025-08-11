@@ -18,12 +18,23 @@ description: "Once you have a valid change, you can start adding new nodes and e
     ```
 
     - Response
-    
-      TO ADD
+
+    ```bash
+      {
+      "header": {
+        "column_names": [],
+        "column_types": []
+      },
+      "data": [],
+      "time": 0.267249
+    }
+    {
+    }
+    ```
 
     ### Then, commit them
-      
-      - Request
+
+    - Request
 
     ```bash
     curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
@@ -115,6 +126,20 @@ description: "Once you have a valid change, you can start adding new nodes and e
     ```
   </Tab>
   <Tab title="Python SDK">
-    COMING
+    ```python
+    # client.set_graph("my-graph")
+    client.checkout(my_change)
+    client.query('CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})')
+    ```
+
+    ### Then, commit them
+
+    ### 
+
+    ```python
+    # client.set_graph("my-graph")
+    # client.checkout(my_change)
+    client.query('COMMIT')
+    ```
   </Tab>
 </Tabs>
