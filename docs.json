@@ -48,25 +48,16 @@
               "workflows/workflow_concepts",
               "workflows/nodes_references",
               "workflows/use_workflows_python",
-              "workflows/build_worfklows",
+              "workflows/build_workflows",
               "workflows/execute_workflows",
-              "workflows/get_results",
-              "workflows/workflow_exemples"
+              "workflows/get_result",
+              "workflows/workflows_exemples"
             ]
           },
           {
             "group": "Tutorials",
             "pages": [
-              "tutorials/from_import_to_viz",
               "tutorials/create_graph"
-            ]
-          },
-          {
-            "group": "Load & Import Data",
-            "pages": [
-              "import/load_graph",
-              "import/import_neo4j",
-              "import/import_gml"
             ]
           },
           {
