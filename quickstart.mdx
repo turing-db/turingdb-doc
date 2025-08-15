@@ -1,25 +1,91 @@
 ---
-title: 'Use TuringDB'
-sidebarTitle: 'Get Started'
-description: 'Start using TuringDB using TuringDB python SDK.'
+title: "Use TuringDB"
+sidebarTitle: "Get Started"
+description: "Start using TuringDB using TuringDB python SDK."
 ---
 
-## Use TuringDB for the first time
-
 <Steps>
-    <Step title="Get your API credentials">
-    Sign up at console.turingdb.ai, then go to API Keys to retrieve your secret API key.
-    </Step>
-    <Step title="Clone the Quickstart repo">
-```console
-git clone https://github.com/turing-db/quickstart && cd quickstart
-```
-    </Step>
-    <Step title="Run the project">
-```console
-uv run
-```
-    </Step>
-    <Step title="You're done!">
-    </Step>
+  <Step title="Create your TuringDB account" titleSize="h2">
+    Sign up on console.turingdb.ai
+
+    <Warning>
+      You cannot use the TuringDB instances if you do not have credits (free or purchased) as it will consume credits per hours
+    </Warning>
+    Use your free credits (with your promo code or contact us at [founders@turingdb.ai](mailto:founders@turingdb.ai) to get your code) or directly purchase new credits (in Profile → Settings → Subscriptions).
+  </Step>
+  <Step title="Create your instance in the TuringDB Cloud UI" titleSize="h2">
+    In Database Instance -\> Create your first instance
+  </Step>
+  <Step title="Copy your Instance ID from the Database Instances management page" titleSize="h2">
+    Keep the instance ID as you will need it on step 5)
+  </Step>
+  <Step title="Get API Key from the Settings in UI" titleSize="h2">
+    -\> Click on your profile icon (bottom left) -\> click on Settings (on the left panel of the pop-up window) -\> Click on the API Keys section -\> copy your API Key (keep it as you will need it on step 5)
+  </Step>
+  <Step title="Install TuringDB Python SDK " titleSize="h2">
+    Using `pip`:
+
+    ```bash
+    pip install turingdb
+    ```
+
+    or using the `uv`  package manager (you will need to create a project first):
+
+    ```bash
+    uv add turingdb
+    ```
+  </Step>
+  <Step title="Exemple to create and query a graph" titleSize="h2">
+    Create graph → list graph → create node & create edge → commit → list graphs → match query
+
+    ### Python SDK
+
+    ```python
+    from turingdb import TuringDB
+    
+    client = TuringDB(
+        instance_id="...", # Replace by your instance id
+        auth_token="...",  # Replace by your API token
+    )
+    
+    # Create a new graph
+    client.query('CREATE GRAPH mygraph')
+    client.set_graph('mygraph')
+    
+    # Create a new change on the graph
+    change = client.query("CHANGE NEW")["Change ID"][0]
+    
+    # Checkout into the change
+    client.checkout(change=change)
+    
+    # Create a node Person (Jane) - Edge (knows) - node (John)
+    client.query('CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})')
+    
+    # Commit the change
+    client.query("COMMIT")
+    client.query("CHANGE SUBMIT")
+    ```
+
+    ### User Interface
+
+    You can build a workflow (in the UI and very soon in Python with our open-source agentic & analytical workflow package) to integrate data in the TuringDB graph database.
+
+    See [UI Tutorial](/)
+
+    See [Workflow Exemples](/workflows_exemples)
+  </Step>
+  <Step title="Visualise the graph you have created in TuringDB" titleSize="h2">
+    Open the graph visualiser from the instance running your TuringDB graph, click on the 3 dots in the top right and then on Access UI
+    ![Open graph visualisation](/images/get_started/AccessUIgraphviz.png)
+    
+    ### Exemple of a biological interaction graph built in TuringDB:
+    1. Choose on the top right the graph 
+    2. Search & select a node(s) of interest (magnifying glass button on the left)
+    3. Then go to visualiser (network logo) and you can start exploring paths, expanding neighbours, inspect nodes (parameters, hyperlinks, and texts stored on the nodes)
+![Graph visualisation](/images/get_started/graph_viz_2.png)
+
+  </Step>
 </Steps>
+<Check>
+  You are done!
+</Check>

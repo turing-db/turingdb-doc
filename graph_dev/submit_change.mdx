@@ -5,6 +5,14 @@ description: "Submit changes done to the database (just like a commit being subm
 ---
 
 <Tabs>
+  <Tab title="Python SDK">
+    ```python
+    # client.set_graph("my-graph")
+    # client.checkout(my_change)
+    client.query('CHANGE SUBMIT')
+    client.checkout("main")
+    ```
+  </Tab>
   <Tab title="cURL">
     - Request
 
@@ -59,14 +67,6 @@ description: "Submit changes done to the database (just like a commit being subm
       "data": [],
       "time": 0.055101
     }
-    ```
-  </Tab>
-  <Tab title="Python SDK">
-    ```python
-    # client.set_graph("my-graph")
-    # client.checkout(my_change)
-    client.query('CHANGE SUBMIT')
-    client.checkout("main")
     ```
   </Tab>
 </Tabs>

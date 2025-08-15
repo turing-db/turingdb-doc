@@ -5,6 +5,12 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
 ---
 
 <Tabs>
+  <Tab title="Python SDK">
+    ```python
+    # client.set_graph("my-graph")
+    client.query("CHANGE NEW")
+    ```
+  </Tab>
   <Tab title="cURL">
     - Request
 
@@ -76,12 +82,6 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
       ],
       "time": 0.055547
     }
-    ```
-  </Tab>
-  <Tab title="Python SDK">
-    ```python
-    # client.set_graph("my-graph")
-    client.query("CHANGE NEW")
     ```
   </Tab>
 </Tabs>

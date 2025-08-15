@@ -1,87 +1,280 @@
 ---
-title: 'Navigation'
-sidebarTitle: 'Cypher Dialect'
-description: 'The navigation field in docs.json defines the pages that go in the navigation menu'
+title: 'Query Language in TuringDB'
+sidebarTitle: 'Query Language'
+description: 'Description of the Cypher Subset supported by TuringDB and the different queries built in TuringDB'
 ---
 
-The navigation menu is the list of links on every website.
+TuringDB supports a subset of the CYPHER query language.
 
-You will likely update `docs.json` every time you add a new page. Pages do not show up automatically.
+TuringDB supports a subset of the **Cypher query language**, extended with versioning, metadata introspection, and flexible property matching.
 
-## Navigation syntax
+This guide covers the supported syntax and features, including `MATCH`, `CREATE`, property filters, node ID injection, metaqueries, and available data types. 
 
-Our navigation syntax is recursive which means you can make nested navigation groups. You don't need to include `.mdx` in page names.
+<Note> In our autumn 2025 release we will be supporting nearly 100% of Cypher. </Note>
 
-<CodeGroup>
+# ⚙️ Basics
 
-```json Regular Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["quickstart"]
-        }
-      ]
-    }
-  ]
-}
+Queries are built by referencing nodes and edges. TuringDB supports the standard CYPHER syntax, in that nodes are denoted using parentheses `()`, whilst edges are denoted using square brackets `[]`.
+
+For example, `(n)`  would denote a node named `n`, whilst `[e]` would denote an edge named `e`.
+
+Nodes and edges can have both **label** and **property** constraints. As in standard CYPHER, property constraints are specified using curly brackets `{}`, whilst labels are specified using colon `:` syntax.
+
+An example of a node with a label constraint would be `(n:Person)`.
+
+An example of an edge with a property constraint would be `[e{duration=10}]`.
+
+Property and label constraints may be combined, for instance, `(n:Person{name="John"})` specifies a node which both has the label `Person`, and a `name` property with the value `John`. 
+
+Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person,Man{name=”John”, age=20})`. These lists can be arbitrarily long.
+
+### Summary:
+
+Queries are built around **nodes** and **edges**:
+
+- **Nodes** are written in parentheses `()`
+e.g. `(n)` - a node with alias `n`
+- **Edges** are written in square brackets `[]`
+e.g. `[e]` - an edge with alias `e`
+
+You can add:
+
+- **Labels** with a colon `:` - e.g. `(n:Person)`
+- **Property constraints** with curly braces `{}` - e.g. `[e{duration=10}]`
+- **Both** at once - e.g. `(n:Person{name="John"})`
+
+Multiple labels and properties can be specified:
+
+```sql
+(n:Person,Man{name="John", age=20})
 ```
 
-```json Nested Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": [
-            "quickstart",
-            {
-              "group": "Nested Reference Pages",
-              "pages": ["nested-reference-page"]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+# 🔍 Queries
+
+Queries are built up of combinations of nodes and edges, as specified above.
+
+TuringDB supports two main query operations: `MATCH` and `CREATE`.
+
+## `MATCH` queries
+
+`MATCH` queries are used to retrieve nodes, edges, and their property values from the database via specification of relationships and properties.
+
+It is easiest to demonstrate the syntax of a `MATCH` query with a concrete example:
+
+```jsx
+MATCH (n)-[e]-(m) RETURN n 
 ```
 
-</CodeGroup>
+The above query will look for nodes in the database which have at least one edge to a different node. The query will return the internal ID of the node `n`.
 
-## Folders
-
-Simply put your MDX files in folders and update the paths in `docs.json`.
-
-For example, to have a page at `https://yoursite.com/your-folder/your-page` you would make a folder called `your-folder` containing an MDX file called `your-page.mdx`.
+<Tip>
+When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
+</Tip>
 
 <Warning>
-
-You cannot use `api` for the name of a folder unless you nest it inside another folder. Mintlify uses Next.js which reserves the top-level `api` folder for internal server calls. A folder name such as `api-reference` would be accepted.
-
+Specifying the direction of edges (e.g. `<-[e]-`) is not currently supported in TuringDB. All edges are implicitly directed from left-to-right.
 </Warning>
 
-```json Navigation With Folder
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Group Name",
-          "pages": ["your-folder/your-page"]
-        }
-      ]
-    }
-  ]
-}
+`MATCH` queries are flexible: they can contain a single node and no edges, or any number of node, edge pairs. For example:
+
+```jsx
+MATCH (n) RETURN n
 ```
 
-## Hidden Pages
+will match all nodes in the database. An example of a multi-hop `MATCH` query would be:
 
-MDX files not included in `docs.json` will not show up in the sidebar but are accessible through the search bar and by linking directly to them.
+```jsx
+MATCH (n)-[e]-(m)-[f]-(p) RETURN p
+```
+
+<Card title="" horizontal>
+Queries have *variables*, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
+
+```jsx
+MATCH (n)--(m) RETURN m
+```
+
+Both node and edges can omit a variable name if they specify at least a label constraint:
+
+```jsx
+MATCH (:Person)-[:FriendsWith]-(m) RETURN m
+```
+
+</Card>
+
+You can also return multiple properties using a comma separated list:
+
+```jsx
+MATCH (n:Person)--(m:Person) RETURN n.name, m.age
+```
+
+Combining the syntax of `MATCH` queries, and the ability to specify constraints, here are a few examples of some syntactically correct TuringDB `MATCH` queries:
+
+- `MATCH (n:Person) return n.name`
+- `MATCH (:Person)—(n:Person) return n.age`
+- `MATCH (n:Person,Woman,SoftwareEngineer)—(m)-[e]-(p:Man)-[f]-(q) return e,f`
+
+<Warning>
+Note that whilst all the above the queries are all *syntactically* valid, if the graph does not have a node property which is used in a query, it will fail to execute.
+</Warning>
+
+<Card title="" horizontal>
+
+`RETURN` clauses also support the `*` operator, as such:
+
+```jsx
+MATCH (n:Person)-[e]-(m) RETURN *
+```
+
+which is equivalent to:
+
+```jsx
+MATCH (n:Person)-[e]-(m) RETURN n, e, m
+```
+
+That is, `RETURN *` is equivalent to returning *all entities* in the `MATCH` query.
+</Card>
+
+## `CREATE` queries
+
+`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints, but they do not have `RETURN` clauses. There is also the additional requirement that all nodes and edges *must have at least one label*. This means a query such as
+
+```jsx
+CREATE (n)
+```
+
+is not valid, whilst 
+
+```jsx
+CREATE (n:Person)
+```
+
+is a valid query.
+
+Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
+
+```sql
+CREATE (:Person)-[:FriendsWith]-(:Person)
+```
+
+However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
+
+```sql
+CREATE (a:Corner)-[:Edge]-(b:Corner), (b)-[:Edge]-(c:Corner), (c)-[:Edge]-(a)
+```
+
+<Info>
+This can also be achieved over multiple `CREATE` queries using Node ID injection.
+</Info>
+
+# 🧾Data Types
+
+TuringDB offers the following data types for node and edge properties:
+
+- String
+- Boolean
+- Integer (signed)
+- Unsigned integer
+- Double (decimal)
+
+By default, if you create a property with a whole-number numeric value, it will be stored in the database engine as a signed integer. If you would like to explicitly use an unsigned value, you can use the `u` suffix after the numeric value in your create query:
+
+```sql
+CREATE (n:Person{age=20u, name="Jane"})
+```
+
+`MATCH` queries provide an automatic coercion from integer to unsigned integer, so if the above `CREATE` query is submitted, and you run
+
+```jsx
+MATCH (n{age=20}) return n.name
+```
+
+and it will match the node created above, returning
+
+```arduino
++------+
+| Jane |
+|------|
+|  ... |
++------+
+```
+
+However, the opposite coercion is not supported: if you use the `u` suffix in a `MATCH` query, the query will attempt to match an unsigned integer property.
+
+<Warning>
+If you query a property with a type which does not match the type of the property stored in the database, the query will not execute (aside from the coercion described above).
+</Warning>
+
+String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (```).
+
+# 🧩 Operators
+
+TuringDB allows you to query against node and edge properties using the `:` or `=` operators, which both operate in exactly the same way: exact matching of the property value. This means both the following queries are equivalent:
+
+```jsx
+MATCH (n{name="Matt", age:20, hasPhD=false}) RETURN n
+MATCH (n{name:"Matt", age=20, hasPhD:false}) RETURN n
+```
+
+Additionally, TuringDB supports the approximate string operator, `~=`, which is explained here.
+
+# 🔐 Node ID Injection
+
+It is possible to reference existing nodes in the database using their internal ID.
+
+<Info>
+The internal ID of a node, `n`, is the value returned by the query `MATCH (n) return n`.
+</Info>
+
+Node ID injection can be performed using the `@` operator or the `AT` keyword. The basic syntax is flexible, as
+
+```jsx
+MATCH (n @ 1) RETURN n.name
+MATCH (n:Person @ 1) RETURN n.name
+MATCH (n:Person{name="Jane"} @ 1) RETURN n.name
+MATCH (n:Person @ 1 {name="Jane}) RETURN n.name
+MATCH (n @ 1 {name="Jane}) RETURN n.name
+MATCH (n {name="Jane} @ 1) RETURN n.name
+```
+
+are all valid uses of the `@` operator to perform injection by node ID. Further, replacing `@` with `AT` is equally valid in all the above cases.
+
+It is also possible to inject a number of node IDs, which can be achieved by providing a comma-separated list of node IDs:
+
+```jsx
+MATCH (n:Person @ 1, 2, 3) return n.name
+```
+
+which will return the `name` property values for the nodes with IDs `1`, `2`, and `3`.
+
+# 📮 Metaqueries
+
+On top of supporting queries which return or alter information *in the graph*, TuringDB supports a number of *“metaqueries”* which return information, or metadata, *about the graph*.
+
+These queries follow the `CALL` syntax, and the following variants are supported:
+
+1. `CALL PROPERTIES ()` - returns a column of all the different node and edge properties and their types in the database
+2. `CALL LABELS ()` - returns a column of all the different node labels
+3. `CALL EDGETYPES()` - returns a column of all the different edge types (edge equivalent of node labels)
+4. `CALL LABELSETS ()` - returns a two columns describing combinations of node labels
+
+These metaqueries are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
+
+# 🪛 Commands
+
+Outside of CYPHER, there are a number of commands which you can use to interact with the TuringDB engine.
+
+| Command | Explanation |
+| --- | --- |
+| `CREATE GRAPH <graph name>`  | Create a graph with the specified name |
+| `LOAD GRAPH <graph name>`  | Load the specified graph. Requires the graph files to be accessible to the TuringDB instance |
+| `HISTORY` | Prints the history of the version control system |
+| `CHANGE NEW` | Creates a new change, returning a column with the ID of the created change |
+| `CHANGE SUBMIT` | When checked out on a specific change, submits all changes made to the “master branch” |
+| `CHANGE DELETE`  | Deletes the currently checked out change |
+| `CHANGE LIST` | Lists the currently active (uncommitted) changes |
+| `LIST GRAPH` | Lists the available graphs |
+
+# 🛣️ Roadmap
+
+Whilst TuringDB currently supports a subset of CYPHER, by the next release, the support will be close to 100%. We also plan to support more features outside of CYPHER, which we already do with the string approximation operator, `~=`.

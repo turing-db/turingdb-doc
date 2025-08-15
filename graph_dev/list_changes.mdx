@@ -1,10 +1,16 @@
 ---
-title: 'List Changes'
-sidebarTitle: 'List Changes'
-description: 'List all the changes done on the graph database'
+title: "List Changes"
+sidebarTitle: "List Changes"
+description: "List all the changes done on the graph database"
 ---
 
 <Tabs>
+  <Tab title="Python SDK">
+    ```python
+    # client.set_graph("my-graph")
+    client.query("CHANGE LIST")
+    ```
+  </Tab>
   <Tab title="cURL">
     - Request
 
@@ -79,8 +85,5 @@ description: 'List all the changes done on the graph database'
       "time": 0.039308
     }
     ```
-  </Tab>
-  <Tab title="Python SDK">
-    INCOMING
   </Tab>
 </Tabs>

@@ -34,6 +34,7 @@
           {
             "group": "Graph Development",
             "pages": [
+              "graph_dev/create_graph",
               "graph_dev/create_change",
               "graph_dev/list_changes",
               "graph_dev/create_nodes_edges",
@@ -64,7 +65,8 @@
             "group": "Query Language",
             "pages": [
               "query/cypher_subset",
-              "query/examples"
+              "query/string_approximation",
+              "query/cheatsheet"
             ]
           },
           {

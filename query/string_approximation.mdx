@@ -1,0 +1,155 @@
+---
+title: 'String Approximation Operator'
+sidebarTitle: 'String Approximation'
+description: 'The String Approximation Operator allows to run queries with partial strings to match properties in nodes'
+---
+
+# 🔍 String Approximation Operator (`~=`)
+
+TuringDB extends the standard Cypher query language with an intuitive and **efficient approximate string matching operator**: `~=`. This feature is ideal for exploring knowledge graphs, especially when dealing with noisy data, ambiguous labels, or unknown naming conventions.
+
+## 🧠 What It Does
+
+The `~=` operator allows you to query **string properties** on nodes or edges **without requiring exact matches** or complex regular expressions.
+
+Instead of:
+
+```sql
+MATCH (n{name="APOE-4"}) RETURN n
+```
+
+You can write:
+
+```sql
+MATCH (n{name~="apoe"}) RETURN n
+```
+
+This will return *all nodes where the property `name` is approximately related to "apoe"*.
+
+## 📦 Why It's Useful
+
+- ✅ **No regex required** — More human-friendly and readable
+- ⚡ **Faster than regex** — Avoids index-bypass performance issues seen in Neo4J
+    
+    [Source](https://stackoverflow.com/questions/31660948/neo4j-count-very-slow)
+    
+- 🔍 **Designed for discovery** — Perfect for exploratory search, fuzzy graph lookups, or biomedical graph use cases
+
+## 📄 Example 1: Matching Biological Entities
+
+Given nodes:
+
+```sql
+(node:...{id:0, ..., name:"APOE-4 [extracellular]", ...})
+(node:...{id:1, ..., name:"APOE-4", ...})
+(node:...{id:2, ..., name:"APOE-4 [intracellular]", ...})
+```
+
+Query:
+
+```sql
+MATCH (n{name~="apoe"}) RETURN n
+```
+
+Results:
+
+Match
+
+```sql
+APOE-4 [extracellular]
+```
+
+```sql
+APOE-4
+```
+
+```sql
+APOE-4 [intracellular]
+```
+
+✅ All relevant nodes returned using **only a single word** — `apoe`.
+
+
+## 📄 Example 2: Prefix Word Matching
+
+Given nodes:
+
+```sql
+(node{id:1, desc:"play"})
+(node{id:2, desc:"playful"})
+(node{id:3, desc:"playfully"})
+(node{id:4, desc:"pl"})
+(node{id:5, desc:"plays"})
+```
+
+Query:
+
+```sql
+MATCH (n{desc~="play"}) RETURN n.id
+```
+
+Results:
+
+```
+id
+---
+1
+2
+3
+5
+```
+
+- ✅ `play`, `playful`, `playfully`, and `plays` all match
+- ❌ `pl` does **not** match (`pl` only matches 50% of "play" — below threshold)
+
+
+## ⚙️ How It Works
+
+- Matching is done using **word-level prefix matching**
+- A **“word”** is any substring separated by whitespace
+- **Only alphanumeric characters are used** — symbols are stripped before matching
+- The **minimum match threshold is 75%** of the query string's length
+
+### Match Example
+
+- Query: `"play"` (length: 4)
+- Minimum prefix: `"pla"` (75% of 4 = 3)
+- `playful` ✅
+- `plays` ✅
+- `pl` ❌
+
+
+## 🔬 Use Cases
+
+- Searching biomedical knowledge graphs (e.g., proteins, genes, diseases)
+- Fuzzy matching in messy datasets
+- Finding similar named entities (e.g., `APOE-4`, `APOE`, `APOE2`)
+- Natural language matching for agentic workflows or LLM graph queries
+
+
+## 📝 Syntax Summary
+
+```sql
+MATCH (n{property~="search_term"}) RETURN n
+```
+
+- Works with **any node or edge property** that is a string
+- Case-insensitive
+- No regex or wildcards needed
+
+## 🚧 Limitations
+
+- Works only on **string properties**
+- Currently supports **prefix word-level matching only**
+- Does **not support substring** or typo-tolerant matching yet (planned roadmap)
+
+
+## 🔭 Future Improvements - Roadmap
+
+TuringDB may extend `~=` in the future with:
+
+- Fuzzy edit-distance matching (e.g., `levenshtein`)
+- Optional configuration for matching thresholds
+- Substring or suffix modes
+
+Stay tuned!

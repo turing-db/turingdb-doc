@@ -1,0 +1,43 @@
+---
+title: "Create Graph"
+sidebarTitle: "Create Graph"
+description: "Create a graph object"
+---
+
+<Tabs>
+    <Tab title="Python SDK">
+    ```python
+    # Create graph object
+    from turingdb import TuringDB
+    
+    # setup client
+    client = TuringDB(
+     instance_id="...", # Replace by your instance id
+     auth_token="...",  # Replace by your API token
+    )
+    
+    # Create a new graph
+    client.query('CREATE GRAPH mygraph')
+    client.set_graph('mygraph')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    - Request
+
+    ```bash
+    # Create graph object
+    curl -d 'CREATE GRAPH simpledb' http://localhost:6666/query
+    ```
+
+    - Response
+
+    ```json
+    
+     {"header":{"column_names":[],"column_types":[]},"data":[],"time":0.089231}
+    
+    ```
+  </Tab>
+  <Tab title="Javascript">
+    COMING
+  </Tab>
+</Tabs>
