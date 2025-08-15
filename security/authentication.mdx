@@ -1,59 +1,65 @@
 ---
-title: 'Images and Embeds'
+title: 'Authentification'
 sidebarTitle: 'Authentication'
-description: 'Add image, video, and other HTML elements'
+description: 'Manage authentification, API tokens, Instance IDs'
 ---
+# 🔐 Authentication
 
-<img
-  style={{ borderRadius: '0.5rem' }}
-  src="https://mintlify-assets.b-cdn.net/bigbend.jpg"
-/>
+To access your **TuringDB Cloud instance**, authentication is required. TuringDB supports two simple authentication components:
 
-## Image
+1. **API Token** — Proves your identity
+2. **Instance ID** — Identifies the specific graph database instance you're working with
 
-### Using Markdown
+Both are required when using the SDK or making API requests.
 
-The [markdown syntax](https://www.markdownguide.org/basic-syntax/#images) lets you add images using the following code
 
-```md
-![title](/path/image.jpg)
+## 🔑 1. API Token
+
+The **API token** is a secret key that authenticates you as a user. You can find and manage your tokens in the **Settings > API Keys** panel.
+
+### 📋 How to find your API token:
+
+**Step 1:** Click your avatar (bottom-left corner) → `Settings`
+![Get API](/images/get_started/settingsUI.png)
+**Step 2:** Select the `API Keys` tab
+![Copy API Key](/images/get_started/APIkey.png)
+
+You can:
+
+- Click the 👁️ icon to reveal your token
+- Click the 📋 icon to copy it to your clipboard
+
+> ⚠️ Keep your API token secure — anyone with it can access your instance.
+> 
+
+
+
+## 🧭 2. Instance ID
+
+Each TuringDB instance has a unique **Instance ID**. This is used to route your requests to the correct graph engine.
+
+### 📋 How to find your Instance ID:
+
+- Go to the `Instances` page
+- Locate your instance card
+- Copy the **Instance ID** from the top-right corner
+
+![Instance ID](/images/get_started/Database_instance_2.png)
+
+## 🧪 SDK Authentication
+
+Once you've created an instance, you can interact with it through the Python SDK or API using:
+
+- Your **API token**
+- Your **Instance ID**
+
+Both are passed to the SDK to authenticate and target your requests.
+
+```python
+client = TuringDBClient(
+    instance_id="your-instance-id",
+    api_token="your-api-token"
+)
 ```
 
-Note that the image file size must be less than 5MB. Otherwise, we recommend hosting on a service like [Cloudinary](https://cloudinary.com/) or [S3](https://aws.amazon.com/s3/). You can then use that URL and embed.
-
-### Using Embeds
-
-To get more customizability with images, you can also use [embeds](/writing-content/embed) to add images
-
-```html
-<img height="200" src="/path/image.jpg" />
-```
-
-## Embeds and HTML elements
-
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/4KzFe50RQkQ"
-  title="YouTube video player"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-  style={{ width: '100%', borderRadius: '0.5rem' }}
-></iframe>
-
-<br />
-
-<Tip>
-
-Mintlify supports [HTML tags in Markdown](https://www.markdownguide.org/basic-syntax/#html). This is helpful if you prefer HTML tags to Markdown syntax, and lets you create documentation with infinite flexibility.
-
-</Tip>
-
-### iFrames
-
-Loads another HTML page within the document. Most commonly used for embedding videos.
-
-```html
-<iframe src="https://www.youtube.com/embed/4KzFe50RQkQ"> </iframe>
-```
+🛎️ Note: The authentication gateway refreshes every 60 seconds, so after creating a new instance or token, you may need to wait up to 1 minute for access to be available.

@@ -79,7 +79,6 @@
           {
             "group": "Security",
             "pages": [
-              "security/platform_architecture",
               "security/authentication"
             ]
           },
