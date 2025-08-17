@@ -1,16 +1,16 @@
 ---
-title: 'Query Language in TuringDB'
-sidebarTitle: 'Query Language'
-description: 'Description of the Cypher Subset supported by TuringDB and the different queries built in TuringDB'
+title: "Query Language in TuringDB"
+sidebarTitle: "Query Language"
+description: "Description of the Cypher Subset supported by TuringDB and the different queries built in TuringDB"
 ---
-
-TuringDB supports a subset of the CYPHER query language.
 
 TuringDB supports a subset of the **Cypher query language**, extended with versioning, metadata introspection, and flexible property matching.
 
-This guide covers the supported syntax and features, including `MATCH`, `CREATE`, property filters, node ID injection, metaqueries, and available data types. 
+This guide covers the supported syntax and features, including `MATCH`, `CREATE`, property filters, node ID injection, metaqueries, and available data types.
 
-<Note> In our autumn 2025 release we will be supporting nearly 100% of Cypher. </Note>
+<Note>
+   In our autumn 2025 release we will be supporting nearly 100% of Cypher. 
+</Note>
 
 # ⚙️ Basics
 
@@ -24,7 +24,7 @@ An example of a node with a label constraint would be `(n:Person)`.
 
 An example of an edge with a property constraint would be `[e{duration=10}]`.
 
-Property and label constraints may be combined, for instance, `(n:Person{name="John"})` specifies a node which both has the label `Person`, and a `name` property with the value `John`. 
+Property and label constraints may be combined, for instance, `(n:Person{name="John"})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
 
 Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person,Man{name=”John”, age=20})`. These lists can be arbitrarily long.
 
@@ -33,9 +33,9 @@ Nodes and edges can have label and property multiple constraints, which are spec
 Queries are built around **nodes** and **edges**:
 
 - **Nodes** are written in parentheses `()`
-e.g. `(n)` - a node with alias `n`
+  e.g. `(n)` - a node with alias `n`
 - **Edges** are written in square brackets `[]`
-e.g. `[e]` - an edge with alias `e`
+  e.g. `[e]` - an edge with alias `e`
 
 You can add:
 
@@ -68,11 +68,11 @@ MATCH (n)-[e]-(m) RETURN n
 The above query will look for nodes in the database which have at least one edge to a different node. The query will return the internal ID of the node `n`.
 
 <Tip>
-When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
+  When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
 </Tip>
 
 <Warning>
-Specifying the direction of edges (e.g. `<-[e]-`) is not currently supported in TuringDB. All edges are implicitly directed from left-to-right.
+  Specifying the direction of edges (e.g. `<-[e]-`) is not currently supported in TuringDB. All edges are implicitly directed from left-to-right.
 </Warning>
 
 `MATCH` queries are flexible: they can contain a single node and no edges, or any number of node, edge pairs. For example:
@@ -87,19 +87,18 @@ will match all nodes in the database. An example of a multi-hop `MATCH` query wo
 MATCH (n)-[e]-(m)-[f]-(p) RETURN p
 ```
 
-<Card title="" horizontal>
-Queries have *variables*, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
+<Card title horizontal>
+  Queries have _variables_, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
 
-```jsx
-MATCH (n)--(m) RETURN m
-```
+  ```jsx
+  MATCH (n)--(m) RETURN m
+  ```
 
-Both node and edges can omit a variable name if they specify at least a label constraint:
+  Both node and edges can omit a variable name if they specify at least a label constraint:
 
-```jsx
-MATCH (:Person)-[:FriendsWith]-(m) RETURN m
-```
-
+  ```jsx
+  MATCH (:Person)-[:FriendsWith]-(m) RETURN m
+  ```
 </Card>
 
 You can also return multiple properties using a comma separated list:
@@ -115,35 +114,34 @@ Combining the syntax of `MATCH` queries, and the ability to specify constraints,
 - `MATCH (n:Person,Woman,SoftwareEngineer)—(m)-[e]-(p:Man)-[f]-(q) return e,f`
 
 <Warning>
-Note that whilst all the above the queries are all *syntactically* valid, if the graph does not have a node property which is used in a query, it will fail to execute.
+  Note that whilst all the above the queries are all _syntactically_ valid, if the graph does not have a node property which is used in a query, it will fail to execute.
 </Warning>
 
-<Card title="" horizontal>
+<Card title horizontal>
+  `RETURN` clauses also support the `*` operator, as such:
 
-`RETURN` clauses also support the `*` operator, as such:
+  ```jsx
+  MATCH (n:Person)-[e]-(m) RETURN *
+  ```
 
-```jsx
-MATCH (n:Person)-[e]-(m) RETURN *
-```
+  which is equivalent to:
 
-which is equivalent to:
+  ```jsx
+  MATCH (n:Person)-[e]-(m) RETURN n, e, m
+  ```
 
-```jsx
-MATCH (n:Person)-[e]-(m) RETURN n, e, m
-```
-
-That is, `RETURN *` is equivalent to returning *all entities* in the `MATCH` query.
+  That is, `RETURN *` is equivalent to returning _all entities_ in the `MATCH` query.
 </Card>
 
 ## `CREATE` queries
 
-`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints, but they do not have `RETURN` clauses. There is also the additional requirement that all nodes and edges *must have at least one label*. This means a query such as
+`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints, but they do not have `RETURN` clauses. There is also the additional requirement that all nodes and edges _must have at least one label_. This means a query such as
 
 ```jsx
 CREATE (n)
 ```
 
-is not valid, whilst 
+is not valid, whilst
 
 ```jsx
 CREATE (n:Person)
@@ -164,7 +162,7 @@ CREATE (a:Corner)-[:Edge]-(b:Corner), (b)-[:Edge]-(c:Corner), (c)-[:Edge]-(a)
 ```
 
 <Info>
-This can also be achieved over multiple `CREATE` queries using Node ID injection.
+  This can also be achieved over multiple `CREATE` queries using Node ID injection.
 </Info>
 
 # 🧾Data Types
@@ -202,10 +200,10 @@ and it will match the node created above, returning
 However, the opposite coercion is not supported: if you use the `u` suffix in a `MATCH` query, the query will attempt to match an unsigned integer property.
 
 <Warning>
-If you query a property with a type which does not match the type of the property stored in the database, the query will not execute (aside from the coercion described above).
+  If you query a property with a type which does not match the type of the property stored in the database, the query will not execute (aside from the coercion described above).
 </Warning>
 
-String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (```).
+String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (\`\`\`).
 
 # 🧩 Operators
 
@@ -223,7 +221,7 @@ Additionally, TuringDB supports the approximate string operator, `~=`, which is 
 It is possible to reference existing nodes in the database using their internal ID.
 
 <Info>
-The internal ID of a node, `n`, is the value returned by the query `MATCH (n) return n`.
+  The internal ID of a node, `n`, is the value returned by the query `MATCH (n) return n`.
 </Info>
 
 Node ID injection can be performed using the `@` operator or the `AT` keyword. The basic syntax is flexible, as
@@ -249,7 +247,7 @@ which will return the `name` property values for the nodes with IDs `1`, `2`, an
 
 # 📮 Metaqueries
 
-On top of supporting queries which return or alter information *in the graph*, TuringDB supports a number of *“metaqueries”* which return information, or metadata, *about the graph*.
+On top of supporting queries which return or alter information _in the graph_, TuringDB supports a number of _“metaqueries”_ which return information, or metadata, _about the graph_.
 
 These queries follow the `CALL` syntax, and the following variants are supported:
 
@@ -264,16 +262,16 @@ These metaqueries are useful for exploring the data which is available in the gr
 
 Outside of CYPHER, there are a number of commands which you can use to interact with the TuringDB engine.
 
-| Command | Explanation |
-| --- | --- |
-| `CREATE GRAPH <graph name>`  | Create a graph with the specified name |
-| `LOAD GRAPH <graph name>`  | Load the specified graph. Requires the graph files to be accessible to the TuringDB instance |
-| `HISTORY` | Prints the history of the version control system |
-| `CHANGE NEW` | Creates a new change, returning a column with the ID of the created change |
-| `CHANGE SUBMIT` | When checked out on a specific change, submits all changes made to the “master branch” |
-| `CHANGE DELETE`  | Deletes the currently checked out change |
-| `CHANGE LIST` | Lists the currently active (uncommitted) changes |
-| `LIST GRAPH` | Lists the available graphs |
+| Command                     | Explanation                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| `CREATE GRAPH <graph name>` | Create a graph with the specified name                                                       |
+| `LOAD GRAPH <graph name>`   | Load the specified graph. Requires the graph files to be accessible to the TuringDB instance |
+| `HISTORY`                   | Prints the history of the version control system                                             |
+| `CHANGE NEW`                | Creates a new change, returning a column with the ID of the created change                   |
+| `CHANGE SUBMIT`             | When checked out on a specific change, submits all changes made to the “master branch”       |
+| `CHANGE DELETE`             | Deletes the currently checked out change                                                     |
+| `CHANGE LIST`               | Lists the currently active (uncommitted) changes                                             |
+| `LIST GRAPH`                | Lists the available graphs                                                                   |
 
 # 🛣️ Roadmap
 

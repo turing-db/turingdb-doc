@@ -1,87 +1,161 @@
 ---
-title: 'Navigation'
+title: 'Get Started'
 sidebarTitle: 'Get Started'
-description: 'The navigation field in docs.json defines the pages that go in the navigation menu'
+description: 'Quickly get started with the TuringDB PythonSDK'
 ---
+# ⚡️ QuickStart: TuringDB Python SDK
 
-The navigation menu is the list of links on every website.
+This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, connecting to your cloud instance, creating your first graph, and running Cypher queries.
 
-You will likely update `docs.json` every time you add a new page. Pages do not show up automatically.
 
-## Navigation syntax
+## 🐍 1. Install the SDK
 
-Our navigation syntax is recursive which means you can make nested navigation groups. You don't need to include `.mdx` in page names.
+### Option A: Using `pip`
 
-<CodeGroup>
-
-```json Regular Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": ["quickstart"]
-        }
-      ]
-    }
-  ]
-}
+```bash
+pip install turingdb
 ```
 
-```json Nested Navigation
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Getting Started",
-          "pages": [
-            "quickstart",
-            {
-              "group": "Nested Reference Pages",
-              "pages": ["nested-reference-page"]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
+### Option B: Using `uv` (modern package manager)
+
+> Requires an initialized Python project
+> 
+
+```bash
+uv add turingdb
 ```
 
-</CodeGroup>
 
-## Folders
+## 🔐 2. Connect to Your TuringDB Instance
 
-Simply put your MDX files in folders and update the paths in `docs.json`.
+To interact with TuringDB, you'll need:
 
-For example, to have a page at `https://yoursite.com/your-folder/your-page` you would make a folder called `your-folder` containing an MDX file called `your-page.mdx`.
+- ✅ Your **Instance ID**
+- 🔑 Your **API Token**
 
-<Warning>
+These are found in your TuringDB Cloud UI. See [Authentication Guide](/security/authentification)
 
-You cannot use `api` for the name of a folder unless you nest it inside another folder. Mintlify uses Next.js which reserves the top-level `api` folder for internal server calls. A folder name such as `api-reference` would be accepted.
+```python
+from turingdb import TuringDB
 
-</Warning>
-
-```json Navigation With Folder
-"navigation": {
-  "tabs": [
-    {
-      "tab": "Docs",
-      "groups": [
-        {
-          "group": "Group Name",
-          "pages": ["your-folder/your-page"]
-        }
-      ]
-    }
-  ]
-}
+client = TuringDB(
+    instance_id="your-instance-id",
+    auth_token="your-api-token"
+)
 ```
 
-## Hidden Pages
 
-MDX files not included in `docs.json` will not show up in the sidebar but are accessible through the search bar and by linking directly to them.
+## 🧬 3. Create a Graph and Load It
+
+Create and load a graph into memory:
+
+```python
+# Create a new graph
+client.create_graph("my_first_graph")
+
+# Load the graph into memory
+client.load_graph("my_first_graph")
+
+# Set the active graph context
+client.set_graph("my_first_graph")
+```
+
+
+## 🧱 4. Create Nodes & Edges
+
+Use Cypher `CREATE` queries to add data:
+
+```python
+# Create a node
+client.query('CREATE (:Person {name="Marie", age=33})')
+
+# Create two nodes and an edge
+client.query('CREATE (:Person {name="Jane"})-[:KNOWS]-(:Person {name="John"})')
+```
+
+> ✅ All created entities must have at least one label (:Label)
+> 
+
+
+## 🔍 5. Query the Graph
+
+Retrieve data using Cypher `MATCH` queries.
+
+Results are returned as a **pandas DataFrame** for easy inspection:
+
+```python
+# Basic match query
+df = client.query("MATCH (n:Person) RETURN n.name, n.age")
+print(df)
+```
+
+### Approximate string search
+
+```python
+# Find nodes with name similar to 'alice'
+df = client.query('MATCH (n{name~="marie"}) RETURN n')
+```
+
+
+## 🧠 6. Explore the Graph
+
+You can introspect the graph schema with metaqueries:
+
+```python
+# List node labels
+print(client.query("CALL LABELS()"))
+
+# List edge types
+print(client.query("CALL EDGETYPES()"))
+
+# View all properties in the graph
+print(client.query("CALL PROPERTIES()"))
+```
+
+
+## 📦 7. Version Control & Snapshots
+
+TuringDB supports versioned graphs and snapshot isolation.
+
+### Create a new change (branch):
+
+```python
+client.checkout(change=1)  # Move to change ID 1
+```
+
+### Query a specific commit:
+
+```python
+client.checkout(change=1, commit="abc123")
+```
+
+### Go back to main branch:
+
+```python
+client.checkout("main")
+```
+
+## 🧪 Example: Full Session
+
+```python
+
+client = TuringDB(instance_id="...", auth_token="...")
+
+client.create_graph("people")
+client.load_graph("people")
+client.set_graph("people")
+
+client.query('CREATE (:Person {name="Marie", age=33})')
+client.query('CREATE (:Person {name="Jane"})-[:FRIEND_OF]-(:Person {name="John"})')
+
+df = client.query("MATCH (p:Person) RETURN p.name")
+print(df)
+```
+
+## 🛠 What’s Next?
+
+- 📘 Learn the [Query Language](/query/cypher_subset)
+- 🔀 Explore [Versioning & Changes](/concepts/commits)
+- 🤖 Try [AI Workflows](/workflows/workflow_concepts)
+
+Questions or feedback? → Join the [Discord](https://discord.gg/bYqgZ6WK) or [open an issue](https://github.com/turingdb)

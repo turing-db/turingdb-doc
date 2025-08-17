@@ -1,59 +1,204 @@
 ---
 title: 'Reference'
 sidebarTitle: 'Reference'
-description: 'Add image, video, and other HTML elements'
+description: 'References for TuringDB Python SDK'
 ---
+# 🐍 TuringDB Python SDK
 
-<img
-  style={{ borderRadius: '0.5rem' }}
-  src="https://mintlify-assets.b-cdn.net/bigbend.jpg"
-/>
+The TuringDB Python SDK provides an easy interface for connecting to your **TuringDB Cloud instance**, running queries, and managing graphs programmatically.
 
-## Image
+> 📦 Install the PythonSDK:
+> 
 
-### Using Markdown
+Using `pip`:
 
-The [markdown syntax](https://www.markdownguide.org/basic-syntax/#images) lets you add images using the following code
-
-```md
-![title](/path/image.jpg)
+```bash
+pip install turingdb
 ```
 
-Note that the image file size must be less than 5MB. Otherwise, we recommend hosting on a service like [Cloudinary](https://cloudinary.com/) or [S3](https://aws.amazon.com/s3/). You can then use that URL and embed.
+or using the `uv`  package manager (you will need to create a project first):
 
-### Using Embeds
-
-To get more customizability with images, you can also use [embeds](/writing-content/embed) to add images
-
-```html
-<img height="200" src="/path/image.jpg" />
+```bash
+uv add turingdb
 ```
 
-## Embeds and HTML elements
 
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/4KzFe50RQkQ"
-  title="YouTube video player"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-  style={{ width: '100%', borderRadius: '0.5rem' }}
-></iframe>
+## 🚀 Getting Started
 
-<br />
+```python
+from turingdb import TuringDB
 
-<Tip>
+client = TuringDB(
+    instance_id="your-instance-id",
+    auth_token="your-api-token"
+)
 
-Mintlify supports [HTML tags in Markdown](https://www.markdownguide.org/basic-syntax/#html). This is helpful if you prefer HTML tags to Markdown syntax, and lets you create documentation with infinite flexibility.
+# List available graphs
+print(client.list_available_graphs())
 
-</Tip>
-
-### iFrames
-
-Loads another HTML page within the document. Most commonly used for embedding videos.
-
-```html
-<iframe src="https://www.youtube.com/embed/4KzFe50RQkQ"> </iframe>
 ```
+
+> 🛑 Need help with tokens or IDs? See [Authentication Guide](/security/authentification)
+> 
+
+
+## 🔐 Initialization
+
+```python
+client = TuringDB(
+    instance_id: str,       # Your unique instance ID (from cloud UI)
+    auth_token: str,        # Your API token (from Settings > API Keys)
+    host: str = "...",      # Optional custom host URL (default for TuringDB Instance is prefilled)
+)
+```
+
+- Uses secure HTTPX client
+- Auth headers are set automatically
+- API gateway refreshes every 60s — wait after creating a token or instance
+
+
+## 🧭 Core Methods
+
+### `list_available_graphs() → list[str]`
+
+Returns all graphs you have access to on the TuringDB Cloud backend.
+
+```python
+client.list_available_graphs()
+```
+
+### `list_loaded_graphs() → list[str]`
+
+Returns the currently loaded graphs in memory.
+
+```python
+client.list_loaded_graphs()
+```
+
+### `create_graph(graph_name: str)`
+
+Creates a new empty graph with the specified name.
+
+```python
+client.create_graph("my_new_graph")
+```
+
+> Internally executes CREATE GRAPH "graph_name"
+
+
+### `load_graph(graph_name: str, raise_if_loaded: bool = True)`
+
+Loads a previously created graph into memory.
+
+```python
+client.load_graph("my_graph")
+```
+
+If `raise_if_loaded=False`, it will silently continue if the graph is already loaded.
+
+
+### `query(query: str) → pandas.DataFrame`
+
+Runs a Cypher query on the current graph.
+
+```python
+df = client.query("MATCH (n:Person) RETURN n.name, n.age")
+```
+
+Returns results as a `pandas.DataFrame`, with automatic typing and parsing.
+
+
+## 🧬 Version Control Helpers
+
+TuringDB supports **snapshot isolation** and **versioned commits**.
+
+Use the following helpers to navigate graph history or work in isolated changes:
+
+
+### `checkout(change: int | str = "main", commit: str = "HEAD")`
+
+Switches the working context to a specific change or commit.
+
+```python
+client.checkout(change=2, commit="abc123")
+client.checkout("main")  # Reset to default
+```
+
+- `change`: change ID or `"main"`
+- `commit`: commit hash or `"HEAD"`
+
+### `set_commit(commit: str)`
+
+Manually set the commit hash to use.
+
+```python
+client.set_commit("haax42")
+```
+
+### `set_change(change: int | str)`
+
+Manually set the change ID to use (accepts int or hex string).
+
+```python
+client.set_change(3)
+```
+
+### `set_graph(graph_name: str)`
+
+Change the current graph context.
+
+```python
+client.set_graph("another_graph")
+```
+
+## 📄 Response Format
+
+All queries return a `pandas.DataFrame`, typed according to schema:
+
+| Cypher Type | Python (NumPy) |
+| --- | --- |
+| `String` | `str` |
+| `Int64` | `int64` |
+| `UInt64` | `uint64` |
+| `Double` | `float64` |
+| `Boolean` | `bool` |
+
+## ⚠️ Error Handling
+
+All SDK errors raise a custom `TuringDBException`.
+
+```python
+try:
+    client.query("MATCH (x) RETURN x")
+except TuringDBException as e:
+    print("Query failed:", e)
+```
+
+
+## 🧪 Example Workflow
+
+```python
+client = TuringDB(instance_id="...", auth_token="...")
+
+client.create_graph("biograph")
+client.load_graph("biograph")
+
+client.set_graph("biograph")
+
+client.checkout(change=1)
+
+df = client.query("MATCH (n:Protein{name~='apoe'}) RETURN n.name, n.id")
+print(df)
+```
+
+## 🧠 Notes
+
+- The SDK uses httpx for async-compatible HTTP requests
+- Responses are parsed using `orjson` and converted into `pandas.DataFrame` for easy usage
+- Only graph name, change ID, and commit hash are sent with requests
+- SDK supports full TuringDB **Cypher dialect**, including `@` node injection, `~=` matching, and versioned queries
+
+
+Need help writing queries? → See the [TuringDB Query Cheatsheet](/query/cheatsheet)
+
+You can also find the TuringDB PythonSDK in [Github](https://github.com/turing-db/turingdb-sdk-python)
