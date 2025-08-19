@@ -58,7 +58,8 @@
           {
             "group": "Tutorials",
             "pages": [
-              "tutorials/create_graph"
+              "tutorials/create_graph", 
+              "tutorials/workflow_docs2graph"
             ]
           },
           {
