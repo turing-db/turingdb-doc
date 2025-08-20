@@ -4,6 +4,10 @@ sidebarTitle: "Create a Change"
 description: "Creating a change on a TuringDB graph is similar to creating a new branch on a git repository. It gives you access to an isolated writable environment that has no impact on other users."
 ---
 
+<Warning>
+   On this release version, avoid doing too many small commits on a graph and favorise bulk changes. It can lead to a loss in query performance after too many commits on a graph. This will be fixed in the next release. 
+</Warning>
+
 <Tabs>
   <Tab title="Python SDK">
     ```python

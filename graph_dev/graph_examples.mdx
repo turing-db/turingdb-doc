@@ -31,6 +31,39 @@ description: "Examples on how to create and query a graph from scratch"
     COMING
   </Tab>
   <Tab title="Python SDK">
-    COMING
+    ```python
+  from turingdb import TuringDB
+  
+  # Connect to your TuringDB instance
+  client = TuringDB(
+      instance_id="your-instance-id",
+      auth_token="your-api-token"
+  )
+  
+  # Set the graph you want to work with
+  graph_name = "graph_name"
+  client.set_graph(graph_name)
+  
+  # 1. Create a new change
+  change_response = client.query("CHANGE NEW")
+  
+  # Extract the change ID (in hex format)
+  change_id = change_response.iloc[0, 0]
+  print(f"Created change ID: {change_id}")
+  
+  # 2. Checkout to the new change
+  client.checkout(change=change_id)
+  
+  # 3. Submit a query to that change
+  client.query('CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})')
+  
+  # 4. Submit the change to the main graph
+  client.query("CHANGE SUBMIT")
+  
+  # 5. Query the main branch to validate
+  client.checkout("main")  # back to HEAD
+  df = client.query('MATCH (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"}) RETURN n, e, m')
+  print(df)
+```
   </Tab>
 </Tabs>
