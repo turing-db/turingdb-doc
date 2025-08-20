@@ -1,0 +1,210 @@
+---
+title: "Multiple documents (clinical notes) to graph"
+sidebarTitle: "Multidocs Workflow"
+description: "Build a clinical graph from multiple notes from clinical encounters"
+---
+
+This guide demonstrates how to create a comprehensive workflow that processes files from S3 storage, extracts entities using AI, and generates a knowledge graph. The workflow combines file processing, machine learning, and data visualization.
+
+Here we take multiple clinical notes documents (for the example we are using synthetic data), to uncover relationships between treatments, markers, health events, symptoms, clinical outcomes of a patient across multiple encounters.
+
+You can learn more on how our workflow works:
+
+[Workflow Concepts](/workflows/workflow_concepts)
+
+## Workflow Overview
+
+This workflow performs the following operations:
+
+1. Lists files from S3 storage
+2. Iterates through each file using a ForEach loop
+3. Loads the file content
+4. Extracts entities using Mistral AI
+5. Merges all extracted entities
+6. Writes data to TuringDB
+7. Generates GML (Graph Modeling Language) output
+8. Creates an AI-powered summary of the graph
+
+![Overview Workflow](/images/clinicalnotes_workflow/pic1.png)
+
+## Step-by-Step Implementation
+
+### Step 1. Upload the clinical reports to S3
+
+[clinical-reports.zip](https://drive.google.com/file/d/1s63ymOBMwBs0IrG1wZvFRmkStmTruAIg/view?usp=sharing)
+
+First of all, download the example clinical reports, and upload them to your S3 data storage
+
+### Step 2. Add an S3ListFiles node
+
+Create a new workflow and add an **S3ListFiles** node as a first step.
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Filenames: List of specific filenames to process
+  - Output Field: `files`
+  - Max item Count: `5` (limits the number of files processed)
+
+This node will output a collection of file references that can be processed by subsequent nodes.
+
+<img
+  src="/images/clinicalnotes_workflow/pic2.png"
+  alt="S3ListFiles"
+  style={{ width:"38%" }}
+/>
+
+### Step 3: Set Up ForEach Loop
+
+Add a **ForEach** node to iterate through the file list and connect its first input to the previously created **S3ListFiles** node
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Current Field: `$i` (iterator variable name)
+  - Collection field: `$files` (references the output from S3ListFiles)
+
+The ForEach node creates a loop structure that will process each file individually.
+
+<img
+  src="/images/clinicalnotes_workflow/pic3.png"
+  alt="pic3"
+  style={{ width:"47%" }}
+/>
+
+### Step 4: Load File Content
+
+Add a new **S3LoadFile** node to the canvas, and connect its input to the first output of the previously created **ForEach** node.
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Output Field: `$file_contents[$files[$i].key]`
+  - File Key (the name of the file): `$files[$i].key`
+  - File Type: `text`
+
+This node loads the actual content of each file for processing, and stores the content in a new `$file_contents` dict, using the name of the file (`$files[$i].key`) as the key
+
+<img
+  src="/images/clinicalnotes_workflow/pic4.png"
+  alt="pic4"
+  style={{ width:"50%" }}
+/>
+
+### Step 5: Extract Entities with AI
+
+Add a **MistralEntityExtractor** node to analyze the current file’s content. Connect its input to the output of the previous **S3LoadFile** node. In order to close the **ForEach** loop, connect its output to the second input of the **ForEach** node.
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Input Field Name: `$file_contents[$files[$i].key].data`
+  - Output Field Name: `$entities[$files[$i].key]`
+
+This node uses Mistral AI to identify and extract entities from each file's content retrieved from the `$file_contents` dict at the `$files[$i].key` key. The resulting entities are stored in a new `$entities`
+
+<img
+  src="/images/clinicalnotes_workflow/pic5.png"
+  alt="pic5"
+  style={{ width:"49%" }}
+/>
+
+### Step 6: Merge All Entities
+
+After the loop, the JSON data will contain a dict field `$entities` with key/value pairs corresponding to filename/extracted_entities. Thus, we now need to merge the entities into a single object. Add a **MergeEntities** node to the canvas and connect its input to the second output of the **ForEach** node. The node will be executed as soon as we exit out of the loop.
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Input Field: `$entities`
+  - Output Field: `$merged_entities`
+
+<img
+  src="/images/clinicalnotes_workflow/pic6.png"
+  alt="pic6"
+  style={{ width:"53%" }}
+/>
+
+### Step 7: Write to Database
+
+Add a **TuringDBWrite** node to create new graph containing the extracted entities. Connect the node’s input to the previous **MergeEntities** node’s output
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Input Field: `$merged_entities`
+  - Graph Name: `multi_doc`
+
+<img
+  src="/images/clinicalnotes_workflow/pic7.png"
+  alt="pic7"
+  style={{ width:"53%" }}
+/>
+
+### Step 8: Generate Graph Format
+
+In parallel, we can generate a `gml` file and ask an LLM to explain the structure of the graph. Add a **GMLGenerator** node to the canvas and connect its input to the **MergeEntities** node’s output.
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Input Field Name: `$merged_entities`
+  - Output Field Name: `$gml`
+
+<img
+  src="/images/clinicalnotes_workflow/pic8.png"
+  alt="pic8"
+  style={{ width:"58%" }}
+/>
+
+### Step 9: Create AI Summary
+
+Finally, add a **MistralGraphExplainer** node and connect its input to the **GMLGenerator** node’s output
+
+**Node Configuration:**
+
+- **Parameters**:
+  - Input Field Name: `$merged_entities`
+  - Output Field Name: `$gml`
+
+<img
+  src="/images/clinicalnotes_workflow/pic9.png"
+  alt="pic9"
+  style={{ width:"60%" }}
+/>
+
+## Key Features Demonstrated
+
+### Data Field Operations
+
+The workflow showcases advanced data field manipulation:
+
+- **Append operations**: Building collections over iterations
+- **Dynamic field access**: Using `$files[$i].key` for array indexing
+- **Field chaining**: Connecting data between multiple nodes
+
+### Loop Processing
+
+The ForEach construct enables:
+
+- Iterative file processing
+- Dynamic data collection
+
+### Parallel Processing
+
+The workflow splits into two branches after entity merging:
+
+- Database storage path
+- Visualization and summary path
+
+## Expected Output
+
+Upon completion, this workflow produces:
+
+- A populated TuringDB graph with extracted entities -\> checkout the graph generated in Graph Visualiser of your TuringDB instance
+- GML format representation suitable for graph visualization tools
+- An AI-generated summary explaining the relationships and insights discovered in your data
+
+Explore the clinical graph:
+
+![Clinical Graph](/images/clinical_graph.png)

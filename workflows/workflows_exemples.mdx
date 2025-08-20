@@ -1,533 +1,534 @@
 ---
-title: 'Workflow Examples'
-sidebarTitle: 'Workflow Examples'
-description: 'Get access to example of workflows you can use and copy for your own application'
+title: "Workflow Examples"
+sidebarTitle: "Workflow Examples"
+description: "Get access to example of workflows you can use and copy for your own application"
 ---
+
 Here you can find some exemples of analytical & agentic workflows that can be built & executed to analyse complex connected data with TuringDB
 
-Codeblock showing one or two simple workflows
-
-## Database Integration
-
-Integrate a simple relational database to be transformed in a graph database structure to visualise, analyse, and reason on the graphs. 
-
-Example with our partner antibody database from CiteAb (sample database): 
-
-From table structure to graph 
-
-📔 **Notebook exported as HTML** 
-
-[workflow-CiteAb.html](attachment:2b99abe3-d9ec-43e4-ab03-82ebf0b27162:workflow-CiteAb.html)
-
-- 👨🏻‍💻 **Workflow code**
-    
-    ```bash
-    %%time
-    
-    builder = FlowBuilder()
-    
-    # Text Input - Gml 
-    input_gml = builder.add_node(
-        InputText.Node(
-            params=InputText.Params(
-                output_field="gml_raw",
-                content=gml_content
-            ),
-        ),
-    )
-    
-    # Text Input - Query
-    input_query = builder.add_node(
-        InputText.Node(
-            params=InputText.Params(
-                output_field="query_natural_language",
-                content=query_natural_language
-            ),
-        ),
-    )
-    
-    # Text Input - Graph entities
-    input_entities = builder.add_node(
-        InputText.Node(
-            params=InputText.Params(
-                output_field="entities",
-                content=entities_obj
-            ),
-        ),
-    )
-    
-    # Merge
-    merge1 = builder.add_node(
-        Merge.Node()
-    )
-    
-    # Graph Explainer
-    explainer = builder.add_node(
-        MistralGraphExplainer.Node(
-            params=MistralGraphExplainer.Params(
-                input_field="gml_raw",
-                output_field="gml_summary"
-            )
-        )
-    )
-    
-    # Text2Cypher
-    text2cypher = builder.add_node(
-        Text2Cypher.Node(
-            name="Text2Cypher",
-            params=Text2Cypher.Params(
-                input_field="query_natural_language",
-                output_field="cypher_query",
-                
-                llm_provider="OpenAI",
-                #api_key_openai=api_keys["OpenAI"],
-                model="gpt-4.1",
-                
-                # Optional: Provide graph schema for better queries
-                node_labels=node_labels,
-                relationship_types=relationship_types, 
-                property_keys=property_keys,
-    
-                # Optional: Provide graph raw gml content
-                gml_content=gml_content,
-                
-                # Optional: Database description
-                database_description="Graph containing interactions between antibodies and proteins (with parameters) from CiteAb life science data company",
-            )
-        )
-    )
-    
-    # Create graph
-    write_query = builder.add_node(
-        TuringDBWrite.Node(
-            params=TuringDBWrite.Params(
-                input_field="entities",
-                instance_id=instance_id,
-                auth_token=auth_token,
-                graph_name=graph_name,
-            )
-        )
-    )
-    
-    # Read graph
-    read_query = builder.add_node(
-        TuringDBQuery.Node(
-            params=TuringDBQuery.Params(
-                input_field="cypher_query",
-                output_field="result_query",
-                instance_id=instance_id,
-                auth_token=auth_token,
-                graph_name=graph_name
-            )
-        )
-    )
-    
-    # Merge
-    merge2 = builder.add_node(
-        Merge.Node()
-    )
-    
-    # Connect nodes
-    input_gml.connect_to(merge1)
-    input_query.connect_to(merge1)
-    input_entities.connect_to(merge1)
-    
-    merge1.connect_to(explainer)
-    merge1.connect_to(text2cypher)
-    
-    text2cypher.connect_to(write_query)
-    write_query.connect_to(read_query)
-    
-    explainer.connect_to(merge2)
-    read_query.connect_to(merge2)
-    
-    # Build flow
-    pipeline = builder.build()
-    
-    # Show pipeline image
-    pipeline
-    ```
-    
-
-## Automatic Queries from APIs
-
-Here we define a list of stock tickers from the ARKK ETF to automatically query them from a finance data API (i.e., Polygon or FinancialData) to then be analysed as a correlation graph of the stocks and as a dependency graph of the companies in the ARKK ETF portfolio.
-
-📔 **Notebook exported as HTML** 
-
-[workflow-ARKK_ETF.html](attachment:1badba65-407d-4ddb-94c8-04ffbd46de26:workflow-ARKK_ETF.html)
-
-- 👨🏻‍💻 **Workflow code**
-    
-    ```python
-    %%time
-    
-    builder = FlowBuilder()
-    
-    # S3LoadFile node
-    s3_loader = builder.add_node(
-        S3LoadFile.Node(
-            params=S3LoadFile.Params(
-                output_field="pdf_base64",
-                
-                user_id=user_id,
-                file_key=file_key_pdf_input,
-                file_type="pdf"
-            )
-        )
-    )
-    
-    # ExtractTextPDF
-    pdf_text_extractor = builder.add_node(
-        ExtractTextPDF.Node(
-            name="ExtractTextPDF",
-            params=ExtractTextPDF.Params(
-                input_field="pdf_base64",
-                output_field="pdf_text"
-            )
-        )
-    )
-    
-    # LLM
-    llm = builder.add_node(
-        LLM.Node(
-            name="LLM",
-            params=LLM.Params(
-                input_field="pdf_text.all_content",
-                output_field="list_companies_tickers",
-                api_key_anthropic="<your_api_key_anthropic>",
-                llm_provider="Anthropic",
-                system_prompt="""
-                Your role :
-                - Extract companies tickers from this input text
-                - Return the extracted companies tickers as a list
-                Very important :
-                - Return only this list, no other explanations
-                """,
-                output_format="list"
-            )
-        )
-    )
-    
-    # ForEach
-    for_each = builder.add_node(
-        ForEach.Node(
-            params=ForEach.Params(
-                list_field="list_companies_tickers",
-                offset_field="i"
-            )
-        )
-    )
-    
-    # FinancialDataRestAPI : stock prices
-    financial_data = builder.add_node(
-        FinancialDataRestAPI.Node(
-            params=FinancialDataRestAPI.Params(
-                output_field=DataField(field="$stock_prices", action="append"),
-                
-                api_key=financial_data_api_key,
-                endpoint_type="stock_prices",
-                identifier=DataField(field="$list_companies_tickers[$i]", action="set"),
-                #offset=0,
-                #format="json"
-            )
-        )
-    )
-    
-    # OutputText - Get all data
-    out = builder.add_node(
-        OutputText.Node(
-            params=OutputText.Params(
-                input_field="$stock_prices[$i]",
-                output_field=DataField(field="$stock_prices_all[$i]", action="append")
-            )
-        )
-    )
-    
-    # Connect nodes
-    s3_loader.connect_to(pdf_text_extractor)
-    pdf_text_extractor.connect_to(llm)
-    llm.connect_to(for_each)
-    for_each.connect_to(financial_data)
-    financial_data.connect_to(out)
-    out.connect_to(for_each)
-    
-    # Build flow
-    pipeline = builder.build()
-    
-    # Execute flow
-    results = pipeline.execute()
-    
-    # Show pipeline image
-    pipeline
-    ```
-    
+<Warning> Unfortunately, the open source workflow LangGraph wrapper could not be added to the August2025 release in time, but it will be made available in the September2025 release. 
+Right now the workflows can be used in our TuringDB cloud</Warning>
 
 ## Multi-Documents to Graph
 
-Here we take multiple clinical notes documents (for the exemple we are using synthetic data), to uncover relationships between treatments, markers, health events, symptoms, clinical outcomes of a patient across multiple encounters. 
+### See tutorial for hands on exemple: [Clinical Notes - Multidocs tutorial](/tutorials/workflow_clinicalnotes)
 
-📔 **Notebook exported as HTML** 
+Here we take multiple clinical notes documents (for the exemple we are using synthetic data), to uncover relationships between treatments, markers, health events, symptoms, clinical outcomes of a patient across multiple encounters.
 
-[workflow-multidocument_analysis.html](attachment:d1d5f58c-df4c-4fd9-9392-4382f2b94afc:workflow-multidocument_analysis.html)
+📔 [**Notebook exported as HTML**](https://drive.google.com/file/d/102mDjxIDD_lTxnwWkkP1nU_7cWyNVjQC/view?usp=sharing)
 
 - 👨🏻‍💻 **Workflow code**
-    
-    ```python
-    %%time
-    
-    builder = FlowBuilder()
-    
-    # S3ListFiles
-    files = builder.add_node(
-        S3ListFiles.Node(
-            params=S3ListFiles.Params(
-                user_id=user_id,
-                filenames=list_filenames,
-                max_item_count=2
-            )
-        )
-    )
-    
-    # InputText - Query input
-    input_query = builder.add_node(
-        InputText.Node(
-            params=InputText.Params(
-                output_field="$query",
-                content=read_query_str
-            ),
-        ),
-    )
-    
-    # Merge
-    merge = builder.add_node(
-        Merge.Node()
-    )
-    
-    # ForEach
-    for_each = builder.add_node(
-        ForEach.Node(
-            params=ForEach.Params(
-                collection_field="files",
-                current_field="i"
-            )
-        )
-    )
-    
-    # S3LoadFile
-    s3_loader = builder.add_node(
-        S3LoadFile.Node(
-            params=S3LoadFile.Params(
-                output_field=DataField(field="$file_content", action="append"),
-                
-                user_id=user_id,
-                file_key=DataField(field="$files[$i].key", action="set"),
-                file_type="text",
-            )
-        )
-    )
-    
-    # MistralEntityExtractor
-    extractor = builder.add_node(
-        MistralEntityExtractor.Node(
-            params=MistralEntityExtractor.Params(
-                input_field="$file_content[$i].data",
-                output_field=DataField(field="$list_entities", action="append"),
-            )
-        )
-    )
-    
-    # MergeEntities
-    merge_entities = builder.add_node(
-        MergeEntities.Node(
-            params=MergeEntities.Params(
-                input_field="$list_entities",
-                output_field="merged_entities"
-            )
-        )
-    )
-    
-    # Create graph
-    write_query = builder.add_node(
-        TuringDBWrite.Node(
-            params=TuringDBWrite.Params(
-                input_field="merged_entities",
-                instance_id=instance_id,
-                auth_token=auth_token,
-                graph_name=graph_name,
-            )
-        )
-    )
-    
-    # Read graph
-    read_query = builder.add_node(
-        TuringDBQuery.Node(
-            params=TuringDBQuery.Params(
-                input_field="query",
-                output_field="query_result",
-                instance_id=instance_id,
-                auth_token=auth_token,
-                graph_name=graph_name
-            )
-        )
-    )
-    
-    # Generate GML
-    generator = builder.add_node(
-        GmlGenerator.Node(
-            params=GmlGenerator.Params(
-                input_field="$merged_entities",
-                output_field="gml"
-            )
-        )
-    )
-    
-    # Graph summary
-    explainer = builder.add_node(
-        MistralGraphExplainer.Node(
-            params=MistralGraphExplainer.Params(
-                input_field="gml",
-                output_field="gml_summary"
-            )
-        )
-    )
-    
-    # Text Output
-    out = builder.add_node(
-        OutputText.Node(
-            params=OutputText.Params(
-                input_field="gml_summary",
-                output_field="output"
-            ),
-        )
-    )
-    
-    # Merge
-    merge2 = builder.add_node(
-        Merge.Node()
-    )
-    
-    # Connect nodes
-    files.connect_to(merge)
-    input_query.connect_to(merge)
-    merge.connect_to(for_each)
-    
-    for_each.connect_to(s3_loader)
-    s3_loader.connect_to(extractor)
-    extractor.connect_to(for_each)
-    for_each.connect_to(merge_entities)
-    merge_entities.connect_to(write_query)
-    write_query.connect_to(read_query)
-    merge_entities.connect_to(generator)
-    generator.connect_to(explainer)
-    explainer.connect_to(out)
-    
-    out.connect_to(merge2)
-    read_query.connect_to(merge2)
-    
-    # Build flow
-    pipeline = builder.build()
-    
-    # Show pipeline image
-    pipeline
-    ```
-    
+
+  ```python expandable
+  %%time 
+  
+  builder = FlowBuilder()
+  
+  # S3ListFiles
+  files = builder.add_node(
+      S3ListFiles.Node(
+          params=S3ListFiles.Params(
+              user_id=user_id,
+              filenames=list_filenames,
+              max_item_count=2
+          )
+      )
+  )
+  
+  # InputText - Query input
+  input_query = builder.add_node(
+      InputText.Node(
+          params=InputText.Params(
+              output_field="$query",
+              content=read_query_str
+          ),
+      ),
+  )
+  
+  # Merge
+  merge = builder.add_node(
+      Merge.Node()
+  )
+  
+  # ForEach
+  for_each = builder.add_node(
+      ForEach.Node(
+          params=ForEach.Params(
+              collection_field="files",
+              current_field="i"
+          )
+      )
+  )
+  
+  # S3LoadFile
+  s3_loader = builder.add_node(
+      S3LoadFile.Node(
+          params=S3LoadFile.Params(
+              output_field=DataField(field="$file_content", action="append"),
+              
+              user_id=user_id,
+              file_key=DataField(field="$files[$i].key", action="set"),
+              file_type="text",
+          )
+      )
+  )
+  
+  # MistralEntityExtractor
+  extractor = builder.add_node(
+      MistralEntityExtractor.Node(
+          params=MistralEntityExtractor.Params(
+              input_field="$file_content[$i].data",
+              output_field=DataField(field="$list_entities", action="append"),
+          )
+      )
+  )
+  
+  # MergeEntities
+  merge_entities = builder.add_node(
+      MergeEntities.Node(
+          params=MergeEntities.Params(
+              input_field="$list_entities",
+              output_field="merged_entities"
+          )
+      )
+  )
+  
+  # Create graph
+  write_query = builder.add_node(
+      TuringDBWrite.Node(
+          params=TuringDBWrite.Params(
+              input_field="merged_entities",
+              instance_id=instance_id,
+              auth_token=auth_token,
+              graph_name=graph_name,
+          )
+      )
+  )
+  
+  # Read graph
+  read_query = builder.add_node(
+      TuringDBQuery.Node(
+          params=TuringDBQuery.Params(
+              input_field="query",
+              output_field="query_result",
+              instance_id=instance_id,
+              auth_token=auth_token,
+              graph_name=graph_name
+          )
+      )
+  )
+  
+  # Generate GML
+  generator = builder.add_node(
+      GmlGenerator.Node(
+          params=GmlGenerator.Params(
+              input_field="$merged_entities",
+              output_field="gml"
+          )
+      )
+  )
+  
+  # Graph summary
+  explainer = builder.add_node(
+      MistralGraphExplainer.Node(
+          params=MistralGraphExplainer.Params(
+              input_field="gml",
+              output_field="gml_summary"
+          )
+      )
+  )
+  
+  # Text Output
+  out = builder.add_node(
+      OutputText.Node(
+          params=OutputText.Params(
+              input_field="gml_summary",
+              output_field="output"
+          ),
+      )
+  )
+  
+  # Merge
+  merge2 = builder.add_node(
+      Merge.Node()
+  )
+  
+  # Connect nodes
+  files.connect_to(merge)
+  input_query.connect_to(merge)
+  merge.connect_to(for_each)
+  
+  for_each.connect_to(s3_loader)
+  s3_loader.connect_to(extractor)
+  extractor.connect_to(for_each)
+  for_each.connect_to(merge_entities)
+  merge_entities.connect_to(write_query)
+  write_query.connect_to(read_query)
+  merge_entities.connect_to(generator)
+  generator.connect_to(explainer)
+  explainer.connect_to(out)
+  
+  out.connect_to(merge2)
+  read_query.connect_to(merge2)
+  
+  # Build flow
+  pipeline = builder.build()
+  
+  # Show pipeline image
+  pipeline
+  ```
 
 ## Document to Graph
 
 Here we study the supply chain of Apple trying to see the interaction and dependencies on different countries & regions for different parts (e.g. batteries, screens, etc) of Apple products. The reference document used is a report from the [American Enterprise Institute](https://www.aei.org/research-products/report/apples-supply-chain-economic-and-geopolitical-implications/?utm_source=chatgpt.com)
 
-📔 **Notebook exported as HTML** 
+📔 **Notebook exported as HTML**
 
-[workflow-Apple_supply_chain.html](attachment:5de8aa89-5d70-41fc-a388-2603c7c46432:workflow-Apple_supply_chain.html)
+[workflow-Apple_supply_chain.html](https://drive.google.com/file/d/1IidG_UScDIHltRrjIFv-QOVjW_denjOb/view?usp=sharing)
 
 - 👨🏻‍💻 **Workflow code**
-    
-    ```bash
-    %%time
-    
-    builder = FlowBuilder()
-    
-    # S3LoadFile node
-    s3_loader = builder.add_node(
-        S3LoadFile.Node(
-            params=S3LoadFile.Params(
-                output_field="pdf_base64",
-                
-                user_id=user_id,
-                file_key=file_key_pdf_input,
-                file_type="pdf"
-            )
-        )
-    )
-    
-    # ExtractTextPDF
-    pdf_text_extractor = builder.add_node(
-        ExtractTextPDF.Node(
-            name="ExtractTextPDF",
-            params=ExtractTextPDF.Params(
-                input_field="pdf_base64",
-                output_field="pdf_text"
-            )
-        )
-    )
-    
-    # Entity Extractor
-    extractor = builder.add_node(
-        MistralEntityExtractor.Node(
-            name="Entity Extractor",
-            params=MistralEntityExtractor.Params(
-                input_field="pdf_text.all_content",
-                output_field="extracted_entities"
-            )
-        )
-    )
-    
-    # GML Generator node
-    generator = builder.add_node(
-        GmlGenerator.Node(
-            name="GML Generator",
-            params=GmlGenerator.Params(
-                input_field="extracted_entities",
-                output_field="gml_generated"
-            )
-        )
-    )
-    
-    # Graph Explainer
-    explainer = builder.add_node(
-        MistralGraphExplainer.Node(
-            name="Graph Explainer",
-            params=MistralGraphExplainer.Params(
-                input_field="gml_generated",
-                output_field="gml_summary"
-            )
-        )
-    )
-    
-    # Text Output
-    out = builder.add_node(
-        OutputText.Node(
-            name="Text Output",
-            params=OutputText.Params(
-                input_field="gml_summary"
-            ),
-        )
-    )
-    
-    # Connect nodes
-    s3_loader.connect_to(pdf_text_extractor)
-    pdf_text_extractor.connect_to(extractor)
-    extractor.connect_to(generator)
-    generator.connect_to(explainer)
-    explainer.connect_to(out)
-    
-    # Build flow
-    pipeline = builder.build()
-    
-    # Execute flow
-    results = pipeline.execute()
-    
-    # Show pipeline image
-    pipeline
-    ```
+
+  ```python expandable
+  %%time
+  
+  builder = FlowBuilder()
+  
+  # S3LoadFile node
+  s3_loader = builder.add_node(
+      S3LoadFile.Node(
+          params=S3LoadFile.Params(
+              output_field="pdf_base64",
+              
+              user_id=user_id,
+              file_key=file_key_pdf_input,
+              file_type="pdf"
+          )
+      )
+  )
+  
+  # ExtractTextPDF
+  pdf_text_extractor = builder.add_node(
+      ExtractTextPDF.Node(
+          name="ExtractTextPDF",
+          params=ExtractTextPDF.Params(
+              input_field="pdf_base64",
+              output_field="pdf_text"
+          )
+      )
+  )
+  
+  # Entity Extractor
+  extractor = builder.add_node(
+      MistralEntityExtractor.Node(
+          name="Entity Extractor",
+          params=MistralEntityExtractor.Params(
+              input_field="pdf_text.all_content",
+              output_field="extracted_entities"
+          )
+      )
+  )
+  
+  # GML Generator node
+  generator = builder.add_node(
+      GmlGenerator.Node(
+          name="GML Generator",
+          params=GmlGenerator.Params(
+              input_field="extracted_entities",
+              output_field="gml_generated"
+          )
+      )
+  )
+  
+  # Graph Explainer
+  explainer = builder.add_node(
+      MistralGraphExplainer.Node(
+          name="Graph Explainer",
+          params=MistralGraphExplainer.Params(
+              input_field="gml_generated",
+              output_field="gml_summary"
+          )
+      )
+  )
+  
+  # Text Output
+  out = builder.add_node(
+      OutputText.Node(
+          name="Text Output",
+          params=OutputText.Params(
+              input_field="gml_summary"
+          ),
+      )
+  )
+  
+  # Connect nodes
+  s3_loader.connect_to(pdf_text_extractor)
+  pdf_text_extractor.connect_to(extractor)
+  extractor.connect_to(generator)
+  generator.connect_to(explainer)
+  explainer.connect_to(out)
+  
+  # Build flow
+  pipeline = builder.build()
+  
+  # Execute flow
+  results = pipeline.execute()
+  
+  # Show pipeline image
+  pipeline
+  ```
+
+
+## Database Integration
+
+Integrate a simple relational database to be transformed in a graph database structure to visualise, analyse, and reason on the graphs.
+
+Example with our partner antibody database from CiteAb (sample database):
+
+From table structure to graph
+
+📔 **Notebook exported as HTML**
+
+[workflow-CiteAb.html](https://drive.google.com/file/d/10DnSNrdRjNhrzVhc7MBHP7M-KYvk0tj0/view?usp=sharing)
+
+- 👨🏻‍💻 **Workflow code**
+
+  ```python expandable
+  %%time
+  
+  builder = FlowBuilder()
+  
+  # Text Input - Gml 
+  input_gml = builder.add_node(
+      InputText.Node(
+          params=InputText.Params(
+              output_field="gml_raw",
+              content=gml_content
+          ),
+      ),
+  )
+  
+  # Text Input - Query
+  input_query = builder.add_node(
+      InputText.Node(
+          params=InputText.Params(
+              output_field="query_natural_language",
+              content=query_natural_language
+          ),
+      ),
+  )
+  
+  # Text Input - Graph entities
+  input_entities = builder.add_node(
+      InputText.Node(
+          params=InputText.Params(
+              output_field="entities",
+              content=entities_obj
+          ),
+      ),
+  )
+  
+  # Merge
+  merge1 = builder.add_node(
+      Merge.Node()
+  )
+  
+  # Graph Explainer
+  explainer = builder.add_node(
+      MistralGraphExplainer.Node(
+          params=MistralGraphExplainer.Params(
+              input_field="gml_raw",
+              output_field="gml_summary"
+          )
+      )
+  )
+  
+  # Text2Cypher
+  text2cypher = builder.add_node(
+      Text2Cypher.Node(
+          name="Text2Cypher",
+          params=Text2Cypher.Params(
+              input_field="query_natural_language",
+              output_field="cypher_query",
+              
+              llm_provider="OpenAI",
+              #api_key_openai=api_keys["OpenAI"],
+              model="gpt-4.1",
+              
+              # Optional: Provide graph schema for better queries
+              node_labels=node_labels,
+              relationship_types=relationship_types, 
+              property_keys=property_keys,
+  
+              # Optional: Provide graph raw gml content
+              gml_content=gml_content,
+              
+              # Optional: Database description
+              database_description="Graph containing interactions between antibodies and proteins (with parameters) from CiteAb life science data company",
+          )
+      )
+  )
+  
+  # Create graph
+  write_query = builder.add_node(
+      TuringDBWrite.Node(
+          params=TuringDBWrite.Params(
+              input_field="entities",
+              instance_id=instance_id,
+              auth_token=auth_token,
+              graph_name=graph_name,
+          )
+      )
+  )
+  
+  # Read graph
+  read_query = builder.add_node(
+      TuringDBQuery.Node(
+          params=TuringDBQuery.Params(
+              input_field="cypher_query",
+              output_field="result_query",
+              instance_id=instance_id,
+              auth_token=auth_token,
+              graph_name=graph_name
+          )
+      )
+  )
+  
+  # Merge
+  merge2 = builder.add_node(
+      Merge.Node()
+  )
+  
+  # Connect nodes
+  input_gml.connect_to(merge1)
+  input_query.connect_to(merge1)
+  input_entities.connect_to(merge1)
+  
+  merge1.connect_to(explainer)
+  merge1.connect_to(text2cypher)
+  
+  text2cypher.connect_to(write_query)
+  write_query.connect_to(read_query)
+  
+  explainer.connect_to(merge2)
+  read_query.connect_to(merge2)
+  
+  # Build flow
+  pipeline = builder.build()
+  
+  # Show pipeline image
+  pipeline
+  ```
+
+## Automatic Queries from APIs
+
+Here we define a list of stock tickers from the ARKK ETF to automatically query them from a finance data API (i.e., Polygon or FinancialData) to then be analysed as a correlation graph of the stocks and as a dependency graph of the companies in the ARKK ETF portfolio.
+
+📔 **Notebook exported as HTML**
+
+[workflow-ARKK_ETF.html](https://drive.google.com/file/d/17-dszNEr2qfB5oDnYPN2ISXQCcB00xaR/view?usp=sharing)
+
+- 👨🏻‍💻 **Workflow code**
+
+  ```python expandable
+  %%time
+  
+  builder = FlowBuilder()
+  
+  # S3LoadFile node
+  s3_loader = builder.add_node(
+      S3LoadFile.Node(
+          params=S3LoadFile.Params(
+              output_field="pdf_base64",
+              
+              user_id=user_id,
+              file_key=file_key_pdf_input,
+              file_type="pdf"
+          )
+      )
+  )
+  
+  # ExtractTextPDF
+  pdf_text_extractor = builder.add_node(
+      ExtractTextPDF.Node(
+          name="ExtractTextPDF",
+          params=ExtractTextPDF.Params(
+              input_field="pdf_base64",
+              output_field="pdf_text"
+          )
+      )
+  )
+  
+  # LLM
+  llm = builder.add_node(
+      LLM.Node(
+          name="LLM",
+          params=LLM.Params(
+              input_field="pdf_text.all_content",
+              output_field="list_companies_tickers",
+              api_key_anthropic="<your_api_key_anthropic>",
+              llm_provider="Anthropic",
+              system_prompt="""
+              Your role :
+              - Extract companies tickers from this input text
+              - Return the extracted companies tickers as a list
+              Very important :
+              - Return only this list, no other explanations
+              """,
+              output_format="list"
+          )
+      )
+  )
+  
+  # ForEach
+  for_each = builder.add_node(
+      ForEach.Node(
+          params=ForEach.Params(
+              list_field="list_companies_tickers",
+              offset_field="i"
+          )
+      )
+  )
+  
+  # FinancialDataRestAPI : stock prices
+  financial_data = builder.add_node(
+      FinancialDataRestAPI.Node(
+          params=FinancialDataRestAPI.Params(
+              output_field=DataField(field="$stock_prices", action="append"),
+              
+              api_key=financial_data_api_key,
+              endpoint_type="stock_prices",
+              identifier=DataField(field="$list_companies_tickers[$i]", action="set"),
+              #offset=0,
+              #format="json"
+          )
+      )
+  )
+  
+  # OutputText - Get all data
+  out = builder.add_node(
+      OutputText.Node(
+          params=OutputText.Params(
+              input_field="$stock_prices[$i]",
+              output_field=DataField(field="$stock_prices_all[$i]", action="append")
+          )
+      )
+  )
+  
+  # Connect nodes
+  s3_loader.connect_to(pdf_text_extractor)
+  pdf_text_extractor.connect_to(llm)
+  llm.connect_to(for_each)
+  for_each.connect_to(financial_data)
+  financial_data.connect_to(out)
+  out.connect_to(for_each)
+  
+  # Build flow
+  pipeline = builder.build()
+  
+  # Execute flow
+  results = pipeline.execute()
+  
+  # Show pipeline image
+  pipeline
+  ```
+
