@@ -1,527 +1,446 @@
 ---
 title: "Node References"
 sidebarTitle: 'Node References'
-description: "Here we descritbe how to use nodes in the workflows and the types of nodes already pre-built and available to use"
+description: "Here we describe how to use nodes in the workflows and the types of nodes already pre-built and available to use"
 ---
 
-# 🧱 Node Reference
+This page provides comprehensive documentation for all available node types
 
-This section documents all available **Workflow Nodes** in TuringDB.
+## Database nodes
 
-Workflows are made up of nodes, each representing a **task** like loading data, calling an API, querying a graph, or transforming text.
+### TuringDB Query
+![pic1](/images/nodes/pic1)
 
-<Warning> Unfortunately, the open source workflow LangGraph wrapper could not be added to the August2025 release in time, but it will be made available in the September2025 release. 
-Right now the workflows can be used in our TuringDB cloud</Warning>
+Sends a query to a running TuringDB instance.
 
-## 📦 General Node Structure
+**Parameters:**
 
-All nodes inherit from `BaseNode`, which defines the following core attributes:
+- **Host** (string): TuringDB instance host
+- **Instance Id** (string): TuringDB instance ID from Database instances section
+- **Graph Name** (string): Name of the graph to query
+- **API Token** (string): TuringDB API token from account settings
+- **Input Field** (string): Field containing query string
+- **Output Field** (string): Field where query result will be stored
 
-```json
-{
-  "id": int,
-  "inputs": int[],
-  "outputs": int[],
-  "node_type": str
-}
-```
+**Use Case:** Execute queries against TuringDB graph database instances.
 
-Each node also includes a `params` object, which contains the node-specific parameters.
 
-Many nodes also require or produce structured data types, such as:
+### TuringDB Write
+![pic2](/images/nodes/pic2)
 
-- `Entities`
-- `Gml`
-- `S3FileMetadata`
-- `PDFExtractedData`
-- `MarkdownContent`
+Submits new nodes/edges for creation in a TuringDB graph.
 
-## 📖 Node Index
+**Parameters:**
 
-- Text I/O
-- Graph Nodes
-- AI / LLM Nodes
-- Cloud Storage & File I/O
-- External API Nodes
-- PDF Nodes
-- Email / Output
-- Graph Memory Nodes (TuringDB)
-- Flow Control Nodes
+- **Host** (string): TuringDB instance host
+- **Instance Id** (string): TuringDB instance ID from Database instances section
+- **Graph Name** (string): Name of the graph to modify
+- **API Token** (string): TuringDB API token from account settings
+- **Entities Field** (string): Field containing entities to add
 
-## ✍️ Text I/O
+**Use Case:** Add new nodes and relationships to TuringDB graph databases.
 
-### `InputText`
 
-Inputs raw text into the data flow.
+## Core nodes
 
-```json
-{
-  "output_field": "field_name",
-  "content": "Text to inject into workflow"
-}
-```
+### Merge (Merge fields)
+![pic3](/images/nodes/pic3)
 
-**Inputs**: none
+Merges all incoming JSON data into one.
 
-**Output**: `{ "$output_field": str }`
+**Parameters:** None
 
-### `OutputText`
+**Use Case:** Combine data from multiple sources or workflow branches.
 
-Extracts and stores a text value from the workflow.
 
-```json
-{
-  "input_field": "source_field",
-  "output_field": "destination_field"
-}
-```
+### Merge Entities
+![pic4](/images/nodes/pic4)
 
-**Input**: `$input_field [str]`
+Merges multiple graph entities together using their labels as identifier.
 
-**Output**: `{ "$output_field": str }`
+**Parameters:**
 
-## 🔗 Graph Nodes
+- **Input Field** (string): Field containing entities to merge
+- **Output Field** (string): Field for merged entities
 
-### `MistralEntityExtractor`
+**Use Case:** Consolidate duplicate entities in knowledge graphs.
 
-Uses Mistral to extract entities and relationships from input text.
 
-```json
-{
-  "input_field": "pdf_text",
-  "output_field": "entities",
-  "api_key": "...",
-  "agent_id": "..."
-}
-```
+### Send email
+![pic5](/images/nodes/pic5)
 
-**Input**: `$input_field [str]`
+Send emails using SendGrid API.
 
-**Output**: `{ "$output_field": Entities }`
+**Parameters:**
 
-### `MistralGraphExplainer`
+- **Sendgrid Api Key** (string): SendGrid API key from app.sendgrid.com
+- **From Email** (string): Sender email address
+- **To Emails** (array): List of recipient email addresses
+- **Subject** (string): Email subject
+- **Cc Email** (string, optional): Carbon copy recipient
+- **Bcc Email** (string, optional): Blind carbon copy recipient
+- **Input Field** (string): Field containing email content
+- **Output Field** (string): Field to store response status
 
-Uses Mistral to generate a human-readable explanation of a graph (GML).
+**Use Case:** Send automated emails and notifications from workflows.
 
-```json
-{
-  "input_field": "gml_graph",
-  "output_field": "explanation",
-  "api_key": "...",
-  "agent_id": "..."
-}
-```
 
-**Input**: `$input_field [str | Gml]`
+### Text Input
+![pic6](/images/nodes/pic6)
 
-**Output**: `{ "$output_field": str }`
+Entry-point node to input text into the data flow graph.
 
-### `GmlGenerator`
+**Parameters:**
 
-Converts a list of extracted entities into a GML graph.
+- **Text Content** (text): Text content you want to output
+- **Output Field Name** (string): Name of the field where this text will be stored
 
-```json
-{
-  "input_field": "entities",
-  "output_field": "gml"
-}
-```
+**Use Case:** Starting point for workflows that need text input from users.
 
-**Input**: `$input_field [Entities]`
 
-**Output**: `{ "$output_field": Gml }`
+### Text Output
+![pic7](/images/nodes/pic7)
 
-## 🤖 AI / LLM Nodes
+Extract text from previous result and output it in standardized JSON object.
 
-### `LLM`
+**Parameters:**
 
-Generic node to call OpenAI, Anthropic, or Mistral models.
+- **Input Field Name** (string): Name of the field containing the text to display
+- **Output Field Name** (string): Name of the field where output text will be stored
 
-```json
-{
-  "input_field": "query",
-  "output_field": "llm_response",
-  "llm_provider": "Anthropic",
-  "model": "claude-3-haiku",
-  "temperature": 0.5
-}
-```
+**Use Case:** Final output node to display results from your workflow.
 
-**Input**: `$input_field [str]`
 
-**Output**: `{ "$output_field": MarkdownContent }`
+## AI & Language models
 
-### `LLMTools`
+### DeepResearch
+![pic8](/images/nodes/pic8)
 
-Calls OpenAI API with tool support (JSON tools).
+Use OpenAI's deep research models for complex analysis and research tasks.
 
-```json
-{
-  "input_field": "query",
-  "output_field": "llm_response",
-  "model": "gpt-4o",
-  "tools": [ { "type": "function", "function": { "name": "extract_date", ... } } ]
-}
-```
+**Parameters:**
 
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": MarkdownContent }`
-
-### `DeepResearch`
-
-Uses OpenAI’s Deep Research API for richer web-grounded responses.
-
-```json
-{
-  "input_field": "research_query",
-  "output_field": "deep_result",
-  "model": "o4-mini-deep-research",
-  "wait_time": 15
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": MarkdownContent }`
-
-### `Text2Cypher`
-
-Generates Cypher queries from natural language input using LLM.
-
-```json
-{
-  "input_field": "user_query",
-  "output_field": "cypher_query",
-  "llm_provider": "OpenAI",
-  "node_labels": ["Person", "Company"],
-  "relationship_types": ["WORKS_AT", "KNOWS"]
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": str }`
-
-## ☁️ Cloud Storage & File I/O
-
-### `S3LoadFile`
-
-Loads file content from S3.
-
-```json
-{
-  "output_field": "pdf_base64",
-  "user_id": "user123",
-  "file_key": "report.pdf"
-}
-```
-
-**Input**: none
-
-**Output**: `{ "$output_field": str }`
-
-### `S3UploadFile`
-
-Uploads file content to S3.
-
-```json
-{
-  "input_field": "pdf_data",
-  "file_key": "generated.pdf",
-  "user_id": "user123"
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: none
-
-### `S3ListFiles`
-
-Lists files from a user's S3 bucket.
-
-```json
-{
-  "output_field": "file_list",
-  "user_id": "user123",
-  "max_item_count": 20
-}
-```
-
-**Input**: none
-
-**Output**: `{ "$output_field": List[S3FileMetadata] }`
-
-## 🌐 External API Nodes
-
-### `RestAPI`
-
-Call a REST API endpoint with GET/POST/etc.
-
-```json
-{
-  "output_field": "api_response",
-  "base_url": "https://api.example.com",
-  "endpoint": "/data",
-  "method": "GET"
-}
-```
-
-**Input**: none
-
-**Output**: `{ "$output_field": any }`
-
-### `FinancialDataRestAPI`
-
-Calls stock or financial data API.
-
-```json
-{
-  "output_field": "stock_prices",
-  "endpoint_type": "stock_prices",
-  "identifier": "AAPL",
-  "api_key": "..."
-}
-```
-
-**Input**: none
-
-**Output**: `{ "$output_field": any }`
-
-### `PolygonRestAPI`
-
-Fetches financial data from Polygon.io.
-
-```json
-{
-  "output_field": "market_data",
-  "endpoint_type": "aggregates",
-  "identifier": "AAPL",
-  "api_key": "..."
-}
-```
-
-**Input**: none
-
-**Output**: `{ "$output_field": any }`
-
-## 📄 PDF Nodes
-
-### `ExtractTextPDF`
-
-Extracts text from a PDF file (base64 encoded input).
-
-```json
-json
-CopyEdit{
-  "input_field": "pdf_base64",
-  "output_field": "pdf_text"
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": PDFExtractedData }`
-
-### `GeneratePDF`
-
-Generates a PDF file from Markdown or plain text.
-
-```json
-{
-  "input_field": "summary_markdown",
-  "output_field": "pdf_base64",
-  "input_type": "markdown"
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": PdfFileContent }`
-
-## 📧 Email / Output
-
-### `SendEmail`
-
-Sends email with content and optional attachments.
-
-```json
-{
-  "input_field": "summary",
-  "output_field": "email_status",
-  "from_email": "you@turingdb.ai",
-  "to_emails": ["user@example.com"],
-  "sendgrid_api_key": "SG.XXXX..."
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": str }`
-
-## 🧠 Graph Memory Nodes (TuringDB)
-
-### `TuringDBQuery`
-
-Sends a Cypher query to a TuringDB instance.
-
-```json
-{
-  "input_field": "query",
-  "output_field": "result",
-  "graph_name": "my-graph",
-  "instance_id": "...",
-  "auth_token": "..."
-}
-```
-
-**Input**: `$input_field [str]`
-
-**Output**: `{ "$output_field": str }`
-
-### `TuringDBWrite`
-
-Writes entities (nodes & edges) into a TuringDB graph.
-
-```json
-{
-  "input_field": "entities",
-  "graph_name": "my-graph",
-  "instance_id": "...",
-  "auth_token": "..."
-}
-```
-
-**Input**: `$input_field [Entities]`
-
-**Output**: none
-
-## 🔁 Flow Control Nodes
-
-### `Merge`
-
-Merges JSON from multiple inputs.
-
-**Inputs**: multiple
-
-**Output**: merged JSON object
-
-### `Control`
-
-Conditional branching node.
-
-```json
-{
-  "lhs_field": "valueA",
-  "rhs_field": "valueB",
-  "operator": "=="
-}
-```
-
-**Outputs**:
-
-- First: branch if condition is true
-- Second: branch if false
-
-### `ForEach`
-
-Loops over a list or dict.
-
-```json
-{
-  "collection_field": "items",
-  "current_field": "i"
-}
-```
-
-**Inputs**:
-
-- First: entry to loop
-- Second: end of loop
-
-**Outputs**:
-
-- First: one item in loop
-- Second: loop complete
-
-## 🧪 Example Graph
-
-```json
-{
-  "graph": {
-    "nodes": [
-      {
-        "id": 0,
-        "node_type": "InputText",
-        "inputs": [],
-        "outputs": [1],
-        "params": {
-          "content": "Text to generate the gml from"
-        }
-      },
-      {
-        "id": 1,
-        "node_type": "MistralEntityExtractor",
-        "inputs": [0],
-        "outputs": [2]
-      },
-      {
-        "id": 2,
-        "node_type": "GmlGenerator",
-        "inputs": [1],
-        "outputs": [3]
-      },
-      {
-        "id": 3,
-        "node_type": "OutputText",
-        "inputs": [2],
-        "outputs": []
-      }
-    ]
-  }
-}
-```
-
-## 📚 Data Types
-
-```python
-class Entity(BaseModel):
-    id: int
-    label: str
-    entity_type: str
-
-class Relationship(BaseModel):
-    source: int
-    target: int
-    relationship_type: str
-
-class Entities(BaseModel):
-    entities: List[Entity]
-    relationships: List[Relationship]
-
-class Gml(BaseModel):
-    gml: str
-    node_count: int
-    rel_count: int
-
-class S3FileMetadata(BaseModel):
-    key: str
-    size: int
-    last_modified: str
-
-class MarkdownContent(BaseDict):
-    content: str
-
-class S3UploadSuccess(BaseDict):
-    success: bool
-    file_key: str
+- **Model** (select): AI model to use. Options:
+    - o3-deep-research
+    - o4-mini-deep-research
     
-class PDFExtractedData(BaseDict):
-    model_config = {"arbitrary_types_allowed": True}
-    # tells Pydantic to accept types it doesn't natively support (like pandas DataFrames)
+    Default: "o4-mini-deep-research"
+    
+- **Input Field** (string): Field to use as prompt
+- **Output Field** (string): Field to use as output
+- **OpenAI API Key** (string): Your OpenAI API key
 
-    text: str
-    tables: Union[List[pd.DataFrame], List[str]]
-    all_content: Union[str, Any]
-```
+**Use Case:** Complex research tasks requiring deep analysis and comprehensive responses.
+
+
+### Generic LLM
+![pic9](/images/nodes/pic9)
+
+Generic LLM node to query OpenAI, Mistral, or Anthropic models.
+
+**Parameters:**
+
+- **Llm Provider** (select): LLM provider. Options:
+    - OpenAI
+    - Mistral
+    - Anthropic
+    
+    Default: "Anthropic"
+    
+- **Model** (string, optional): Specific model to use for the provider
+- **Prompt** (string/DataField): The prompt or field to retrieve prompt from
+- **System Prompt** (string, optional): System prompt for the LLM provider
+- **Api Key** (string, optional): API key for the LLM provider
+- **Temperature** (number): Temperature setting
+- **Output Format** (select): Format of response. Options:
+    - markdown
+    - json
+    - text
+    - list
+    
+    Default: "markdown"
+    
+- **Output Field** (string): Field to store the LLM response
+
+**Use Case:** General-purpose AI text generation, analysis, and transformation.
+
+
+### Extract Text from PDF
+![pic10](/images/nodes/pic10)
+
+**Description:** Extract text and tables from PDF file.
+
+**Parameters:**
+
+- **Input Field Name** (string): Field containing PDF content or file path
+- **Output Field Name** (string): Field where extracted text will be stored
+
+**Use Case:** Process PDF documents to extract textual content for analysis.
+
+
+### Generate PDF
+![pic11](/images/nodes/pic11)
+
+Generate PDF from input text.
+
+**Parameters:**
+
+- **Input Type** (select): Type of input text. Options:
+    - markdown
+    - plain_text
+- **Input Field** (string): Field containing input text
+- **Output Field** (string): Field to store generated PDF
+- **Page Size** (string): Page size of PDF
+- **Margin** (string): Margin around content
+
+**Use Case:** Convert markdown or plain text into formatted PDF documents.
+
+
+## File storage
+
+### S3 List Files
+![pic12](/images/nodes/pic12)
+
+List files in user's S3 bucket.
+
+**Parameters:**
+
+- **Filenames** (array): Specific filenames to look for
+- **Extensions** (array): File extensions to filter by
+- **Max Item Count** (number): Maximum number of files to return
+- **Output Field** (string): Field to store file list
+
+**Use Case:** Discover and list files in S3 storage for further processing.
+
+
+### S3 Load File
+![pic13](/images/nodes/pic13)
+
+Load content of a file from user's S3 bucket and store it into JSON data.
+
+**Parameters:**
+
+- **File Key** (string/DataField): File path/key in S3 bucket
+- **File Type** (select): Type of file. Options:
+    - image
+    - video
+    - audio
+    - text
+    - pdf
+    - markdown
+    - html
+    - csv
+    - excel
+    - other
+    
+    Default: "text"
+    
+- **Output Field** (string): Field to store loaded content
+
+**Use Case:** Load various file types from S3 for processing in workflows.
+
+
+### S3 Upload File
+![pic14](/images/nodes/pic14)
+
+Create and upload a file to user's S3 bucket.
+
+**Parameters:**
+
+- **User ID** (string): User identifier for S3 bucket access
+- **File Key/Name** (string): Desired file path/key in S3
+- **Input Field Name** (string): Field containing content to upload
+
+**Use Case:** Store generated content or processed data in S3 storage.
+
+
+## API Integrations
+
+### Financial Data REST API
+![pic15](/images/nodes/pic15)
+
+Call FinancialData Rest API.
+
+**Parameters:**
+
+- **Endpoint** (select): API endpoint. Options:
+    - stock_symbols
+    - international_stock_symbols
+    - etf_symbols
+    - mutual_fund_symbols
+    - stock_prices
+    - etf_prices
+    
+    Default: "stock_symbols"
+    
+- **Api Key** (string): API key
+- **Identifier** (string/DataField): Company ticker or ETF
+- **Format** (select): Output format. Options:
+    - json
+    - csv
+- **Offset** (number): Record subset position.
+- **Output Field** (string): Field to store response. Default: "response"
+
+**Use Case:** Access financial data including stock symbols, prices, and ETF information.
+
+
+### Polygon REST API
+![pic16](/images/nodes/pic16)
+
+Call the Polygon REST API for financial market data.
+
+**Parameters:**
+
+- **Endpoint Type** (select): Polygon endpoint. Options
+    - tickers
+    - market_status
+    - aggregates
+    - trades
+    - quotes
+    - options
+    - indices
+    - futures
+    - currencies
+    
+    Default: "tickers"
+    
+- **Polygon API Key** (string): Polygon API key
+- **Ticker** (string, optional): Ticker symbol
+- **Option Ticker** (string, optional): Option ticker symbol
+- **Futures Ticker** (string, optional): Futures ticker symbol
+- **Currency Ticker** (string, optional): Currency ticker symbol
+- **Index Ticker** (string, optional): Index ticker symbol
+- **Begin** (string, optional): Start date (YYYY-MM-DD) or timestamp
+- **End** (string, optional): End date (YYYY-MM-DD) or timestamp
+- **Timespan** (select): Time window size. Options: second, minute, hour, day, week, month, quarter, year
+- **Multiplier** (integer): Timespan multiplier
+- **Limit** (number): Number of results (0-1000)
+- **Output Field** (string): Field to store response
+
+**Use Case:** Access real-time and historical financial market data.
+
+
+### Rest API
+![pic17](/images/nodes/pic17)
+
+Call a REST API endpoint.
+
+**Parameters:**
+
+- **Base Url** (string): Base URL for the API
+- **Endpoint** (string): API endpoint path
+- **Method** (select): HTTP method. Options
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    
+    Default: "GET"
+    
+- **Headers** (object): HTTP headers
+- **Http Params** (object): HTTP query parameters
+- **Body** (string, optional): Request body for POST/PUT requests
+- **Timeout** (number): Timeout in seconds
+- **Output Field** (string): Field to store response
+
+**Use Case:** Integrate with external APIs and web services.
+
+
+## Graph AI Tools
+
+### GML Generator
+![pic18](/images/nodes/pic18)
+
+Builds GML from Entities JSON schema.
+
+**Parameters:**
+
+- **Input Field Name (Entities)** (string): Field containing entities data
+- **Output Field Name** (string): Field where generated GML will be stored
+
+**Use Case:** Convert structured entity data into Graph Modeling Language format for visualization.
+
+
+### Mistral Entity Extractor
+![pic19](/images/nodes/pic19)
+
+Call Mistral API to generate JSON containing entities and relationships extracted from input text.
+
+**Parameters:**
+
+- **Input Field Name** (string): Field containing text for entity extraction. Default: "content"
+- **Output Field Name** (string): Field where extracted entities will be stored. Default: "entities"
+
+**Use Case:** Extract structured entities and relationships from unstructured text for knowledge graph creation.
+
+
+### Mistral Graph Explainer
+![pic20](/images/nodes/pic20)
+
+Call Mistral API to generate Markdown text explaining the overall structure of input GML-like text.
+
+**Parameters:**
+
+- **Input Field Name** (string): Field containing GML graph data to explain
+- **Output Field Name** (string): Field where human-readable graph explanation will be stored
+
+**Use Case:** Generate human-readable explanations of graph structures for documentation or analysis.
+
+---
+
+### Text to Cypher LLM
+![pic21](/images/nodes/pic21)
+
+Text to Cypher conversion LLM node.
+
+**Parameters:**
+
+- **Llm Provider** (select): LLM service to use. Options
+    - OpenAI
+    - Anthropic
+    - Mistral
+    
+    Default: "OpenAI"
+    
+- **Model** (string, optional): Specific model name
+- **Api Key** (string): API key
+- **Input Field** (string): Field containing natural language query
+- **Output Field** (string): Field where generated Cypher query will be stored
+- **Node Labels** (array): Available node types in the graph
+- **Relationship Types** (array): Available relationship types in the graph
+- **Property Keys** (array): Common node properties in the graph
+- **Database Description** (string, optional): High-level description of your graph database
+
+**Use Case:** Convert natural language queries into Cypher queries for graph databases.
+
+---
+
+## Experimental
+
+### For Each
+![pic22](/images/nodes/pic22)
+
+Loops over elements in a list or a dict.
+
+**Parameters:**
+
+- **Collection Field** (string): Field containing collection to iterate over
+- **Current Field** (string): Field name for current item in loop
+
+**Use Case:** Process collections of data items in batch operations.
+
+---
+
+### If statement
+![pic23](/images/nodes/pic23)
+
+Evaluates the condition and follows the true/false branch accordingly.
+
+**Parameters:**
+
+- **Left-Hand Side Field** (string): Field containing left-hand side operand
+- **Right-Hand Side Field** (string): Field containing right-hand side operand
+- **Operator** (select): Comparison operator. Options: $== != > >= < <=$
+- **Execution Count Limit** (integer): Maximum execution count
+
+**Use Case:** Implement conditional logic and branching in workflows.

@@ -1,59 +1,177 @@
 ---
-title: 'Images and Embeds'
-sidebarTitle: 'Create a Graph'
-description: 'Add image, video, and other HTML elements'
+title: "Importing GML Files into TuringDB"
+sidebarTitle: "Import GML Graph"
+description: "Import a GML graph"
 ---
 
-<img
-  style={{ borderRadius: '0.5rem' }}
-  src="https://mintlify-assets.b-cdn.net/bigbend.jpg"
-/>
+For the current version of TuringDB, importing Graph Modeling Language (GML) files is not directly supported. This guide shows you how to import GML files by parsing the file and converting it to a CREATE query.
 
-## Image
+## Prerequisites
 
-### Using Markdown
+You'll need to install the `networkx` library to parse GML files:
 
-The [markdown syntax](https://www.markdownguide.org/basic-syntax/#images) lets you add images using the following code
-
-```md
-![title](/path/image.jpg)
+```bash
+pip install networkx
+# or
+uv add networkx
 ```
 
-Note that the image file size must be less than 5MB. Otherwise, we recommend hosting on a service like [Cloudinary](https://cloudinary.com/) or [S3](https://aws.amazon.com/s3/). You can then use that URL and embed.
+## Complete Example
 
-### Using Embeds
+Here's a complete example that reads a GML file and imports it into TuringDB:
 
-To get more customizability with images, you can also use [embeds](/writing-content/embed) to add images
+```python
+import networkx as nx
+from turingdb import TuringDB
 
-```html
-<img height="200" src="/path/image.jpg" />
+def sanitize_label(label):
+    """Sanitize labels to be valid identifiers"""
+    return str(label).replace(" ", "_").replace("-", "_")
+
+def build_create_query(graph):
+    """Convert a NetworkX graph to a TuringDB CREATE query"""
+    if len(graph.nodes()) == 0 and len(graph.edges()) == 0:
+        raise ValueError("No nodes or edges to create")
+
+    query = "CREATE "
+
+    # Add nodes
+    for node_id, node_data in graph.nodes(data=True):
+        # Use node label if available, otherwise use the node ID
+        label = node_data.get('label', str(node_id))
+        node_type = sanitize_label(node_data.get('type', 'Node'))
+        symbol = f"n{node_id}"
+
+        # Build properties dictionary
+        props = {"label": label}
+        # Add any additional properties from the GML file
+        for key, value in node_data.items():
+            if key not in ['label', 'type']:
+                props[key] = str(value)
+
+        # Format properties as string
+        props_str = ", ".join([f'"{k}": "{v}"' for k, v in props.items()])
+        query += f'({symbol}:nt_{node_type} {{{props_str}}}),\n'
+
+    # Add edges
+    for i, (source, target, edge_data) in enumerate(graph.edges(data=True)):
+        source_symbol = f"n{source}"
+        target_symbol = f"n{target}"
+        edge_symbol = f"e{i}"
+
+        # Use edge type if available, otherwise default to 'CONNECTED'
+        edge_type = sanitize_label(edge_data.get('type', 'CONNECTED'))
+        query += f"({source_symbol})-[{edge_symbol}:et_{edge_type}]-({target_symbol}),\n"
+
+    # Remove the trailing comma and newline
+    return query[:-2]
+
+# Initialize TuringDB client
+client = TuringDB(auth_token=YOUR_AUTH_TOKEN, instance_id=YOUR_INSTANCE_ID)
+
+# Create and set up the graph
+client.create_graph("imported_gml_graph")
+client.set_graph("imported_gml_graph")
+
+# Load the GML file
+try:
+    # Replace 'your_file.gml' with the path to your GML file
+    graph = nx.read_gml('your_file.gml')
+    print(f"Loaded graph with {len(graph.nodes())} nodes and {len(graph.edges())} edges")
+
+    # Create a new change
+    change = client.query("CHANGE NEW")["Change ID"][0]
+    print(f"Created change: {change}")
+
+    # Checkout into the change
+    client.checkout(change=change)
+
+    # Convert to CREATE query and execute
+    create_query = build_create_query(graph)
+    print("Executing CREATE query...")
+    client.query(create_query)
+
+    # Commit and submit the change
+    client.query("COMMIT")
+    client.query("CHANGE SUBMIT")
+    print("Successfully imported GML graph!")
+
+    # Return to main branch
+    client.checkout()
+
+    # Verify the import by querying the data
+    print("\nVerifying import:")
+    nodes_df = client.query("MATCH (n) RETURN n.label")
+    print(f"Imported {len(nodes_df)} nodes")
+
+except FileNotFoundError:
+    print("GML file not found. Please check the file path.")
+except Exception as e:
+    print(f"Error importing GML file: {e}") 
 ```
 
-## Embeds and HTML elements
+## Example GML File
 
-<iframe
-  width="560"
-  height="315"
-  src="https://www.youtube.com/embed/4KzFe50RQkQ"
-  title="YouTube video player"
-  frameBorder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowFullScreen
-  style={{ width: '100%', borderRadius: '0.5rem' }}
-></iframe>
+Here's a sample GML file to test with (`sample.gml`):
 
-<br />
+```
+graph [
+  node [
+    id 0
+    label "Alice"
+    type "Person"
+    age "30"
+  ]
+  node [
+    id 1
+    label "Bob"
+    type "Person"
+    age "25"
+  ]
+  node [
+    id 2
+    label "Charlie"
+    type "Person"
+    age "35"
+  ]
+  edge [
+    source 0
+    target 1
+    type "KNOWS"
+  ]
+  edge [
+    source 1
+    target 2
+    type "WORKS_WITH"
+  ]
+]
+```
 
-<Tip>
+## Key Points
 
-Mintlify supports [HTML tags in Markdown](https://www.markdownguide.org/basic-syntax/#html). This is helpful if you prefer HTML tags to Markdown syntax, and lets you create documentation with infinite flexibility.
+1. **Single CREATE Query**: Due to TuringDB's current Cypher limitations, the entire graph must be created in a single CREATE statement.
+2. **Change Management**: Always use the change system when modifying data:
+   - Create a new change with `CHANGE NEW`
+   - Checkout into the change
+   - Execute your CREATE query
+   - Commit and submit the change
+3. **Label Sanitization**: Node and edge types are prefixed with `nt_` and `et_` respectively, and special characters are replaced with underscores.
+4. **Properties**: All node attributes from the GML file are converted to string properties in TuringDB.
 
-</Tip>
+## Troubleshooting
 
-### iFrames
+- **Large Graphs**: For very large GML files, you might hit query size limits. Consider splitting the import or contact support for guidance.
+- **Invalid Characters**: The sanitization function handles common invalid characters, but you may need to extend it for specific use cases.
+- **Memory Usage**: Large graphs are loaded entirely into memory before conversion, so ensure you have sufficient RAM.
 
-Loads another HTML page within the document. Most commonly used for embedding videos.
+## Next Steps
 
-```html
-<iframe src="https://www.youtube.com/embed/4KzFe50RQkQ"> </iframe>
+After importing your GML file, you can query the data using TuringDB's supported Cypher subset:
+
+```python
+# Find all Person nodes
+persons = client.query("MATCH (n:nt_Person) RETURN n.label, n.age")
+
+# Find all relationships
+relationships = client.query("MATCH (a)-[r]-(b) RETURN a.label, b.label")
 ```
