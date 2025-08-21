@@ -113,7 +113,7 @@
   "navbar": {
     "links": [{
         "label": "Discord",
-        "href": "https://discord.gg/XcVVYWzr"
+        "href": "https://discord.gg/dMM48ns5VY"
       },
       {
         "label": "GitHub",
@@ -126,8 +126,8 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Console",
+      "href": "https://console.turingdb.ai"
     }
   },
   "footer": {
@@ -135,7 +135,7 @@
       "github": "https://github.com/turing-db",
       "linkedin": "https://www.linkedin.com/company/turingdb-ai",
       "youtube": "https://www.youtube.com/@turingdb",
-      "discord": "https://discord.gg/XcVVYWzr"
+      "discord": "https://discord.gg/dMM48ns5VY"
     }
   }
 }
