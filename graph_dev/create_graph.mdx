@@ -5,39 +5,61 @@ description: "Create a graph object"
 ---
 
 <Tabs>
-    <Tab title="Python SDK">
+  <Tab title="Python SDK">
     ```python
-    # Create graph object
     from turingdb import TuringDB
     
-    # setup client
+    # Setup TuringDB client
     client = TuringDB(
-     instance_id="...", # Replace by your instance id
-     auth_token="...",  # Replace by your API token
+        instance_id="...", # Replace by your instance id
+        auth_token="...",  # Replace by your API token
     )
     
-    # Create a new graph
-    client.query('CREATE GRAPH mygraph')
-    client.set_graph('mygraph')
+    # Create a new graph called my_graph
+    client.query('CREATE GRAPH my_graph')
+    client.set_graph('my_graph')
     ```
   </Tab>
   <Tab title="cURL">
     - Request
 
     ```bash
-    # Create graph object
-    curl -d 'CREATE GRAPH simpledb' http://localhost:6666/query
+    # Create a new graph called my_graph
+    curl "https://engines.turingdb.ai/sdk/query" \
+         -H "Authorization: Bearer $MY_API_KEY" \
+         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
+         -H "Accept: application/json" \
+         -d "CREATE GRAPH my_graph"
     ```
 
     - Response
 
     ```json
     
-     {"header":{"column_names":[],"column_types":[]},"data":[],"time":0.089231}
+     {{"header":{"column_names":[],"column_types":[]},"data":[],"time":0.873002}
     
     ```
   </Tab>
   <Tab title="Javascript">
-    COMING
+    - Request
+
+    ```jsx
+    // Create a new graph called my_graph
+    fetch(`https://engines.turingdb.ai/sdk/query`, {
+    	method: "POST",
+    	headers: {
+    		Authorization: `Bearer ${MY_API_KEY}`,
+    		"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
+    		Accept: "application/json",
+    	},
+    	body: "CREATE GRAPH my_graph",
+    });
+    ```
+
+    - Response
+
+    ```json
+    {{"header":{"column_names":[],"column_types":[]},"data":[],"time":0.873002}
+    ```
   </Tab>
 </Tabs>

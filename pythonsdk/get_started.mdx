@@ -13,6 +13,8 @@ This guide walks you through the essentials of getting started with the `turingd
 ### Option A: Using `pip`
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install turingdb
 ```
 
@@ -22,6 +24,9 @@ pip install turingdb
 > 
 
 ```bash
+mkdir my_app
+cd my_app
+uv init --app
 uv add turingdb
 ```
 
@@ -33,7 +38,7 @@ To interact with TuringDB, you'll need:
 - ✅ Your **Instance ID**
 - 🔑 Your **API Token**
 
-These are found in your TuringDB Cloud UI. See [Authentication Guide](/security/authentification)
+These are found in your TuringDB Cloud UI. See Authentication Guide
 
 ```python
 from turingdb import TuringDB
@@ -45,16 +50,13 @@ client = TuringDB(
 ```
 
 
-## 🧬 3. Create a Graph and Load It
+## 🧬 3. Create a Graph:
 
-Create and load a graph into memory:
+Create a graph:
 
 ```python
 # Create a new graph
 client.create_graph("my_first_graph")
-
-# Load the graph into memory
-client.load_graph("my_first_graph")
 
 # Set the active graph context
 client.set_graph("my_first_graph")
@@ -62,6 +64,16 @@ client.set_graph("my_first_graph")
 
 
 ## 🧱 4. Create Nodes & Edges
+
+First of all, create a new Change on the graph
+
+```python
+# Create a new change on the graph
+change = client.query("CHANGE NEW")["Change ID"][0]
+
+# Checkout into the change
+client.checkout(change=change)
+```
 
 Use Cypher `CREATE` queries to add data:
 
@@ -75,6 +87,24 @@ client.query('CREATE (:Person {name="Jane"})-[:KNOWS]-(:Person {name="John"})')
 
 > ✅ All created entities must have at least one label (:Label)
 > 
+
+Once you’re ready, commit and submit your changes
+
+```python
+# Commit and submit the change
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+
+# Get back to the main branch
+client.checkout()
+```
+
+<aside>
+<img src="/icons/info-alternate_blue.svg" alt="/icons/info-alternate_blue.svg" width="40px" />
+
+You can create as many commits as you want before submitting a change
+
+</aside>
 
 
 ## 🔍 5. Query the Graph
@@ -96,24 +126,7 @@ print(df)
 df = client.query('MATCH (n{name~="marie"}) RETURN n')
 ```
 
-
-## 🧠 6. Explore the Graph
-
-You can introspect the graph schema with metaqueries:
-
-```python
-# List node labels
-print(client.query("CALL LABELS()"))
-
-# List edge types
-print(client.query("CALL EDGETYPES()"))
-
-# View all properties in the graph
-print(client.query("CALL PROPERTIES()"))
-```
-
-
-## 📦 7. Version Control & Snapshots
+## 📦 6. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
 
@@ -133,7 +146,12 @@ client.checkout(change=1, commit="abc123")
 
 ```python
 client.checkout("main")
+
+# or simply
+
+client.checkout()
 ```
+
 
 ## 🧪 Example: Full Session
 
@@ -158,4 +176,4 @@ print(df)
 - 🔀 Explore [Versioning & Changes](/concepts/commits)
 - 🤖 Try [AI Workflows](/workflows/workflow_concepts)
 
-Questions or feedback? → Join the [Discord](https://discord.gg/bYqgZ6WK) or [open an issue](https://github.com/turingdb)
+Questions or feedback? → Join the [Discord](https://discord.gg/dMM48ns5VY) or [open an issue](https://github.com/turingdb)
