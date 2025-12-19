@@ -29,7 +29,7 @@ pip install turingdb
 
 ## 2. Create a Graph:
 
-Create a graph:
+Create a graph and set active graph:
 
 ```python
 # Create a new graph
@@ -41,11 +41,11 @@ client.set_graph("my_first_graph")
 
 ## 3. Create Nodes & Edges
 
-First of all, create a new Change on the graph
+First of all, create a new change on the graph
 
 ```python
 # Create a new change on the graph
-change = client.query("CHANGE NEW")["Change ID"][0]
+change = client.new_change()
 
 # Checkout into the change
 client.checkout(change=change)
@@ -55,7 +55,7 @@ Use Cypher `CREATE` queries to add data:
 
 ```python
 # Create a node
-client.query('CREATE (:Person {name="Marie", age=33})')
+client.query('CREATE (:Person {name:"Marie", age:33})')
 
 # Create two nodes and an edge
 client.query('CREATE (:Person {name="Jane"})-[:KNOWS]-(:Person {name="John"})')
