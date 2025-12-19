@@ -22,9 +22,14 @@ MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 ## 🛠 CREATE: Add Nodes & Edges
 
 ```sql
-CREATE (n:Person {name: 'Alice', age: 30})
+CREATE (:Person {name: 'Alice', age: 30})
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
 CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
+
+CREATE (:Person {name: 'Gabby', age: 27}),
+(:Person {name: 'Susan', age: 35}),
+(:Person {name: 'Lynette', age: 41}),
+(:Person {name: 'Bree', age: 42})
 ```
 
 - Labels **required** for node creation
