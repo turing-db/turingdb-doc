@@ -200,7 +200,7 @@ client.checkout()
 
 # Query graph
 df = client.query("MATCH (n:Gene {name: 'APOE'}) RETURN n.name, n.chromosome")
-display(df)
+print(df)
 ```
 
 ## Notes
