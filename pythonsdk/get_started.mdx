@@ -104,6 +104,11 @@ TuringDB supports versioned graphs and snapshot isolation.
 
 ```python
 client.checkout(change=1)  # Move to change ID 1
+
+# or use
+
+change = client.new_change()
+client.checkout(change=change)
 ```
 
 ### Query a specific commit:
