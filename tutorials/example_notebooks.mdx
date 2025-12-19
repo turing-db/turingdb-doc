@@ -100,9 +100,27 @@ RETURN n.displayName, n.description, e, m.displayName, m.description
 
 Explores the Reactome knowledge base of biological pathways. Showcases how TuringDB can rapidly answer multi-hop queries on complex biological interactions such as gene regulation or protein-protein interaction cascades.
 
+Query examples:
+
+```
+# Find all nodes of type "EntityWithAccessionedSequence"
+# and referenceType "ReferenceGeneProduct"
+MATCH (n:EntityWithAccessionedSequence {"referenceType"="ReferenceGeneProduct"})
+RETURN n.displayName, n.schemaClass, n.referenceType
+```
+
 ### [Healthcare Knowledge Graph](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/healthcare_dataset.ipynb)
 
 Builds a patient-centric knowledge graph combining symptoms, diagnoses, treatments, and side effects. Demonstrates entity extraction, GML ingestion, and how TuringDB supports explainable AI on structured health data.
+
+Query examples:
+
+```
+# Find all patients who took Paracetamol
+MATCH (p:Patient)-[:TOOK_MEDICATION]->
+      (m:Medication {"displayName": "Paracetamol"})
+RETURN p.id, p.displayName, m.displayName
+```
 
 ## Running the Notebooks
 
