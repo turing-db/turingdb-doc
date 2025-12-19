@@ -83,7 +83,7 @@ Retrieve data using Cypher `MATCH` queries.
 Results are returned as a **pandas DataFrame** for easy inspection:
 
 ```python
-# Match all nodes of label "Person"
+# Match all nodes of label 'Person'
 # and return their name and age
 df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 print(df)
@@ -125,15 +125,13 @@ client.checkout()
 ## Example: Full Session
 
 ```python
-
 client = TuringDB()
 
 client.create_graph("people")
-client.load_graph("people")
 client.set_graph("people")
 
-client.query('CREATE (:Person {name="Marie", age=33})')
-client.query('CREATE (:Person {name="Jane"})-[:FRIEND_OF]-(:Person {name="John"})')
+client.query('CREATE (:Person {name:"Marie", age:33})')
+client.query('CREATE (:Person {name:"Jane"})-[:FRIEND_OF]->(:Person {name:"John"})')
 
 df = client.query("MATCH (p:Person) RETURN p.name")
 print(df)
