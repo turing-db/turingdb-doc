@@ -35,6 +35,8 @@ RETURN a1.id, a2.id, a3.id, t1.id, t1.type, t1.amount, t1.step, t1.is_fraud ,
 
 Demonstrates risk analysis on crypto transaction data. Focuses on exploring wallets, exchanges, and fund flows to detect potential illicit activity through graph-based features such as suspicious loops and layered structures.
 
+Query examples:
+
 ```
 # Find all 4-hops transaction chains
 MATCH (a:Entity)-[:TRANSACTION]->(b:Entity)-[:TRANSACTION]->
@@ -47,6 +49,17 @@ RETURN a, b, c, d
 ### [London Transport (TfL)](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/london_transport_TfL.ipynb)
 
 Models the London transport network as a graph. Investigates connections between stations, line transfers, and potential applications for routing or infrastructure planning using fast traversal queries.
+
+Query examples:
+
+```
+# Check if there is a path between
+# Notting Hill Gate and High Street Kensington stations
+# in 1 hop specifically using Circle Line
+MATCH (start {displayName: 'Notting Hill Gate'})-[e:CONNECTED {Line: 'Circle'}]->
+      (end {displayName: 'High Street Kensington'})
+RETURN start.displayName, e.Line, end.displayName
+```
 
 ### [Supply Chain — ETO Chip Explorer](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/supply_chain_eto-chip-explorer.ipynb)
 
