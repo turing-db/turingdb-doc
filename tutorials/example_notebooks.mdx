@@ -1,0 +1,80 @@
+---
+title: "Example Notebooks"
+---
+
+# TuringDB Example Notebooks
+
+This collection of notebooks demonstrates how to use TuringDB for real-world analytical examples. Each notebook focuses on a different domain and use case, from fraud detection to biological graph exploration, leveraging the performance and versioning capabilities of TuringDB.
+
+Explore the full set of notebooks on GitHub:
+
+[**github.com/turing-db/turingdb-examples**](https://github.com/turing-db/turingdb-examples/tree/main/examples/notebooks/public_version)
+
+## Domain: Finance & Fraud Detection
+
+### [Paysim Financial Fraud Detection](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/paysim_financial_fraud_detection.ipynb)
+
+Uses the synthetic PaySim dataset to simulate a transactional graph. Highlights how graph queries can uncover suspicious transaction patterns and how TuringDB supports fast multi-hop detection for fraud rings and mule accounts.
+
+### [Crypto Orbitaal Fraud Detection](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/crypto_orbitaal_fraud_detection.ipynb)
+
+Demonstrates risk analysis on crypto transaction data. Focuses on exploring wallets, exchanges, and fund flows to detect potential illicit activity through graph-based features such as suspicious loops and layered structures.
+
+## Domain: Transport & Logistics
+
+### [London Transport (TfL)](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/london_transport_TfL.ipynb)
+
+Models the London transport network as a graph. Investigates connections between stations, line transfers, and potential applications for routing or infrastructure planning using fast traversal queries.
+
+### [Supply Chain — ETO Chip Explorer](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/supply_chain_eto-chip-explorer.ipynb)
+
+Illustrates how to model a manufacturing and supply chain graph. Tracks the flow of materials (e.g. ETO chips) through suppliers, batches, and final assemblies — enabling traceability, root cause analysis, and risk assessment.
+
+## Domain: Healthcare & Life Sciences
+
+### [Reactome Biological Pathways](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/reactome.ipynb)
+
+Explores the Reactome knowledge base of biological pathways. Showcases how TuringDB can rapidly answer multi-hop queries on complex biological interactions such as gene regulation or protein-protein interaction cascades.
+
+### [Healthcare Knowledge Graph](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/healthcare_dataset.ipynb)
+
+Builds a patient-centric knowledge graph combining symptoms, diagnoses, treatments, and side effects. Demonstrates entity extraction, GML ingestion, and how TuringDB supports explainable AI on structured health data.
+
+## Running the Notebooks
+
+## **Quick Start**
+
+### **Prerequisites**
+
+- Python 3.13 or higher
+- [<u>uv</u>](https://docs.astral.sh/uv/) package manager
+
+### **Installation**
+
+1. **Clone the repository:**
+
+   ```
+   git clone https://github.com/turing-db/turingdb-examples.git
+   cd turingdb-examples
+   ```
+2. **Install dependencies:**
+
+   ```
+   uv sync
+   ```
+3. **Start Jupyter Lab:**
+
+   ```
+   uv run jupyter lab
+   ```
+
+   This will start the Jupyter server and display output like:
+
+   ```
+   [I 2024-09-26 16:30:15.123 ServerApp] Jupyter Server is running at:
+   [I 2024-09-26 16:30:15.123 ServerApp] http://localhost:8888/lab?token=abc123...
+   
+   ```
+
+   **Copy the URL** (starting with `http://localhost:8888/lab?token=...`) and paste it into your web browser to access Jupyter Lab.
+4. **Open and run the example notebooks** in `examples/notebooks/public_version/`

@@ -8,7 +8,7 @@ description: "References for TuringDB Python SDK"
 
 The TuringDB Python SDK provides an easy interface for connecting to your **TuringDB Cloud instance**, running queries, and managing graphs programmatically.
 
-> 📦 Install the PythonSDK:
+> Install the PythonSDK:
 
 Using `pip`:
 
@@ -33,9 +33,7 @@ client = TuringDB()
 print(client.list_available_graphs())
 ```
 
-> 🛑 Need help with tokens or IDs? See [Authentication Guide](/security/authentification)
-
-## 🧭 Core Methods
+## Core Methods
 
 ### `list_available_graphs() → list[str]`
 
@@ -164,7 +162,7 @@ df = client.query("MATCH (n:Protein{name~='apoe'}) RETURN n.name, n.id")
 print(df)
 ```
 
-## 🧠 Notes
+## Notes
 
 - The SDK uses httpx for async-compatible HTTP requests
 - Responses are parsed using `orjson` and converted into `pandas.DataFrame` for easy usage
