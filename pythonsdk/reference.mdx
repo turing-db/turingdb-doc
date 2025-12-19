@@ -152,13 +152,24 @@ except TuringDBException as e:
 client = TuringDB()
 
 client.create_graph("biograph")
-client.load_graph("biograph")
-
 client.set_graph("biograph")
 
 client.checkout(change=1)
 
-df = client.query("MATCH (n:Protein{name~='apoe'}) RETURN n.name, n.id")
+client.query('CREATE (:Protein({name:"APOE"}))')
+
+client.query("""
+CREATE
+(apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
+(apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
+(alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
+(cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
+(apoe_gene)-[:ENCODES]->(apoe_protein),
+(apoe_protein)-[:BINDS]->(cholesterol),
+(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
+""")
+
+df = client.query("MATCH (n:Gene{name~='apoe'}) RETURN n.name, n.id")
 print(df)
 ```
 
