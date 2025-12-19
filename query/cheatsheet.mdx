@@ -42,9 +42,9 @@ CREATE (gabby:Person {name: 'Gabby', age: 27}),
 ## 🎯 Property Match Operators
 
 ```sql
-MATCH (n{name="Alice"}) RETURN n
-MATCH (n{name~="apoe"}) RETURN n        -- Approximate match
-MATCH (n{age=42u}) RETURN n             -- Unsigned int
+MATCH (n {name: 'Alice'}) RETURN n
+MATCH (n {name ~= 'apoe'}) RETURN n        -- Approximate match
+MATCH (n {age: 42u}) RETURN n              -- Unsigned int
 ```
 
 - `=` or `:` → exact match
