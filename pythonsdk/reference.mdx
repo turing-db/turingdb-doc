@@ -186,9 +186,9 @@ client.query("""CREATE (apoe_gene:Gene {name: 'APOE', chromosome: '19', location
 (apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
 (alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
 (cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
-(apoe_gene)-[:ENCODES]-(apoe_protein),
-(apoe_protein)-[:BINDS]-(cholesterol),
-(apoe_protein)-[:ASSOCIATED_WITH]-(alzheimers)
+(apoe_gene)-[:ENCODES]->(apoe_protein),
+(apoe_protein)-[:BINDS]->(cholesterol),
+(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
 """)
 
 # Commit the change
