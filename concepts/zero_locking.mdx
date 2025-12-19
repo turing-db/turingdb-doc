@@ -1,14 +1,13 @@
 ---
-title: "🔓 Zero Locking Architecture"
+title: "Zero Locking Architecture"
 sidebarTitle: "Zero-Locking Architecture"
 description: "Zero-lock concurrency"
 ---
 
-**TuringDB has eliminated the plague of read locks.**  
+**TuringDB has eliminated the plague of read locks.**\
 Our architecture is designed from the ground up to deliver **true snapshot isolation**—without sacrificing performance or scalability.
 
-
-## 🚫 The Problem with Traditional Databases
+## The Problem with Traditional Databases
 
 In most RDBMS systems, **read queries are blocked by write operations**. This means:
 
@@ -18,8 +17,7 @@ In most RDBMS systems, **read queries are blocked by write operations**. This me
 
 This is a dealbreaker for real-time systems.
 
-
-## ✅ TuringDB’s Zero-Lock Architecture
+## TuringDB’s Zero-Lock Architecture
 
 TuringDB rewrites the rules.
 
@@ -31,9 +29,9 @@ TuringDB rewrites the rules.
   - AI pipelines
   - Batch analytics
 
-📈 **Analytics stay fast, live, and responsive—always.**
+**Analytics stay fast, live, and responsive—always.**
 
-## 🔍 How It Works
+## How It Works
 
 When a write query modifies the database, it creates a new **snapshot** behind the scenes. Read queries simply operate on whichever snapshot they start from—no locks, no contention.
 
@@ -43,20 +41,19 @@ This ensures:
 - **Concurrent write throughput** without coordination bottlenecks
 - **Scalable multi-user workloads**
 
-
-## 📊 Architecture Comparison
+## Architecture Comparison
 
 ![Zero Locking Comparison](/images/zero_lock.png)
 
 > In TuringDB, **analytics never wait.** Read and write paths are completely decoupled.
 
-## 🔄 Summary
+## Summary
 
-| Feature                     | Traditional RDBMS     | TuringDB                  |
-|----------------------------|------------------------|----------------------------|
-| Read blocks on write       | ✅ Yes                 | ❌ Never                   |
-| Snapshot isolation         | ❌ Manual or expensive | ✅ Default & efficient     |
-| Concurrency under load     | 🚫 Bottlenecked        | 🚀 Massively parallel      |
-| Built for real-time graphs | ❌ No                  | ✅ Yes                     |
+| Feature                    | Traditional RDBMS   | TuringDB            |
+| -------------------------- | ------------------- | ------------------- |
+| Read blocks on write       | Yes                 | Never               |
+| Snapshot isolation         | Manual or expensive | Default & efficient |
+| Concurrency under load     | Bottlenecked        | Massively parallel  |
+| Built for real-time graphs | No                  | Yes                 |
 
 > TuringDB gives you **instant analytics** with **zero locking**, enabling a new class of real-time, high-frequency applications at scale.

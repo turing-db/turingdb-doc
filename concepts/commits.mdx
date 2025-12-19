@@ -1,5 +1,5 @@
 ---
-title: "🔁 Version Control in TuringDB"
+title: "Version Control in TuringDB"
 sidebarTitle: "Versioning System"
 description: "Git-like versioning in your graph database"
 ---
@@ -25,7 +25,7 @@ gitGraph
 
 With version control, you can explore ideas in parallel, test "what-if" hypotheses, reproduce past states, and audit data evolution. It's like Git—but for graph data.
 
-## 🧩 Core Concepts
+## Core Concepts
 
 TuringDB's versioning scheme borrows familiar concepts from Git and Perforce:
 
@@ -49,8 +49,7 @@ Reproduce previous analyses and results
 
 Roll back accidental or problematic changes
 
-## ⚙️ Usage Guide
-<Warning> The CLI version is unfortunately not available in the August 2025 release </Warning>
+## Usage Guide
 
 1. Create and switch to a new Change
 
@@ -61,8 +60,7 @@ Roll back accidental or problematic changes
 
 This creates a new branch (change) called my-change and switches your workspace to it.
 
-2. Modify the graph
-   Make updates using Cypher-style queries:
+2. Modify the graph Make updates using Cypher-style queries:
 
 ```graphql
 > CREATE ...
@@ -72,8 +70,7 @@ This creates a new branch (change) called my-change and switches your workspace 
 
 A change can contain any number of commits. Each commit captures the exact transformation applied to the graph.
 
-3. Merge back to main
-   Once you're happy with your updates:
+3. Merge back to main Once you're happy with your updates:
 
 ```graphql
 > change submit
@@ -82,9 +79,9 @@ A change can contain any number of commits. Each commit captures the exact trans
 
 This submits your change to the main branch and merges all its commits. You can then inspect your updated graph history.
 
-## 🧪 Practical Example: Protein Interaction Study
+## Practical Example: Protein Interaction Study
 
-🔍 Load the Reactome knowledge graph
+Load the Reactome knowledge graph
 
 ```graphql
 > history
@@ -98,7 +95,7 @@ This submits your change to the main branch and merges all its commits. You can 
 +-----------------------+
 ```
 
-🔎 Query original graph
+Query original graph
 
 ```graphql
 > MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
@@ -115,7 +112,7 @@ This submits your change to the main branch and merges all its commits. You can 
 +--------+-----------------------------------------+
 ```
 
-➕ Add new data
+Add new data
 
 ```graphql
 > CREATE (at 514785)
@@ -128,7 +125,7 @@ This submits your change to the main branch and merges all its commits. You can 
 
 This adds a WikipediaPage node and connects it to APOE-4.
 
-✅ Submit the change
+Submit the change
 
 ```graphql
 > change submit
@@ -149,7 +146,7 @@ This adds a WikipediaPage node and connects it to APOE-4.
 
 The current state of the graph's history can be represented by the following diagram.
 
-🌳 Updated graph history
+Updated graph history
 
 ```mermaid
 gitGraph
@@ -181,8 +178,7 @@ Now everyone sees the APOE-4 wiki connection as part of the main graph.
 +--------+-----------------------------------------+
 ```
 
-⏪ Time Travel
-Need to reproduce a past result? Just check out a previous commit:
+Time Travel Need to reproduce a past result? Just check out a previous commit:
 
 ```graphql
 > checkout be9643

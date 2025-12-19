@@ -1,0 +1,162 @@
+---
+title: "Example Notebooks"
+---
+
+# TuringDB Example Notebooks
+
+This collection of notebooks demonstrates how to use TuringDB for real-world analytical examples. Each notebook focuses on a different domain and use case, from fraud detection to biological graph exploration, leveraging the performance and versioning capabilities of TuringDB.
+
+Explore the full set of notebooks on GitHub:
+
+[**github.com/turing-db/turingdb-examples**](https://github.com/turing-db/turingdb-examples/tree/main/examples/notebooks/public_version)
+
+## Domain: Finance & Fraud Detection
+
+### [Paysim Financial Fraud Detection](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/paysim_financial_fraud_detection.ipynb)
+
+Uses the synthetic PaySim dataset to simulate a transactional graph. Highlights how graph queries can uncover suspicious transaction patterns and how TuringDB supports fast multi-hop detection for fraud rings and mule accounts.
+
+Query examples:
+
+```
+# Find all transactions between two accounts
+MATCH (a1:Account)-->(t:Transaction)-->(a2:Account)
+RETURN a1.id, a1.type, t.amount, t.type, a2.id, a2.type, t.is_fraud
+
+# Find all 2-hops transaction chains
+MATCH (a1:Account)-[s1:SENT]->(t1:Transaction)-[r1:RECEIVED]->
+      (a2:Account)-[s2:SENT]->(t2:Transaction)-[r2:RECEIVED]->
+      (a3:Account)
+RETURN a1.id, a2.id, a3.id, t1.id, t1.type, t1.amount, t1.step, t1.is_fraud ,
+       t2.id, t2.type, t2.amount, t2.step, t2.is_fraud 
+```
+
+### [Crypto Orbitaal Fraud Detection](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/crypto_orbitaal_fraud_detection.ipynb)
+
+Demonstrates risk analysis on crypto transaction data. Focuses on exploring wallets, exchanges, and fund flows to detect potential illicit activity through graph-based features such as suspicious loops and layered structures.
+
+Query examples:
+
+```
+# Find all 4-hops transaction chains
+MATCH (a:Entity)-[:TRANSACTION]->(b:Entity)-[:TRANSACTION]->
+      (c:Entity)-[:TRANSACTION]->(d:Entity)
+RETURN a, b, c, d
+```
+
+## Domain: Transport & Logistics
+
+### [London Transport (TfL)](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/london_transport_TfL.ipynb)
+
+Models the London transport network as a graph. Investigates connections between stations, line transfers, and potential applications for routing or infrastructure planning using fast traversal queries.
+
+Query examples:
+
+```
+# Check if there is a path between
+# Notting Hill Gate and High Street Kensington stations
+# in 1 hop specifically using Circle Line
+MATCH (start {displayName: 'Notting Hill Gate'})-[e:CONNECTED {Line: 'Circle'}]->
+      (end {displayName: 'High Street Kensington'})
+RETURN start.displayName, e.Line, end.displayName
+
+# Find 8-hops paths between Paddington and Blackfriars stations
+MATCH (start:Station{displayName:"Paddington"})-[e1:CONNECTED]->
+      (s1:Station)-[e2:CONNECTED]->
+      (s2:Station)-[e3:CONNECTED]->
+      (s3:Station)-[e4:CONNECTED]->
+      (s4:Station)-[e5:CONNECTED]->
+      (s5:Station)-[e6:CONNECTED]->
+      (s6:Station)-[e7:CONNECTED]->
+      (s7:Station)-[e8:CONNECTED]->
+      (end:Station{displayName="Blackfriars"})
+RETURN start.displayName, start.Note, e1.Line,
+       s1.displayName, s1.Note, e2.Line,
+       s2.displayName, s2.Note, e3.Line, 
+       s3.displayName, s3.Note, e4.Line, 
+       s4.displayName, s4.Note, e5.Line, 
+       s5.displayName, s5.Note, e6.Line, 
+       s6.displayName, s6.Note, e7.Line, 
+       s7.displayName, s7.Note, e8.Line, 
+       end.displayName, end.Note
+```
+
+### [Supply Chain — ETO Chip Explorer](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/supply_chain_eto-chip-explorer.ipynb)
+
+Illustrates how to model a manufacturing and supply chain graph. Tracks the flow of materials (e.g. ETO chips) through suppliers, batches, and final assemblies — enabling traceability, root cause analysis, and risk assessment.
+
+Query examples:
+
+```
+# Find all relationships between nodes whose
+# descriptions contain "FPGA" using string approximation
+MATCH (n{description ~= "FPGA"})-[e]-(m)
+RETURN n.displayName, n.description, e, m.displayName, m.description
+```
+
+## Domain: Healthcare & Life Sciences
+
+### [Reactome Biological Pathways](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/reactome.ipynb)
+
+Explores the Reactome knowledge base of biological pathways. Showcases how TuringDB can rapidly answer multi-hop queries on complex biological interactions such as gene regulation or protein-protein interaction cascades.
+
+Query examples:
+
+```
+# Find all nodes of type "EntityWithAccessionedSequence"
+# and referenceType "ReferenceGeneProduct"
+MATCH (n:EntityWithAccessionedSequence {"referenceType"="ReferenceGeneProduct"})
+RETURN n.displayName, n.schemaClass, n.referenceType
+```
+
+### [Healthcare Knowledge Graph](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/healthcare_dataset.ipynb)
+
+Builds a patient-centric knowledge graph combining symptoms, diagnoses, treatments, and side effects. Demonstrates entity extraction, GML ingestion, and how TuringDB supports explainable AI on structured health data.
+
+Query examples:
+
+```
+# Find all patients who took Paracetamol
+MATCH (p:Patient)-[:TOOK_MEDICATION]->
+      (m:Medication {"displayName": "Paracetamol"})
+RETURN p.id, p.displayName, m.displayName
+```
+
+## Running the Notebooks
+
+## **Quick Start**
+
+### **Prerequisites**
+
+- Python 3.13 or higher
+- [<u>uv</u>](https://docs.astral.sh/uv/) package manager
+
+### **Installation**
+
+1. **Clone the repository:**
+
+   ```
+   git clone https://github.com/turing-db/turingdb-examples.git
+   cd turingdb-examples
+   ```
+2. **Install dependencies:**
+
+   ```
+   uv sync
+   ```
+3. **Start Jupyter Lab:**
+
+   ```
+   uv run jupyter lab
+   ```
+
+   This will start the Jupyter server and display output like:
+
+   ```
+   [I 2024-09-26 16:30:15.123 ServerApp] Jupyter Server is running at:
+   [I 2024-09-26 16:30:15.123 ServerApp] http://localhost:8888/lab?token=abc123...
+   
+   ```
+
+   **Copy the URL** (starting with `http://localhost:8888/lab?token=...`) and paste it into your web browser to access Jupyter Lab.
+4. **Open and run the example notebooks** in `examples/notebooks/public_version/`

@@ -1,63 +1,48 @@
 ---
-title: 'Reference'
-sidebarTitle: 'Reference'
-description: 'References for TuringDB Python SDK'
+title: "Reference"
+sidebarTitle: "Reference"
+description: "References for TuringDB Python SDK"
 ---
-# 🐍 TuringDB Python SDK
+
+# TuringDB Python SDK
 
 The TuringDB Python SDK provides an easy interface for connecting to your **TuringDB Cloud instance**, running queries, and managing graphs programmatically.
 
-> 📦 Install the PythonSDK:
-> 
+> Install the PythonSDK:
 
-Using `pip`:
-
-```bash
-pip install turingdb
-```
-
-or using the `uv`  package manager (you will need to create a project first):
+Using `uv`  package manager (you will need to create a project first):
 
 ```bash
 uv add turingdb
 ```
 
+or using `pip`:
 
-## 🚀 Getting Started
+```bash
+pip install turingdb
+```
+
+## Getting Started
 
 ```python
 from turingdb import TuringDB
 
+# Create TuringDB client
+## if TuringDB is running locally
 client = TuringDB(
-    instance_id="your-instance-id",
-    auth_token="your-api-token"
+	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
 )
+### if TuringDB is running on a cloud instance
+#client = TuringDB(
+#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+#    auth_token=<your_auth_token>  # your authentification token
+#)
 
 # List available graphs
 print(client.list_available_graphs())
-
 ```
 
-> 🛑 Need help with tokens or IDs? See [Authentication Guide](/security/authentification)
-> 
-
-
-## 🔐 Initialization
-
-```python
-client = TuringDB(
-    instance_id: str,       # Your unique instance ID (from cloud UI)
-    auth_token: str,        # Your API token (from Settings > API Keys)
-    host: str = "...",      # Optional custom host URL (default for TuringDB Instance is prefilled)
-)
-```
-
-- Uses secure HTTPX client
-- Auth headers are set automatically
-- API gateway refreshes every 60s — wait after creating a token or instance
-
-
-## 🧭 Core Methods
+## Core Methods
 
 ### `list_available_graphs() → list[str]`
 
@@ -83,8 +68,7 @@ Creates a new empty graph with the specified name.
 client.create_graph("my_new_graph")
 ```
 
-> Internally executes CREATE GRAPH "graph_name"
-
+> Internally executes `CREATE GRAPH "graph_name"`
 
 ### `load_graph(graph_name: str, raise_if_loaded: bool = True)`
 
@@ -96,7 +80,6 @@ client.load_graph("my_graph")
 
 If `raise_if_loaded=False`, it will silently continue if the graph is already loaded.
 
-
 ### `query(query: str) → pandas.DataFrame`
 
 Runs a Cypher query on the current graph.
@@ -107,13 +90,11 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 
 Returns results as a `pandas.DataFrame`, with automatic typing and parsing.
 
-
-## 🧬 Version Control Helpers
+## Version Control Helpers
 
 TuringDB supports **snapshot isolation** and **versioned commits**.
 
 Use the following helpers to navigate graph history or work in isolated changes:
-
 
 ### `checkout(change: int | str = "main", commit: str = "HEAD")`
 
@@ -151,19 +132,19 @@ Change the current graph context.
 client.set_graph("another_graph")
 ```
 
-## 📄 Response Format
+## Response Format
 
 All queries return a `pandas.DataFrame`, typed according to schema:
 
 | Cypher Type | Python (NumPy) |
-| --- | --- |
-| `String` | `str` |
-| `Int64` | `int64` |
-| `UInt64` | `uint64` |
-| `Double` | `float64` |
-| `Boolean` | `bool` |
+| ----------- | -------------- |
+| `String`    | `str`          |
+| `Int64`     | `int64`        |
+| `UInt64`    | `uint64`       |
+| `Double`    | `float64`      |
+| `Boolean`   | `bool`         |
 
-## ⚠️ Error Handling
+## Error Handling
 
 All SDK errors raise a custom `TuringDBException`.
 
@@ -174,30 +155,60 @@ except TuringDBException as e:
     print("Query failed:", e)
 ```
 
-
-## 🧪 Example Workflow
+## Example Workflow
 
 ```python
-client = TuringDB(instance_id="...", auth_token="...")
+from turingdb import TuringDB
 
+# Create TuringDB client
+## if TuringDB is running locally
+client = TuringDB(
+	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
+)
+### if TuringDB is running on a cloud instance
+#client = TuringDB(
+#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+#    auth_token=<your_auth_token>  # your authentification token
+#)
+
+# Create and set working graph
 client.create_graph("biograph")
-client.load_graph("biograph")
-
 client.set_graph("biograph")
 
-client.checkout(change=1)
+# Create and set new change
+change = client.new_change()
+print(f"Change: {change}")
+client.checkout(change=change)
 
-df = client.query("MATCH (n:Protein{name~='apoe'}) RETURN n.name, n.id")
+# Multiple nodes and edges can be created at the same time
+# using the following syntax
+client.query("""CREATE (apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
+(apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
+(alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
+(cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
+(apoe_gene)-[:ENCODES]->(apoe_protein),
+(apoe_protein)-[:BINDS]->(cholesterol),
+(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
+""")
+
+# Commit the change
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+
+# Checkout into main
+client.checkout()
+
+# Query graph
+df = client.query("MATCH (n:Gene {name: 'APOE'}) RETURN n.name, n.chromosome")
 print(df)
 ```
 
-## 🧠 Notes
+## Notes
 
 - The SDK uses httpx for async-compatible HTTP requests
 - Responses are parsed using `orjson` and converted into `pandas.DataFrame` for easy usage
 - Only graph name, change ID, and commit hash are sent with requests
 - SDK supports full TuringDB **Cypher dialect**, including `@` node injection, `~=` matching, and versioned queries
-
 
 Need help writing queries? → See the [TuringDB Query Cheatsheet](/query/cheatsheet)
 

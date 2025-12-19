@@ -5,22 +5,8 @@ description: "Start using TuringDB using TuringDB python SDK."
 ---
 
 <Steps>
-  <Step title="Create your TuringDB account" titleSize="h2">
-    Sign up on [console.turingdb.ai](http://console.turingdb.ai)
-
-    <Warning>
-      You need to have credits (free or purchased) to create TuringDB instances
-    </Warning>
-    Use your free credits (with your promo code or contact us at [founders@turingdb.ai](mailto:founders@turingdb.ai) to get your code) or directly purchase new credits (in Profile → Settings → Billing).
-  </Step>
-  <Step title="Create your instance in the TuringDB Cloud UI" titleSize="h2">
-    In Database Instance -\> Create your first instance
-  </Step>
-  <Step title="Copy your Instance ID from the Database Instances management page" titleSize="h2">
-    Keep the instance ID as you will need it on step 5)
-  </Step>
-  <Step title="Get API Key from the Settings in UI" titleSize="h2">
-    -\> Click on your profile icon (bottom left) -\> click on Settings (on the left panel of the pop-up window) -\> Click on the API Keys section -\> copy your API Key (keep it as you will need it on step 5)
+  <Step title="Install TuringDB" titleSize="h2">
+    
   </Step>
   <Step title="Install TuringDB Python SDK " titleSize="h2">
     Using `pip`:
@@ -43,10 +29,7 @@ description: "Start using TuringDB using TuringDB python SDK."
     ```python
     from turingdb import TuringDB
     
-    client = TuringDB(
-        instance_id="...", # Replace by your instance id
-        auth_token="...",  # Replace by your API token
-    )
+    client = TuringDB()
     
     # Create a new graph
     client.query('CREATE GRAPH mygraph')
@@ -65,15 +48,9 @@ description: "Start using TuringDB using TuringDB python SDK."
     client.query("COMMIT")
     client.query("CHANGE SUBMIT")
     ```
-
-    ### User Interface
-
-    You can build a workflow (in the UI and very soon in Python with our open-source agentic & analytical workflow package) to integrate data in the TuringDB graph database.
-
-    See [Workflow Exemples](/workflows/workflows_exemples)
   </Step>
   <Step title="Visualise the graph you have created in TuringDB" titleSize="h2">
-    Open the graph visualiser from the instance running your TuringDB graph, click on the 3 dots in the top right and then on Access UI <img src="/images/get_started/AccessUIgraphviz.png" alt="Open graph visualisation" />
+    ??
 
     ### Exemple of a biological interaction graph built in TuringDB:
 

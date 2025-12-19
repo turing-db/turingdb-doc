@@ -1,16 +1,16 @@
 ---
-title: 'Turing DB Query Language Cheatsheet'
-sidebarTitle: 'CheatSheet'
-description: 'A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions.'
+title: "Turing DB Query Language Cheatsheet"
+sidebarTitle: "CheatSheet"
+description: "A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions."
 ---
 
 ## 🔍 MATCH: Pattern Matching
 
 ```sql
 MATCH (n) RETURN n
-MATCH (n:Person{name="Alice"}) RETURN n.age
-MATCH (a)-[e]-(b) RETURN *
-MATCH (a:Person)--(b:Company) RETURN a.name, b.name
+MATCH (n:Person {name: 'Alice'}) RETURN n.age
+MATCH (a)-[e]->(b) RETURN *
+MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 ```
 
 - `()` → Node
@@ -19,55 +19,58 @@ MATCH (a:Person)--(b:Company) RETURN a.name, b.name
 - Labels: `:Label`
 - Properties: `{key="value", age=30}`
 
-
 ## 🛠 CREATE: Add Nodes & Edges
 
 ```sql
-CREATE (n:Person{name="Alice", age=30})
-CREATE (:Person)-[:FRIEND_OF]-(:Person)
-CREATE (a:Corner)-[:Edge]-(b), (b)-[:Edge]-(c), (c)-[:Edge]-(a)
+CREATE (:Person {name: 'Alice', age: 30})
+CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
+CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
+
+CREATE (gabby:Person {name: 'Gabby', age: 27}),
+(susan:Person {name: 'Susan', age: 35}),
+(lynette:Person {name: 'Lynette', age: 41}),
+(bree:Person {name: 'Bree', age: 42}),
+(gabby)-[FRIEND_OF]->(susan),
+(gabby)-[NEIGHBORS_OF]->(susan),
+...
 ```
 
-- Labels **required**
+- Labels **required** for node creation
 - No `RETURN` clause
 - Use commas to create multiple items at once
-
 
 ## 🎯 Property Match Operators
 
 ```sql
-MATCH (n{name="Alice"}) RETURN n
-MATCH (n{name~="apoe"}) RETURN n        -- Approximate match
-MATCH (n{age=42u}) RETURN n             -- Unsigned int
+MATCH (n {name: 'Alice'}) RETURN n
+MATCH (n {name ~= 'apoe'}) RETURN n        -- Approximate match
+MATCH (n {age: 42u}) RETURN n              -- Unsigned int
 ```
 
-- `=` or `:` → exact match
+- `:` → exact match
 - `~=` → string approximation
-    
-    (prefix-based, case-insensitive)
-    
+
+  (prefix-based, case-insensitive)
 
 ## 📦 Data Types
 
-| Type | Example |
-| --- | --- |
-| String | `"hello"` or `'hello'` |
-| Integer | `age=30` |
-| Unsigned | `age=30u` |
-| Boolean | `flag=true` |
-| Double | `score=3.14` |
-
+| Type     | Example                |
+| -------- | ---------------------- |
+| String   | `"hello"` or `'hello'` |
+| Integer  | `age=30`               |
+| Unsigned | `age=30u`              |
+| Boolean  | `flag=true`            |
+| Double   | `score=3.14`           |
 
 ## ✨ RETURN Clause
 
 ```sql
-MATCH (n)--(m) RETURN n.name, m.age
+MATCH (n)--(m) RETURN n.name, n.age, m.name, m.age
 MATCH (n)--(m) RETURN *
 ```
 
 - `RETURN *` → expands to all variables
 - Select fields with `RETURN n.prop, m.prop`
-
 
 ## 📌 Node ID Injection
 
@@ -78,49 +81,45 @@ MATCH (n:Person @ 1, 2, 3) RETURN n.name
 
 - Use `@` or `AT` to reference internal IDs
 
-
 ## 🔬 Metaqueries (`CALL`)
 
-| Query | Description |
-| --- | --- |
-| `CALL PROPERTIES()` | All node/edge property keys & types |
-| `CALL LABELS()` | All node labels |
-| `CALL EDGETYPES()` | All edge types |
-| `CALL LABELSETS()` | Combinations of labels |
-
+| Query                  | Description                         |
+| ---------------------- | ----------------------------------- |
+| `CALL db.properties()` | All node/edge property keys & types |
+| `CALL db.labels()`     | All node labels                     |
+| `CALL db.edgetypes()`  | All edge types                      |
+| `CALL db.labelsets()`  | Combinations of labels              |
 
 ## 🔧 Engine Commands
 
-| Command | Description |
-| --- | --- |
-| `CREATE GRAPH <name>` | Create a new named graph |
-| `LOAD GRAPH <name>` | Load an existing graph |
-| `LIST GRAPH` | List all available graphs |
-| `HISTORY` | Show commit history (versioning) |
-| `CHANGE NEW` | Create a new isolated change |
-| `CHANGE SUBMIT` | Merge current change into main |
-| `CHANGE DELETE` | Delete current change |
-| `CHANGE LIST` | List active uncommitted changes |
-
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `CREATE GRAPH <name>` | Create a new named graph         |
+| `LOAD GRAPH <name>`   | Load an existing graph           |
+| `LIST GRAPH`          | List all available graphs        |
+| `HISTORY`             | Show commit history (versioning) |
+| `CHANGE NEW`          | Create a new isolated change     |
+| `CHANGE SUBMIT`       | Merge current change into main   |
+| `CHANGE DELETE`       | Delete current change            |
+| `CHANGE LIST`         | List active uncommitted changes  |
 
 ## 🧠 Useful Patterns
 
 ```sql
 -- Two-hop connection
-MATCH (a)-[r1]-(b)-[r2]-(c) RETURN c
+MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 
 -- All people named John
-MATCH (n:Person{name="John"}) RETURN n
+MATCH (n:Person {name: 'John'}) RETURN n
 
 -- All nodes with approx match
-MATCH (n{name~="kinase"}) RETURN n
+MATCH (n {name ~= 'kinase'}) RETURN n
 ```
-
 
 ## 📘 Best Practices
 
-- Use `CALL PROPERTIES()` to discover property keys
+- Use `CALL db.properties()` to discover property keys
 - Use `RETURN *` while prototyping
 - Use `@` for precise node editing or merging
 - Avoid regex — use `~=` for faster fuzzy search
-- All edges are currently **undirected**
+- All edges are **directed**

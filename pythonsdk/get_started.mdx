@@ -1,16 +1,25 @@
 ---
-title: 'Get Started'
-sidebarTitle: 'Get Started'
-description: 'Quickly get started with the TuringDB PythonSDK'
+title: "Get Started"
+sidebarTitle: "Get Started"
+description: "Quickly get started with the TuringDB PythonSDK"
 ---
-# ⚡️ QuickStart: TuringDB Python SDK
 
-This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, connecting to your cloud instance, creating your first graph, and running Cypher queries.
+# QuickStart: TuringDB Python SDK
 
+This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, creating your first graph, and running Cypher queries.
 
-## 🐍 1. Install the SDK
+## 1. Install the SDK
 
-### Option A: Using `pip`
+### Option A: Using `uv` (modern package manager)
+
+```bash
+mkdir my_app
+cd my_app
+uv init
+uv add turingdb
+```
+
+### Option B: Using `pip`
 
 ```bash
 python3 -m venv .venv
@@ -18,41 +27,9 @@ source .venv/bin/activate
 pip install turingdb
 ```
 
-### Option B: Using `uv` (modern package manager)
+## 2. Create a Graph:
 
-> Requires an initialized Python project
-> 
-
-```bash
-mkdir my_app
-cd my_app
-uv init --app
-uv add turingdb
-```
-
-
-## 🔐 2. Connect to Your TuringDB Instance
-
-To interact with TuringDB, you'll need:
-
-- ✅ Your **Instance ID**
-- 🔑 Your **API Token**
-
-These are found in your TuringDB Cloud UI. See Authentication Guide
-
-```python
-from turingdb import TuringDB
-
-client = TuringDB(
-    instance_id="your-instance-id",
-    auth_token="your-api-token"
-)
-```
-
-
-## 🧬 3. Create a Graph:
-
-Create a graph:
+Create a graph and set active graph:
 
 ```python
 # Create a new graph
@@ -62,14 +39,13 @@ client.create_graph("my_first_graph")
 client.set_graph("my_first_graph")
 ```
 
+## 3. Create Nodes & Edges
 
-## 🧱 4. Create Nodes & Edges
-
-First of all, create a new Change on the graph
+First of all, create a new change on the graph
 
 ```python
 # Create a new change on the graph
-change = client.query("CHANGE NEW")["Change ID"][0]
+change = client.new_change()
 
 # Checkout into the change
 client.checkout(change=change)
@@ -79,16 +55,15 @@ Use Cypher `CREATE` queries to add data:
 
 ```python
 # Create a node
-client.query('CREATE (:Person {name="Marie", age=33})')
+client.query("CREATE (:Person {name: 'Marie', age: 33})")
 
 # Create two nodes and an edge
-client.query('CREATE (:Person {name="Jane"})-[:KNOWS]-(:Person {name="John"})')
+client.query("CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})")
 ```
 
-> ✅ All created entities must have at least one label (:Label)
-> 
+> ⚠️ All created entities must have at least one label (:Label)
 
-Once you’re ready, commit and submit your changes
+Once you’re ready, commit and submit your changes:
 
 ```python
 # Commit and submit the change
@@ -99,22 +74,17 @@ client.query("CHANGE SUBMIT")
 client.checkout()
 ```
 
-<aside>
-<img src="/icons/info-alternate_blue.svg" alt="/icons/info-alternate_blue.svg" width="40px" />
+> You can create as many commits as you want before submitting a change
 
-You can create as many commits as you want before submitting a change
-
-</aside>
-
-
-## 🔍 5. Query the Graph
+## 4. Query the Graph
 
 Retrieve data using Cypher `MATCH` queries.
 
 Results are returned as a **pandas DataFrame** for easy inspection:
 
 ```python
-# Basic match query
+# Match all nodes of label 'Person'
+# and return their name and age
 df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 print(df)
 ```
@@ -123,10 +93,10 @@ print(df)
 
 ```python
 # Find nodes with name similar to 'alice'
-df = client.query('MATCH (n{name~="marie"}) RETURN n')
+df = client.query("MATCH (n{name~='alice'}) RETURN n")
 ```
 
-## 📦 6. Version Control & Snapshots
+## 5. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
 
@@ -134,6 +104,11 @@ TuringDB supports versioned graphs and snapshot isolation.
 
 ```python
 client.checkout(change=1)  # Move to change ID 1
+
+# or use
+
+change = client.new_change()
+client.checkout(change=change)
 ```
 
 ### Query a specific commit:
@@ -152,20 +127,39 @@ client.checkout("main")
 client.checkout()
 ```
 
-
-## 🧪 Example: Full Session
+## Example: Full Session
 
 ```python
+from turingdb import TuringDB
 
-client = TuringDB(instance_id="...", auth_token="...")
+# Create TuringDB client
+## if TuringDB is running locally
+client = TuringDB(
+	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
+)
+### if TuringDB is running on a cloud instance
+#client = TuringDB(
+#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+#    auth_token=<your_auth_token>  # your authentification token
+#)
 
+# Create and set working graph
 client.create_graph("people")
-client.load_graph("people")
 client.set_graph("people")
 
-client.query('CREATE (:Person {name="Marie", age=33})')
-client.query('CREATE (:Person {name="Jane"})-[:FRIEND_OF]-(:Person {name="John"})')
+# Create and set new change
+change = client.new_change()
+print(f"Change: {change}")
+client.checkout(change=change)
 
+# Create nodes and edges
+client.query("CREATE (:Person {name: 'Marie', age:33})")
+client.query("CREATE (:Person {name: 'Jane'})-[:FRIEND_OF]->(:Person {name: 'John'})")
+
+# Commit the change
+client.query("COMMIT")
+
+# Query graph
 df = client.query("MATCH (p:Person) RETURN p.name")
 print(df)
 ```

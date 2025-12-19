@@ -4,7 +4,7 @@ sidebarTitle: "Snapshots Isolation"
 description: "TuringDB has a unique snapshot & isolation system protecting your read and write as well as making your graph database commit immutable"
 ---
 
-# 🔒 Snapshot Isolation in TuringDB
+# Snapshot Isolation in TuringDB
 
 TuringDB is designed to support **ACID t**ransactions with **native snapshot isolation (SI)** as a **default, zero-cost feature**. This section explains:
 
@@ -13,45 +13,41 @@ TuringDB is designed to support **ACID t**ransactions with **native snapshot iso
 - How TuringDB achieves it differently from Neo4J or MemGraph
 - And why it comes with **no performance tradeoff** in our architecture
 
-
-## 💡 What Is Snapshot Isolation?
+## What Is Snapshot Isolation?
 
 **Snapshot isolation (SI)** is a database property that guarantees:
 
 > A transaction sees a consistent snapshot of the database as it was at the start of the transaction.
-> 
 
-### ✅ Key Guarantees
+### Key Guarantees
 
 - You only see **committed data**
 - You never see **uncommitted or intermediate states**
 - You never see the **effects of future or concurrent transactions**
 - Your transaction operates on a **stable, unchanging view** of the graph
 
-📘 *Definition adapted from the classic ACID transaction model*
+_Definition adapted from the classic ACID transaction model_
 
 (Gray & Reuter, 1993; Haerder & Reuter, 1983)
 
-
-## 🔐 TuringDB is Fully ACID-Compliant
+## TuringDB is Fully ACID-Compliant
 
 TuringDB supports the full ACID model:
 
-| Principle | Meaning |
-| --- | --- |
-| **Atomicity** | All-or-nothing: if a transaction fails, nothing is applied |
+| Principle       | Meaning                                                                |
+| --------------- | ---------------------------------------------------------------------- |
+| **Atomicity**   | All-or-nothing: if a transaction fails, nothing is applied             |
 | **Consistency** | Every transaction transforms the graph from one valid state to another |
-| **Isolation** | Each transaction operates as if it’s the only one |
-| **Durability** | Once committed, data survives crashes and restarts |
+| **Isolation**   | Each transaction operates as if it’s the only one                      |
+| **Durability**  | Once committed, data survives crashes and restarts                     |
 
-🧠 *Based on the definition of Jim Gray & Andreas Reuter* ([Gray & Reuter, 1993](https://archive.org/details/transactionproce0000gray))
+_Based on the definition of Jim Gray & Andreas Reuter_ ([Gray & Reuter, 1993](https://archive.org/details/transactionproce0000gray))
 
-
-## 🆚 Industry Comparisons: Neo4J and MemGraph
+## Industry Comparisons: Neo4J and MemGraph
 
 Most graph databases fall short of true snapshot isolation.
 
-### 🔸 Neo4J
+### Neo4J
 
 - Default isolation level: **Read Committed**
 - This means you **might observe changes from concurrent transactions**
@@ -60,11 +56,9 @@ Most graph databases fall short of true snapshot isolation.
 
 📎 [Neo4J docs](https://neo4j.com/docs/operations-manual/current/database-internals/)
 
-> 🧨 Risk: Unpredictable graph states in analytics or during parallel workflows.
-> 
+> Risk: Unpredictable graph states in analytics or during parallel workflows.
 
-
-### 🔸 MemGraph
+### MemGraph
 
 - Claims to be ACID-compliant
 - Offers **multiple isolation levels**, but **not full snapshot isolation by default**
@@ -72,20 +66,17 @@ Most graph databases fall short of true snapshot isolation.
 
 📎 [MemGraph blog: ACID & Isolation](https://memgraph.com/blog/acid-transactions-meaning-of-isolation-levels)
 
-> 🧨 Risk: Reads and writes may conflict without explicit coordination.
-> 
+> Risk: Reads and writes may conflict without explicit coordination.
 
-
-## ✅ TuringDB’s Approach to Snapshot Isolation
+## TuringDB’s Approach to Snapshot Isolation
 
 TuringDB provides **Snapshot Isolation by default**, and critically:
 
 > It comes at zero performance cost.
-> 
 
 Here’s how:
 
-### 🔁 Versioned Graphs by Design
+### Versioned Graphs by Design
 
 Every graph in TuringDB is stored as a **sequence of immutable commits**, much like Git. Each commit is composed of **DataParts**, read-optimized storage chunks for nodes and edges.
 
@@ -98,31 +89,27 @@ Every graph in TuringDB is stored as a **sequence of immutable commits**, much l
 🔹 You can always “time travel” to past states by checking out any previous commit
 
 > TuringDB doesn’t need to acquire write locks or maintain transaction logs for reads. SI is built-in, not bolted on.
->
 
-📘 See also: [DataParts](/dataparts) and [Versioning](/commits)
+See also: [DataParts](/dataparts) and [Versioning](/commits)
 
+## Why It Matters
 
-## ⚡ Why It Matters
+| Feature                  | Without SI                      | With Snapshot Isolation (TuringDB)      |
+| ------------------------ | ------------------------------- | --------------------------------------- |
+| Concurrent analytics     | Risk of inconsistency           | ✅ Always safe and repeatable            |
+| LLM or AI agent reads    | Can see in-progress updates     | ✅ Only sees committed graph states      |
+| Live dashboards          | Glitches from concurrent writes | ✅ Never interrupted or corrupted        |
+| Graph training workflows | Risk of nondeterminism          | ✅ Guaranteed reproducibility            |
+| Rollbacks or audits      | Hard to trace                   | ✅ Time-travel enabled by commit history |
 
-| Feature | Without SI | With Snapshot Isolation (TuringDB) |
-| --- | --- | --- |
-| Concurrent analytics | Risk of inconsistency | ✅ Always safe and repeatable |
-| LLM or AI agent reads | Can see in-progress updates | ✅ Only sees committed graph states |
-| Live dashboards | Glitches from concurrent writes | ✅ Never interrupted or corrupted |
-| Graph training workflows | Risk of nondeterminism | ✅ Guaranteed reproducibility |
-| Rollbacks or audits | Hard to trace | ✅ Time-travel enabled by commit history |
+## Further Reading
 
-
-## 📘 Further Reading
-
-- Gray, J., & Reuter, A. (1993). [*Distributed Transaction Processing*](https://dl.acm.org/doi/book/10.5555/573304)
+- Gray, J., & Reuter, A. (1993). [_Distributed Transaction Processing_](https://dl.acm.org/doi/book/10.5555/573304)
 - Haerder, T., & Reuter, A. (1983). [Principles of transaction-oriented DB recovery](https://doi.org/10.1145/289.291)
 - Fekete et al. (2005). [Making Snapshot Isolation Serializable](https://doi.org/10.1145/1071610.1071615)
 - [A Critique of ANSI SQL Isolation Levels (Berenson et al., 1995)](https://doi.org/10.1145/223784.223785)
 
-
-## 🧪 Summary
+## Summary
 
 TuringDB offers **built-in Snapshot Isolation** that is:
 
@@ -139,4 +126,3 @@ TuringDB offers **built-in Snapshot Isolation** that is:
 ✅ Based on a Git-like architecture built for parallelism and consistency
 
 > It’s the first graph database to natively combine versioning, immutability, and snapshot isolation, without the tradeoffs.
->
