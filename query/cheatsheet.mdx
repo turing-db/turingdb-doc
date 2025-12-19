@@ -26,10 +26,13 @@ CREATE (:Person {name: 'Alice', age: 30})
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
 CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
 
-CREATE (:Person {name: 'Gabby', age: 27}),
-(:Person {name: 'Susan', age: 35}),
-(:Person {name: 'Lynette', age: 41}),
-(:Person {name: 'Bree', age: 42})
+CREATE (gabby:Person {name: 'Gabby', age: 27}),
+(susan:Person {name: 'Susan', age: 35}),
+(lynette:Person {name: 'Lynette', age: 41}),
+(bree:Person {name: 'Bree', age: 42}),
+(gabby)-[FRIEND_OF]->(susan),
+(gabby)-[NEIGHBORS_OF]->(susan),
+...
 ```
 
 - Labels **required** for node creation
