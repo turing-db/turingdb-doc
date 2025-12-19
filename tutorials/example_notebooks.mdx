@@ -87,6 +87,13 @@ Illustrates how to model a manufacturing and supply chain graph. Tracks the flow
 
 Query examples:
 
+```
+# Find all relationships between nodes whose
+# descriptions contain "FPGA" using string approximation
+MATCH (n{description ~= "FPGA"})-[e]-(m)
+RETURN n.displayName, n.description, e, m.displayName, m.description
+```
+
 ## Domain: Healthcare & Life Sciences
 
 ### [Reactome Biological Pathways](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/reactome.ipynb)
