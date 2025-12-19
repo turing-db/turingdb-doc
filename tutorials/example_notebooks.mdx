@@ -59,11 +59,33 @@ Query examples:
 MATCH (start {displayName: 'Notting Hill Gate'})-[e:CONNECTED {Line: 'Circle'}]->
       (end {displayName: 'High Street Kensington'})
 RETURN start.displayName, e.Line, end.displayName
+
+# Find 8-hops paths between Paddington and Blackfriars stations
+MATCH (start:Station{displayName:"Paddington"})-[e1:CONNECTED]->
+      (s1:Station)-[e2:CONNECTED]->
+      (s2:Station)-[e3:CONNECTED]->
+      (s3:Station)-[e4:CONNECTED]->
+      (s4:Station)-[e5:CONNECTED]->
+      (s5:Station)-[e6:CONNECTED]->
+      (s6:Station)-[e7:CONNECTED]->
+      (s7:Station)-[e8:CONNECTED]->
+      (end:Station{displayName="Blackfriars"})
+RETURN start.displayName, start.Note, e1.Line,
+       s1.displayName, s1.Note, e2.Line,
+       s2.displayName, s2.Note, e3.Line, 
+       s3.displayName, s3.Note, e4.Line, 
+       s4.displayName, s4.Note, e5.Line, 
+       s5.displayName, s5.Note, e6.Line, 
+       s6.displayName, s6.Note, e7.Line, 
+       s7.displayName, s7.Note, e8.Line, 
+       end.displayName, end.Note
 ```
 
 ### [Supply Chain — ETO Chip Explorer](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/supply_chain_eto-chip-explorer.ipynb)
 
 Illustrates how to model a manufacturing and supply chain graph. Tracks the flow of materials (e.g. ETO chips) through suppliers, batches, and final assemblies — enabling traceability, root cause analysis, and risk assessment.
+
+Query examples:
 
 ## Domain: Healthcare & Life Sciences
 
