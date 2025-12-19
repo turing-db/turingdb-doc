@@ -44,30 +44,15 @@
             ]
           },
           {
-            "group": "AI Workflows",
-            "pages": [
-              "workflows/workflow_concepts",
-              "workflows/nodes_references",
-              "workflows/use_workflows_python",
-              "workflows/build_workflows",
-              "workflows/execute_workflows",
-              "workflows/get_result",
-              "workflows/workflows_exemples"
-            ]
-          },
-          {
             "group": "Tutorials",
             "pages": [
-              "tutorials/create_graph", 
-              "tutorials/workflow_docs2graph",
-              "tutorials/workflow_clinicalnotes"
+              "tutorials/create_graph"
             ]
           },
           {
             "group": "Query Language",
             "pages": [
               "query/cypher_subset",
-              "query/string_approximation",
               "query/cheatsheet",
               "query/benchmarks"
             ]
@@ -77,12 +62,6 @@
             "pages": [
               "pythonsdk/get_started",
               "pythonsdk/reference"
-            ]
-          },
-          {
-            "group": "Security",
-            "pages": [
-              "security/authentication"
             ]
           },
           {

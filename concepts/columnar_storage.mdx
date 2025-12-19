@@ -4,27 +4,25 @@ sidebarTitle: "A Columnar Graph Database"
 description: "Why TuringDB choose and managed to create a columnar graph database?"
 ---
 
-# 🧠 Columnar Database Concept in TuringDB
+# Columnar Database Concept in TuringDB
 
 ## Overview
 
-Traditional graph databases such as **Neo4J** or **MemGraph** typically execute queries by processing **one node or one edge at a time**. This row-by-row processing model, known as the *Volcano* model, limits performance in analytical workloads due to its inherently sequential execution model.
+Traditional graph databases such as **Neo4J** or **MemGraph** typically execute queries by processing **one node or one edge at a time**. This row-by-row processing model, known as the _Volcano_ model, limits performance in analytical workloads due to its inherently sequential execution model.
 
 **TuringDB** departs from this classical architecture by adopting a **column-oriented, vectorized processing model**, enabling high-performance analytics on large-scale graphs by operating on **chunks of nodes and edges simultaneously**. This design opens the door to modern hardware optimizations like **SIMD vectorisation**, **cache locality**, and **fine-grained parallelism**, significantly outperforming traditional approaches on analytics tasks.
 
+## Why the Volcano Model Is Limiting Modern Analytics
 
-## 🌋 Why the Volcano Model Is Limiting Modern Analytics
-
-The classical *Volcano* model of query execution, introduced in early relational database systems, follows a pull-based, tuple-at-a-time execution model. Each operator in a query pipeline calls its child operator to retrieve the next tuple, processes it, and passes the result upward. This results in a **sequential, record-by-record** evaluation that fails to leverage the full power of contemporary processors.
+The classical _Volcano_ model of query execution, introduced in early relational database systems, follows a pull-based, tuple-at-a-time execution model. Each operator in a query pipeline calls its child operator to retrieve the next tuple, processes it, and passes the result upward. This results in a **sequential, record-by-record** evaluation that fails to leverage the full power of contemporary processors.
 
 As noted in seminal research [Boncz et al., 2005](https://www.cidrdb.org/cidr2005/papers/P19.pdf), this model lacks natural concurrency and inhibits performance by preventing vectorised execution. That is, the query engine cannot take advantage of modern processor instructions (SIMD: Single Instruction, Multiple Data) which can apply the same operation to **multiple data elements simultaneously**.
 
-
-## 🧱 Enter Columnar Storage and Execution
+## Enter Columnar Storage and Execution
 
 Columnar databases change the paradigm. Instead of storing data row-by-row, **they store each attribute (or property) in a separate column**, represented as a contiguous array in memory. This structure naturally aligns with analytical query patterns.
 
-### 🧬 Benefits of Columnar Layout
+### Benefits of Columnar Layout
 
 - **Cache locality**: Analytical queries often focus on a subset of attributes (e.g., filtering by degree, computing average weight). With columnar storage, only relevant columns are scanned, improving cache efficiency and reducing memory bandwidth usage.
 - **Vectorisation**: Columns are stored as arrays, which means operations like `SUM`, `AVG`, or `FILTER` can be implemented as **tight, SIMD-optimized loops** over contiguous memory blocks.
@@ -44,16 +42,13 @@ In a columnar layout:
 
 customer_id = [1001, 1002]
 price       = [50, 120]
-
 ```
 
 A query like `AVG(price)` can be executed as a single vectorised pass over the `price` column, without touching the `customer_id` values.
 
 > For a practical overview of the differences, see TigerData’s comparison of column vs row-oriented databases.
-> 
 
-
-## 🔬 Columnar Execution in our Graph Database
+## Columnar Execution in our Graph Database
 
 Despite the advantages, **graph databases have largely remained tied to the Volcano model**. Systems like Neo4J and MemGraph still process graph elements one-by-one, iterating through edges and nodes in a sequential and pointer-chasing fashion.
 
@@ -64,13 +59,13 @@ This design significantly limits performance for:
 - Real-time analytical dashboards
 - AI pipelines with graph-based feature extraction
 
-## 🚀 TuringDB: A Column-Oriented Graph Engine
+## TuringDB: A Column-Oriented Graph Database Engine
 
 TuringDB brings the power of columnar processing to **graph data**.
 
 Instead of row-by-row traversal, TuringDB uses a **streaming, columnar query pipeline** that operates on **vectors (or chunks) of nodes and edges**. This is analogous to how column-store analytical databases operate, but adapted to the **structural and relational richness** of graphs.
 
-### 🧠 What This Enables
+### What This Enables
 
 - **Massive vectorised query execution** across node/edge properties
 - **SIMD acceleration** for graph filters, joins, and traversals
@@ -79,24 +74,24 @@ Instead of row-by-row traversal, TuringDB uses a **streaming, columnar query pip
 
 By rethinking graph execution in terms of **columnar layout and vectorised operators**, TuringDB delivers **orders-of-magnitude faster analytics performance** on large, complex graphs.
 
-## 📝 References
+## References
 
-- Boncz, Peter A., et al. (2005). *MonetDB/X100: Hyper-pipelining Query Execution*. [CIDR 2005](https://www.cidrdb.org/cidr2005/papers/P19.pdf)
-- TigerData. *Columnar Databases vs Row-Oriented Databases: Which to Choose?* [Read here](https://www.tigerdata.com/learn/columnar-databases-vs-row-oriented-databases-which-to-choose)
+- Boncz, Peter A., et al. (2005). _MonetDB/X100: Hyper-pipelining Query Execution_. [CIDR 2005](https://www.cidrdb.org/cidr2005/papers/P19.pdf)
+- TigerData. _Columnar Databases vs Row-Oriented Databases: Which to Choose?_ [Read here](https://www.tigerdata.com/learn/columnar-databases-vs-row-oriented-databases-which-to-choose)
 
 TuringDB is the **first graph database to fully leverage columnar storage and processing**, making it highly scalable on modern hardware for analytical graph workloads.
 
 ---
 
-# 🚰 Streaming Execution Engine
+# Streaming Execution Engine
 
 At the core of TuringDB’s performance lies its **Streaming Execution Engine**, a query execution pipeline purpose-built for modern hardware and analytical workloads.
 
 Unlike classical graph engines (e.g., Neo4J, MemGraph) that follow a **Volcano model**, processing **one node or edge at a time**, TuringDB introduces a **columnar, chunk-based, streaming execution pipeline** that operates on **arrays of graph data**.
 
-## 🔥 Traditional vs Streaming: A Quick Recap
+## Traditional vs Streaming: A Quick Recap
 
-### 🧱 Traditional Volcano Model
+### Traditional Volcano Model
 
 ```
 SCAN → FILTER → FILTER → GET EDGES → GET EDGES
@@ -110,8 +105,7 @@ SCAN → FILTER → FILTER → GET EDGES → GET EDGES
 
 This model was designed for early relational systems and doesn't fit high-performance analytics, especially in graph workloads with millions of relationships.
 
-
-### 🧬 TuringDB’s Columnar Streaming Model
+### TuringDB’s Columnar Streaming Model
 
 ```
 [Column of Nodes] → [Filter Column by Age] → [Filter Column by Location] → [Column of Edges]
@@ -127,8 +121,7 @@ Each stage in the pipeline receives a **column**, transforms it, and passes the 
 
 ![volcano vs columnar](/images/ColumnarvsVolcano.png)
 
-
-## 🔗 How It Works: DataParts + Column Flow
+## How It Works: DataParts + Column Flow
 
 TuringDB stores all nodes and edges in **DataParts**, which are:
 
@@ -138,7 +131,7 @@ TuringDB stores all nodes and edges in **DataParts**, which are:
 
 The Streaming Engine processes **columns extracted from these DataParts**.
 
-### 📦 Example:
+### Example:
 
 - `SCAN NODES BY LABEL "Person"` → Returns a **column of node IDs**
 - `FILTER BY PROPERTY age > 25` → Produces a **smaller column**
@@ -147,8 +140,7 @@ The Streaming Engine processes **columns extracted from these DataParts**.
 
 This creates a **tight loop of data transformation**, always operating on dense, contiguous memory blocks that are **hardware-optimized**.
 
-
-## 🤔 Why Hasn’t This Been Done in Graph DBs Before?
+## Why Hasn’t This Been Done in Graph DBs Before?
 
 Graphs are **arbitrarily connected**. In classical designs:
 
@@ -159,12 +151,11 @@ Graphs are **arbitrarily connected**. In classical designs:
 
 That’s why major graph DBs have avoided columnar models.
 
-
-## 💡 The TuringDB Solution
+## The TuringDB Solution
 
 TuringDB reintroduces **contiguity** into graph systems through:
 
-### ✅ The DataPart System
+### The DataPart System
 
 Each DataPart contains:
 
@@ -178,18 +169,16 @@ These arrays are laid out **contiguously in memory**, allowing us to:
 - Achieve vectorisation and cache-local execution, **on graphs**
 - Process millions of nodes and edges in milliseconds
 
-📈 Modern CPUs thrive on contiguous, predictable data access, TuringDB gives them just that.
+Modern CPUs thrive on contiguous, predictable data access, TuringDB gives them just that.
 
+## Summary
 
-## 🧠 Summary
-
-| Feature | Traditional Graph DBs | TuringDB Streaming Engine |
-| --- | --- | --- |
-| Execution model | Tuple-at-a-time (Volcano) | Columnar Streaming |
-| Memory access | Scattered | Contiguous (DataParts) |
-| SIMD/vectorisation | ❌ Limited | ✅ Native |
-| Parallelism | Manual or limited | ✅ Chunk-based & automatic |
-| Read performance | 🐢 Slow on scale | ⚡ Millisecond-level |
-
+| Feature            | Traditional Graph DBs     | TuringDB Streaming Engine |
+| ------------------ | ------------------------- | ------------------------- |
+| Execution model    | Tuple-at-a-time (Volcano) | Columnar Streaming        |
+| Memory access      | Scattered                 | Contiguous (DataParts)    |
+| SIMD/vectorisation | ❌ Limited                 | ✅ Native                  |
+| Parallelism        | Manual or limited         | ✅ Chunk-based & automatic |
+| Read performance   | 🐢 Slow on scale          | ⚡ Millisecond-level       |
 
 TuringDB’s Streaming Execution Engine is what finally brings **the big ideas of columnar analytics** to the **world of graph data**, without compromise.

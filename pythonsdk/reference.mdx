@@ -1,14 +1,14 @@
 ---
-title: 'Reference'
-sidebarTitle: 'Reference'
-description: 'References for TuringDB Python SDK'
+title: "Reference"
+sidebarTitle: "Reference"
+description: "References for TuringDB Python SDK"
 ---
-# 🐍 TuringDB Python SDK
+
+# TuringDB Python SDK
 
 The TuringDB Python SDK provides an easy interface for connecting to your **TuringDB Cloud instance**, running queries, and managing graphs programmatically.
 
 > 📦 Install the PythonSDK:
-> 
 
 Using `pip`:
 
@@ -22,40 +22,18 @@ or using the `uv`  package manager (you will need to create a project first):
 uv add turingdb
 ```
 
-
-## 🚀 Getting Started
+## Getting Started
 
 ```python
 from turingdb import TuringDB
 
-client = TuringDB(
-    instance_id="your-instance-id",
-    auth_token="your-api-token"
-)
+client = TuringDB()
 
 # List available graphs
 print(client.list_available_graphs())
-
 ```
 
 > 🛑 Need help with tokens or IDs? See [Authentication Guide](/security/authentification)
-> 
-
-
-## 🔐 Initialization
-
-```python
-client = TuringDB(
-    instance_id: str,       # Your unique instance ID (from cloud UI)
-    auth_token: str,        # Your API token (from Settings > API Keys)
-    host: str = "...",      # Optional custom host URL (default for TuringDB Instance is prefilled)
-)
-```
-
-- Uses secure HTTPX client
-- Auth headers are set automatically
-- API gateway refreshes every 60s — wait after creating a token or instance
-
 
 ## 🧭 Core Methods
 
@@ -85,7 +63,6 @@ client.create_graph("my_new_graph")
 
 > Internally executes CREATE GRAPH "graph_name"
 
-
 ### `load_graph(graph_name: str, raise_if_loaded: bool = True)`
 
 Loads a previously created graph into memory.
@@ -95,7 +72,6 @@ client.load_graph("my_graph")
 ```
 
 If `raise_if_loaded=False`, it will silently continue if the graph is already loaded.
-
 
 ### `query(query: str) → pandas.DataFrame`
 
@@ -107,13 +83,11 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 
 Returns results as a `pandas.DataFrame`, with automatic typing and parsing.
 
-
-## 🧬 Version Control Helpers
+## Version Control Helpers
 
 TuringDB supports **snapshot isolation** and **versioned commits**.
 
 Use the following helpers to navigate graph history or work in isolated changes:
-
 
 ### `checkout(change: int | str = "main", commit: str = "HEAD")`
 
@@ -151,19 +125,19 @@ Change the current graph context.
 client.set_graph("another_graph")
 ```
 
-## 📄 Response Format
+## Response Format
 
 All queries return a `pandas.DataFrame`, typed according to schema:
 
 | Cypher Type | Python (NumPy) |
-| --- | --- |
-| `String` | `str` |
-| `Int64` | `int64` |
-| `UInt64` | `uint64` |
-| `Double` | `float64` |
-| `Boolean` | `bool` |
+| ----------- | -------------- |
+| `String`    | `str`          |
+| `Int64`     | `int64`        |
+| `UInt64`    | `uint64`       |
+| `Double`    | `float64`      |
+| `Boolean`   | `bool`         |
 
-## ⚠️ Error Handling
+## Error Handling
 
 All SDK errors raise a custom `TuringDBException`.
 
@@ -174,11 +148,10 @@ except TuringDBException as e:
     print("Query failed:", e)
 ```
 
-
-## 🧪 Example Workflow
+## Example Workflow
 
 ```python
-client = TuringDB(instance_id="...", auth_token="...")
+client = TuringDB()
 
 client.create_graph("biograph")
 client.load_graph("biograph")
@@ -197,7 +170,6 @@ print(df)
 - Responses are parsed using `orjson` and converted into `pandas.DataFrame` for easy usage
 - Only graph name, change ID, and commit hash are sent with requests
 - SDK supports full TuringDB **Cypher dialect**, including `@` node injection, `~=` matching, and versioned queries
-
 
 Need help writing queries? → See the [TuringDB Query Cheatsheet](/query/cheatsheet)
 

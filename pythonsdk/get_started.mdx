@@ -1,27 +1,18 @@
 ---
-title: 'Get Started'
-sidebarTitle: 'Get Started'
-description: 'Quickly get started with the TuringDB PythonSDK'
+title: "Get Started"
+sidebarTitle: "Get Started"
+description: "Quickly get started with the TuringDB PythonSDK"
 ---
-# ⚡️ QuickStart: TuringDB Python SDK
 
-This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, connecting to your cloud instance, creating your first graph, and running Cypher queries.
+# QuickStart: TuringDB Python SDK
 
+This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, creating your first graph, and running Cypher queries.
 
-## 🐍 1. Install the SDK
+## 1. Install the SDK
 
-### Option A: Using `pip`
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install turingdb
-```
-
-### Option B: Using `uv` (modern package manager)
+### Option A: Using `uv` (modern package manager)
 
 > Requires an initialized Python project
-> 
 
 ```bash
 mkdir my_app
@@ -30,27 +21,15 @@ uv init --app
 uv add turingdb
 ```
 
+### Option B: Using `pip`
 
-## 🔐 2. Connect to Your TuringDB Instance
-
-To interact with TuringDB, you'll need:
-
-- ✅ Your **Instance ID**
-- 🔑 Your **API Token**
-
-These are found in your TuringDB Cloud UI. See Authentication Guide
-
-```python
-from turingdb import TuringDB
-
-client = TuringDB(
-    instance_id="your-instance-id",
-    auth_token="your-api-token"
-)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install turingdb
 ```
 
-
-## 🧬 3. Create a Graph:
+##  2. Create a Graph:
 
 Create a graph:
 
@@ -62,8 +41,7 @@ client.create_graph("my_first_graph")
 client.set_graph("my_first_graph")
 ```
 
-
-## 🧱 4. Create Nodes & Edges
+## 3. Create Nodes & Edges
 
 First of all, create a new Change on the graph
 
@@ -86,7 +64,6 @@ client.query('CREATE (:Person {name="Jane"})-[:KNOWS]-(:Person {name="John"})')
 ```
 
 > ✅ All created entities must have at least one label (:Label)
-> 
 
 Once you’re ready, commit and submit your changes
 
@@ -100,14 +77,12 @@ client.checkout()
 ```
 
 <aside>
-<img src="/icons/info-alternate_blue.svg" alt="/icons/info-alternate_blue.svg" width="40px" />
+  <img src="/icons/info-alternate_blue.svg" alt="/icons/info-alternate_blue.svg" width="40px" />
 
-You can create as many commits as you want before submitting a change
-
+  You can create as many commits as you want before submitting a change
 </aside>
 
-
-## 🔍 5. Query the Graph
+## 4. Query the Graph
 
 Retrieve data using Cypher `MATCH` queries.
 
@@ -126,7 +101,7 @@ print(df)
 df = client.query('MATCH (n{name~="marie"}) RETURN n')
 ```
 
-## 📦 6. Version Control & Snapshots
+## 5. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
 
@@ -152,12 +127,11 @@ client.checkout("main")
 client.checkout()
 ```
 
-
-## 🧪 Example: Full Session
+## Example: Full Session
 
 ```python
 
-client = TuringDB(instance_id="...", auth_token="...")
+client = TuringDB()
 
 client.create_graph("people")
 client.load_graph("people")
