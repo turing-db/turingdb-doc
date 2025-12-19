@@ -1,16 +1,16 @@
 ---
-title: 'Turing DB Query Language Cheatsheet'
-sidebarTitle: 'CheatSheet'
-description: 'A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions.'
+title: "Turing DB Query Language Cheatsheet"
+sidebarTitle: "CheatSheet"
+description: "A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions."
 ---
 
 ## 🔍 MATCH: Pattern Matching
 
 ```sql
 MATCH (n) RETURN n
-MATCH (n:Person{name="Alice"}) RETURN n.age
-MATCH (a)-[e]-(b) RETURN *
-MATCH (a:Person)--(b:Company) RETURN a.name, b.name
+MATCH (n:Person {name: 'Alice'}) RETURN n.age
+MATCH (a)-[e]->(b) RETURN *
+MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 ```
 
 - `()` → Node
@@ -19,19 +19,17 @@ MATCH (a:Person)--(b:Company) RETURN a.name, b.name
 - Labels: `:Label`
 - Properties: `{key="value", age=30}`
 
-
 ## 🛠 CREATE: Add Nodes & Edges
 
 ```sql
-CREATE (n:Person{name="Alice", age=30})
-CREATE (:Person)-[:FRIEND_OF]-(:Person)
-CREATE (a:Corner)-[:Edge]-(b), (b)-[:Edge]-(c), (c)-[:Edge]-(a)
+CREATE (n:Person {name: 'Alice', age: 30})
+CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
+CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
 ```
 
 - Labels **required**
 - No `RETURN` clause
 - Use commas to create multiple items at once
-
 
 ## 🎯 Property Match Operators
 
@@ -43,20 +41,18 @@ MATCH (n{age=42u}) RETURN n             -- Unsigned int
 
 - `=` or `:` → exact match
 - `~=` → string approximation
-    
-    (prefix-based, case-insensitive)
-    
+
+  (prefix-based, case-insensitive)
 
 ## 📦 Data Types
 
-| Type | Example |
-| --- | --- |
-| String | `"hello"` or `'hello'` |
-| Integer | `age=30` |
-| Unsigned | `age=30u` |
-| Boolean | `flag=true` |
-| Double | `score=3.14` |
-
+| Type     | Example                |
+| -------- | ---------------------- |
+| String   | `"hello"` or `'hello'` |
+| Integer  | `age=30`               |
+| Unsigned | `age=30u`              |
+| Boolean  | `flag=true`            |
+| Double   | `score=3.14`           |
 
 ## ✨ RETURN Clause
 
@@ -68,7 +64,6 @@ MATCH (n)--(m) RETURN *
 - `RETURN *` → expands to all variables
 - Select fields with `RETURN n.prop, m.prop`
 
-
 ## 📌 Node ID Injection
 
 ```sql
@@ -78,30 +73,27 @@ MATCH (n:Person @ 1, 2, 3) RETURN n.name
 
 - Use `@` or `AT` to reference internal IDs
 
-
 ## 🔬 Metaqueries (`CALL`)
 
-| Query | Description |
-| --- | --- |
+| Query               | Description                         |
+| ------------------- | ----------------------------------- |
 | `CALL PROPERTIES()` | All node/edge property keys & types |
-| `CALL LABELS()` | All node labels |
-| `CALL EDGETYPES()` | All edge types |
-| `CALL LABELSETS()` | Combinations of labels |
-
+| `CALL LABELS()`     | All node labels                     |
+| `CALL EDGETYPES()`  | All edge types                      |
+| `CALL LABELSETS()`  | Combinations of labels              |
 
 ## 🔧 Engine Commands
 
-| Command | Description |
-| --- | --- |
-| `CREATE GRAPH <name>` | Create a new named graph |
-| `LOAD GRAPH <name>` | Load an existing graph |
-| `LIST GRAPH` | List all available graphs |
-| `HISTORY` | Show commit history (versioning) |
-| `CHANGE NEW` | Create a new isolated change |
-| `CHANGE SUBMIT` | Merge current change into main |
-| `CHANGE DELETE` | Delete current change |
-| `CHANGE LIST` | List active uncommitted changes |
-
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `CREATE GRAPH <name>` | Create a new named graph         |
+| `LOAD GRAPH <name>`   | Load an existing graph           |
+| `LIST GRAPH`          | List all available graphs        |
+| `HISTORY`             | Show commit history (versioning) |
+| `CHANGE NEW`          | Create a new isolated change     |
+| `CHANGE SUBMIT`       | Merge current change into main   |
+| `CHANGE DELETE`       | Delete current change            |
+| `CHANGE LIST`         | List active uncommitted changes  |
 
 ## 🧠 Useful Patterns
 
@@ -115,7 +107,6 @@ MATCH (n:Person{name="John"}) RETURN n
 -- All nodes with approx match
 MATCH (n{name~="kinase"}) RETURN n
 ```
-
 
 ## 📘 Best Practices
 
