@@ -161,11 +161,15 @@ except TuringDBException as e:
 from turingdb import TuringDB
 
 # Create TuringDB client
+## if TuringDB is running locally
 client = TuringDB(
-    host="http://localhost:6666"  # Remove this parameter and set the two parameters below
-    # instance_id=os.getenv("INSTANCE_ID"),
-    # auth_token=os.getenv("AUTH_TOKEN"),
+	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
 )
+### if TuringDB is running on a cloud instance
+#client = TuringDB(
+#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+#    auth_token=<your_auth_token>  # your authentification token
+#)
 
 # Create and set working graph
 client.create_graph("biograph")
