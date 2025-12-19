@@ -113,13 +113,13 @@ MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 MATCH (n:Person {name: 'John'}) RETURN n
 
 -- All nodes with approx match
-MATCH (n{name~="kinase"}) RETURN n
+MATCH (n {name ~= 'kinase'}) RETURN n
 ```
 
 ## 📘 Best Practices
 
-- Use `CALL PROPERTIES()` to discover property keys
+- Use `CALL db.properties()` to discover property keys
 - Use `RETURN *` while prototyping
 - Use `@` for precise node editing or merging
 - Avoid regex — use `~=` for faster fuzzy search
-- All edges are currently **undirected**
+- All edges are **directed**
