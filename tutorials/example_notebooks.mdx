@@ -16,9 +16,31 @@ Explore the full set of notebooks on GitHub:
 
 Uses the synthetic PaySim dataset to simulate a transactional graph. Highlights how graph queries can uncover suspicious transaction patterns and how TuringDB supports fast multi-hop detection for fraud rings and mule accounts.
 
+Query examples:
+
+```
+# Find all transactions between two accounts
+MATCH (a1:Account)-->(t:Transaction)-->(a2:Account)
+RETURN a1.id, a1.type, t.amount, t.type, a2.id, a2.type, t.is_fraud
+
+# Find all 2-hops transaction chains
+MATCH (a1:Account)-[s1:SENT]->(t1:Transaction)-[r1:RECEIVED]->
+      (a2:Account)-[s2:SENT]->(t2:Transaction)-[r2:RECEIVED]->
+      (a3:Account)
+RETURN a1.id, a2.id, a3.id, t1.id, t1.type, t1.amount, t1.step, t1.is_fraud ,
+       t2.id, t2.type, t2.amount, t2.step, t2.is_fraud 
+```
+
 ### [Crypto Orbitaal Fraud Detection](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/crypto_orbitaal_fraud_detection.ipynb)
 
 Demonstrates risk analysis on crypto transaction data. Focuses on exploring wallets, exchanges, and fund flows to detect potential illicit activity through graph-based features such as suspicious loops and layered structures.
+
+```
+# Find all 4-hops transaction chains
+MATCH (a:Entity)-[:TRANSACTION]->(b:Entity)-[:TRANSACTION]->
+      (c:Entity)-[:TRANSACTION]->(d:Entity)
+RETURN a, b, c, d
+```
 
 ## Domain: Transport & Logistics
 
