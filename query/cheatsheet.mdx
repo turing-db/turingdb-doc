@@ -65,7 +65,7 @@ MATCH (n {age: 42u}) RETURN n              -- Unsigned int
 ## ✨ RETURN Clause
 
 ```sql
-MATCH (n)--(m) RETURN n.name, m.age
+MATCH (n)--(m) RETURN n.name, n.age, m.name, m.age
 MATCH (n)--(m) RETURN *
 ```
 
