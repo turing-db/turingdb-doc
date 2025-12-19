@@ -47,7 +47,7 @@ MATCH (n {name ~= 'apoe'}) RETURN n        -- Approximate match
 MATCH (n {age: 42u}) RETURN n              -- Unsigned int
 ```
 
-- `=` or `:` → exact match
+- `:` → exact match
 - `~=` → string approximation
 
   (prefix-based, case-insensitive)
