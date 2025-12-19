@@ -55,10 +55,10 @@ Use Cypher `CREATE` queries to add data:
 
 ```python
 # Create a node
-client.query('CREATE (:Person {name:"Marie", age:33})')
+client.query('CREATE (:Person {name: "Marie", age: 33})')
 
 # Create two nodes and an edge
-client.query('CREATE (:Person {name:"Jane"})-[:KNOWS]-(:Person {name:"John"})')
+client.query('CREATE (:Person {name:"Jane"})-[:KNOWS]->(:Person {name:"John"})')
 ```
 
 > ⚠️ All created entities must have at least one label (:Label)
