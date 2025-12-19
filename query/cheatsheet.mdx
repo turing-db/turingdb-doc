@@ -107,10 +107,10 @@ MATCH (n:Person @ 1, 2, 3) RETURN n.name
 
 ```sql
 -- Two-hop connection
-MATCH (a)-[r1]-(b)-[r2]-(c) RETURN c
+MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 
 -- All people named John
-MATCH (n:Person{name="John"}) RETURN n
+MATCH (n:Person {name: 'John'}) RETURN n
 
 -- All nodes with approx match
 MATCH (n{name~="kinase"}) RETURN n
