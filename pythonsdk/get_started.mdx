@@ -154,7 +154,7 @@ client.checkout(change=change)
 
 # Create nodes and edges
 client.query("CREATE (:Person {name: 'Marie', age:33})")
-client.query("CREATE (:Person {name: 'Jane'})-[:FRIEND_OF]-(:Person {name: 'John'})")
+client.query("CREATE (:Person {name: 'Jane'})-[:FRIEND_OF]->(:Person {name: 'John'})")
 
 # Commit the change
 client.query("COMMIT")
