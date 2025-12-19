@@ -149,28 +149,45 @@ except TuringDBException as e:
 ## Example Workflow
 
 ```python
-client = TuringDB()
+from turingdb import TuringDB
 
+# Create TuringDB client
+client = TuringDB(
+    host="http://localhost:6666"  # Remove this parameter and set the two parameters below
+    # instance_id=os.getenv("INSTANCE_ID"),
+    # auth_token=os.getenv("AUTH_TOKEN"),
+)
+
+# Create and set working graph
 client.create_graph("biograph")
 client.set_graph("biograph")
 
-client.checkout(change=1)
+# Create and set new change
+change = client.new_change()
+print(f"Change: {change}")
+client.checkout(change=change)
 
-client.query('CREATE (:Protein({name:"APOE"}))')
-
-client.query("""
-CREATE
-(apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
+# Multiple nodes and edges can be created at the same time
+# using the following syntax
+client.query("""CREATE (apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
 (apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
 (alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
 (cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
-(apoe_gene)-[:ENCODES]->(apoe_protein),
-(apoe_protein)-[:BINDS]->(cholesterol),
-(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
+(apoe_gene)-[:ENCODES]-(apoe_protein),
+(apoe_protein)-[:BINDS]-(cholesterol),
+(apoe_protein)-[:ASSOCIATED_WITH]-(alzheimers)
 """)
 
-df = client.query("MATCH (n:Gene{name~='apoe'}) RETURN n.name, n.id")
-print(df)
+# Commit the change
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+
+# Checkout into main
+client.checkout()
+
+# Query graph
+df = client.query("MATCH (n:Gene {name: 'APOE'}) RETURN n.name, n.chromosome")
+display(df)
 ```
 
 ## Notes
