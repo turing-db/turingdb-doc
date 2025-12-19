@@ -27,7 +27,7 @@ CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
 CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
 ```
 
-- Labels **required**
+- Labels **required** for node creation
 - No `RETURN` clause
 - Use commas to create multiple items at once
 
