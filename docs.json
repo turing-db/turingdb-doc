@@ -70,13 +70,6 @@
             "pages": [
               "troubles/troubles"
             ]
-          },
-          {
-            "group": "Roadmap & Feedback",
-            "pages": [
-              "roadmap/roadmap",
-              "roadmap/feedback"
-            ]
           }
         ]
       }
