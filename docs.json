@@ -96,13 +96,7 @@
         "label": "Website",
         "href": "https://turingdb.ai"
       }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Console",
-      "href": "https://console.turingdb.ai"
-    }
-  },
+    ]},
   "footer": {
     "socials": {
       "github": "https://github.com/turing-db",
