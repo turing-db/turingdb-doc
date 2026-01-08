@@ -4,11 +4,10 @@ sidebarTitle: "Get Started"
 description: "Start using TuringDB Community Version with the TuringDB python SDK."
 ---
 
+[Checkout the Github of the TuringDB Community Version](https://github.com/turing-db/turingdb) If you want to support TuringDB leave us a star on Github !
+
 <Steps>
   <Step title="Install TuringDB" titleSize="h2">
-    
-  </Step>
-  <Step title="Install TuringDB Python SDK " titleSize="h2">
     Using `pip`:
 
     ```bash
@@ -20,6 +19,18 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
     ```bash
     uv add turingdb
     ```
+    You can also install TuringDB using cmake: [instructions on Github](https://github.com/turing-db/turingdb/blob/main/README.md
+  </Step>
+  <Step title="Running TuringDB" titleSize="h2">
+    If you want to launch TuringDB instantly in the CLI
+    ```bash
+    turingdb
+    ```
+    If you want to launch TuringDB in the background as a daemon
+    ```bash
+    turingdb -demon
+    ```
+    
   </Step>
   <Step title="Exemple to create and query a graph" titleSize="h2">
     Create graph → list graph → create node & create edge → commit → list graphs → match query
@@ -29,7 +40,7 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
     ```python
     from turingdb import TuringDB
     
-    client = TuringDB()
+    client = TuringDB(http://localhost)
     
     # Create a new graph
     client.query('CREATE GRAPH mygraph')
@@ -50,13 +61,16 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
     ```
   </Step>
   <Step title="Visualise the graph you have created in TuringDB" titleSize="h2">
-    ??
+    TuringDB has a high performance visualiser that you can download here:
+    
+    [TuringDB Visualiser](https://github.com/turing-db/turingdb-visualizer)
 
     ### Exemple of a biological interaction graph built in TuringDB:
 
     1. Choose on the top right the graph
     2. Search & select a node(s) of interest (magnifying glass button on the left)
-    3. Then go to visualiser (network logo) and you can start exploring paths, expanding neighbours, inspect nodes (parameters, hyperlinks, and texts stored on the nodes) <img src="/images/get_started/graph_viz_2.png" alt="Graph visualisation" />
+    3. Then go to visualiser (network logo) and you can start exploring paths, expanding neighbours, inspect nodes (parameters, hyperlinks, and texts stored on the nodes) 
+    <img src="/images/get_started/graph_viz_2.png" alt="Graph visualisation" />
   </Step>
 </Steps>
 
