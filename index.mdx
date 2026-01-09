@@ -4,19 +4,70 @@ sidebarTitle: "Introduction"
 description: "TuringDB is the fastest graph database engine for analytical, AI-driven, and read-intensive workloads"
 ---
 
-Built with a cutting-edge column-oriented architecture, version-controlled storage, and zero-locking execution, TuringDB gives you **blazing-fast queries**, **snapshot isolation**, and **seamless integration** with modern AI pipelines.
+{/* Hero Section */}
+<div className="flex flex-col lg:flex-row items-center justify-between gap-12 py-16">
+  <div className="flex-1">
+    <h1 className="text-5xl font-bold mb-6">TuringDB: Blazingly Fast Graph Database Engine</h1>
+    <p className="text-xl text-gray-400">
+      Built with a cutting-edge column-oriented architecture, version-controlled storage, and zero-locking execution for blazing-fast queries, snapshot isolation, and seamless AI integration.
+    </p>
+  </div>
+  
+  <div className="flex-1">
+    {/* Image placeholder - user will add GIF here */}
+    <div className="w-full rounded-lg bg-gray-800" style={{aspectRatio: '16/9'}}></div>
+  </div>
+</div>
 
-<CardGroup cols={2}>
-  <Card title="Quickstart" href="/quickstart" img="images/rocket.png">
-    Get up and running in minutes with our step-by-step guide
-  </Card>
-  <Card title="TuringDB Concepts & Architecture" href="/concepts/overview" img="images/tree.png">
-    Learn about the core concepts and architecture of TuringDB
-  </Card>
-  <Card title="Query & Search Language" href="/query/cypher_subset" img="images/query.png">
-    TuringDB query language based on OpenCypher
-  </Card>
-  <Card title="Examples" img="images/infra.png">
-    Explore real-world examples and advanced use cases
-  </Card>
-</CardGroup>
+{/* Divider */}
+<hr className="border-gray-800 my-12" />
+
+{/* Get Started Section */}
+<div className="py-12">
+  <h2 className="text-3xl font-semibold text-center mb-12">Get Started</h2>
+  
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <a href="/quickstart" className="block p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors">
+      <div className="text-orange-500 mb-4">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+      <h3 className="text-xl font-semibold mb-2">Quickstart</h3>
+      <p className="text-gray-400">Get up and running in minutes with our step-by-step guide</p>
+    </a>
+    
+    <a href="/concepts/overview" className="block p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors">
+      <div className="text-orange-500 mb-4">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      </div>
+      <h3 className="text-xl font-semibold mb-2">TuringDB Concepts & Architecture</h3>
+      <p className="text-gray-400">Learn about the core concepts and architecture of TuringDB</p>
+    </a>
+    
+    <a href="/query/cypher_subset" className="block p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors">
+      <div className="text-orange-500 mb-4">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <h3 className="text-xl font-semibold mb-2">Query & Search Language</h3>
+      <p className="text-gray-400">TuringDB query language based on OpenCypher</p>
+    </a>
+  </div>
+  
+  <div className="mt-6 flex justify-center">
+    <a href="/examples" className="block p-6 rounded-lg border border-gray-800 hover:border-gray-700 transition-colors max-w-sm">
+      <div className="text-orange-500 mb-4">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      </div>
+      <h3 className="text-xl font-semibold mb-2">Examples</h3>
+      <p className="text-gray-400">Explore real-world examples and advanced use cases</p>
+    </a>
+  </div>
+</div>
+```
