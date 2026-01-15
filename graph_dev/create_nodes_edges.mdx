@@ -18,3 +18,27 @@ description: "Once you have a valid change, you can start adding new nodes and e
     ```
   </Tab>
 </Tabs>
+
+In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
+
+```python
+# client.set_graph("mygraph")  # set working graph is not already done
+client.checkout(my_change)
+
+# Create two nodes Person : Jane and John
+client.query("CREATE (n:Person {name: 'John'})")
+client.query("CREATE (n:Person {name: 'Jane'})")
+
+# You need to commit the changes after node creation
+client.query("COMMIT")
+
+# Create edge of label KNOWS between Jane and John
+client.query("MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'}) CREATE (n)-[e:KNOWS]->(m)")
+
+# Commit the change
+client.query("COMMIT")
+```
+
+<Warning>
+  In the `CREATE` query above, the two nodes Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
+</Warning>
