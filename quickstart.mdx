@@ -54,8 +54,10 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
     #	host="http://localhost:6666",  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
     #)
     
-    # Create a new graph
-    client.query("CREATE GRAPH mygraph")
+    # Create a new graph called my_graph
+    client.create_graph("mygraph")
+    
+    # Set working graph
     client.set_graph("mygraph")
     
     # Create a new change on the graph
