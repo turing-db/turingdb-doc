@@ -7,7 +7,6 @@ description: "Once you have a valid change, you can start adding new nodes and e
 <Tabs>
   <Tab title="Python SDK">
     ```python
-    # client.set_graph("mygraph")  # set working graph is not already done
     client.checkout(my_change)
     
     # Create a node Person (Jane) - Edge (knows) - node (John)
@@ -22,7 +21,6 @@ description: "Once you have a valid change, you can start adding new nodes and e
 In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
 
 ```python
-# client.set_graph("mygraph")  # set working graph is not already done
 client.checkout(my_change)
 
 # Create two nodes Person : Jane and John

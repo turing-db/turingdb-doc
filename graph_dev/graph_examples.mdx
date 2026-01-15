@@ -41,6 +41,6 @@ client.query("CHANGE SUBMIT")
 client.checkout()
 
 # Query graph
-df = client.query("MATCH (n:Person {Name:'Jane'})-[e:KNOWS]-(m:Person {Name:'John'}) RETURN n, e, m")
+df = client.query("MATCH (n:Person {name:'Jane'})-[e:KNOWS]-(m:Person {name:'John'}) RETURN n, e, m")
 print(df)
 ```
