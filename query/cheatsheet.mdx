@@ -4,7 +4,7 @@ sidebarTitle: "CheatSheet"
 description: "A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions."
 ---
 
-## 🔍 MATCH: Pattern Matching
+## MATCH: Pattern Matching
 
 ```sql
 MATCH (n) RETURN n
@@ -19,7 +19,7 @@ MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 - Labels: `:Label`
 - Properties: `{key: 'value', age: 30}`
 
-## 🛠 CREATE: Add Nodes & Edges
+## CREATE: Add Nodes & Edges
 
 ```sql
 CREATE (:Person {name: 'Alice', age: 30})
@@ -39,30 +39,24 @@ CREATE (gabby:Person {name: 'Gabby', age: 27}),
 - No `RETURN` clause
 - Use commas to create multiple items at once
 
-## 🎯 Property Match Operators
+## Property Match Operators
 
 ```sql
 MATCH (n {name: 'Alice'}) RETURN n
-MATCH (n {name ~= 'apoe'}) RETURN n        -- Approximate match
-MATCH (n {age: 42u}) RETURN n              -- Unsigned int
 ```
 
 - `:` → exact match
-- `~=` → string approximation
 
-  (prefix-based, case-insensitive)
+## Data Types
 
-## 📦 Data Types
+| Type    | Example                |
+| ------- | ---------------------- |
+| String  | `"hello"` or `'hello'` |
+| Integer | `age=30`               |
+| Boolean | `flag=true`            |
+| Double  | `score=3.14`           |
 
-| Type     | Example                |
-| -------- | ---------------------- |
-| String   | `"hello"` or `'hello'` |
-| Integer  | `age=30`               |
-| Unsigned | `age=30u`              |
-| Boolean  | `flag=true`            |
-| Double   | `score=3.14`           |
-
-## ✨ RETURN Clause
+## RETURN Clause
 
 ```sql
 MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
@@ -70,7 +64,7 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 
 - Select fields with `RETURN n.prop, m.prop`
 
-## 🔬 Metaqueries (`CALL`)
+## Metaqueries (`CALL`)
 
 | Query                     | Description                         |
 | ------------------------- | ----------------------------------- |
@@ -79,7 +73,7 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 | `CALL db.edgeTypes()`     | All edge types                      |
 | `CALL db.history()`       | Commit history                      |
 
-## 🔧 Engine Commands
+## Engine Commands
 
 | Command               | Description                      |
 | --------------------- | -------------------------------- |
@@ -92,7 +86,7 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 | `CHANGE DELETE`       | Delete current change            |
 | `CHANGE LIST`         | List active uncommitted changes  |
 
-## 🧠 Useful Patterns
+## Useful Patterns
 
 ```sql
 -- Two-hop connection
@@ -100,15 +94,4 @@ MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 
 -- All people named John
 MATCH (n:Person {name: 'John'}) RETURN n
-
--- All nodes with approx match
-MATCH (n {name ~= 'kinase'}) RETURN n
 ```
-
-## 📘 Best Practices
-
-- Use `CALL db.properties()` to discover property keys
-- Use `RETURN *` while prototyping
-- Use `@` for precise node editing or merging
-- Avoid regex — use `~=` for faster fuzzy search
-- All edges are **directed**
