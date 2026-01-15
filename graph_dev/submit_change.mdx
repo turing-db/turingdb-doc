@@ -7,10 +7,8 @@ description: "Submit changes done to the database (just like a commit being subm
 <Tabs>
   <Tab title="Python SDK">
     ```python
-    # client.set_graph("my-graph")
-    # client.checkout(my_change)
-    client.query('CHANGE SUBMIT')
-    client.checkout("main")
+    client.query("CHANGE SUBMIT")
+    client.checkout()  # back to main branch by default
     ```
   </Tab>
   <Tab title="cURL">
