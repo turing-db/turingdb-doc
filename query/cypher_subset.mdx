@@ -150,43 +150,13 @@ String properties can be enclosed using double quotes (`"`), single quotes (`'`)
 
 #  Operators
 
-TuringDB allows you to query against node and edge properties using the `:` or `=` operators, which both operate in exactly the same way: exact matching of the property value. This means both the following queries are equivalent:
+TuringDB requires you to query against node and edge properties using the `:` operator for exact matching of the property value.
 
 ```jsx
-MATCH (n{name="Matt", age:20, hasPhD=false}) RETURN n
-MATCH (n{name:"Matt", age=20, hasPhD:false}) RETURN n
+MATCH (n {name: 'Matt', age: 20, hasPhD: false}) RETURN n
 ```
 
 Additionally, TuringDB supports the approximate string operator, `~=`, which is explained here.
-
-# Node ID Injection
-
-It is possible to reference existing nodes in the database using their internal ID.
-
-<Info>
-  The internal ID of a node, `n`, is the value returned by the query `MATCH (n) return n`.
-</Info>
-
-Node ID injection can be performed using the `@` operator or the `AT` keyword. The basic syntax is flexible, as
-
-```jsx
-MATCH (n @ 1) RETURN n.name
-MATCH (n:Person @ 1) RETURN n.name
-MATCH (n:Person{name="Jane"} @ 1) RETURN n.name
-MATCH (n:Person @ 1 {name="Jane}) RETURN n.name
-MATCH (n @ 1 {name="Jane}) RETURN n.name
-MATCH (n {name="Jane} @ 1) RETURN n.name
-```
-
-are all valid uses of the `@` operator to perform injection by node ID. Further, replacing `@` with `AT` is equally valid in all the above cases.
-
-It is also possible to inject a number of node IDs, which can be achieved by providing a comma-separated list of node IDs:
-
-```jsx
-MATCH (n:Person @ 1, 2, 3) return n.name
-```
-
-which will return the `name` property values for the nodes with IDs `1`, `2`, and `3`.
 
 # Metaqueries
 
@@ -194,10 +164,10 @@ On top of supporting queries which return or alter information _in the graph_, T
 
 These queries follow the `CALL` syntax, and the following variants are supported:
 
-1. `CALL PROPERTIES ()` - returns a column of all the different node and edge properties and their types in the database
-2. `CALL LABELS ()` - returns a column of all the different node labels
-3. `CALL EDGETYPES()` - returns a column of all the different edge types (edge equivalent of node labels)
-4. `CALL LABELSETS ()` - returns a two columns describing combinations of node labels
+1. `CALL db.propertyTypes ()` - returns a column of all the different node and edge properties and their types in the database
+2. `CALL db.labels ()` - returns a column of all the different node labels
+3. `CALL db.edgeTypes()` - returns a column of all the different edge types (edge equivalent of node labels)
+4. `CALL db.history ()` - returns a dataframe containing commit history
 
 These metaqueries are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
 
@@ -218,4 +188,4 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 
 # 🛣️ Roadmap
 
-Whilst TuringDB currently supports 99% of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms.
+Whilst TuringDB currently supports most of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms.
