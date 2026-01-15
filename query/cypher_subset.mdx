@@ -100,29 +100,14 @@ MATCH (n:Person)-->(m:Person) RETURN n.name, m.age
 
 Combining the syntax of `MATCH` queries, and the ability to specify constraints, here are a few examples of some syntactically correct TuringDB `MATCH` queries:
 
-- `MATCH (n:Person) return n.name`
-- `MATCH (:Person)—(n:Person) return n.age`
-- `MATCH (n:Person,Woman,SoftwareEngineer)—(m)-[e]-(p:Man)-[f]-(q) return e,f`
+- `MATCH (n:Person) RETURN n.name`
+- `MATCH (:Person)-->(n:Person) RETURN n.name`
+- `MATCH (n:Person:Woman:SoftwareEngineer) RETURN n.name`
+- `MATCH (n:Person:Woman:SoftwareEngineer)-->(m)-[e]->(p:Man)-[f]->(q) RETURN e, f`
 
 <Warning>
   Note that whilst all the above the queries are all _syntactically_ valid, if the graph does not have a node property which is used in a query, it will fail to execute.
 </Warning>
-
-<Card title horizontal>
-  `RETURN` clauses also support the `*` operator, as such:
-
-  ```jsx
-  MATCH (n:Person)-[e]-(m) RETURN *
-  ```
-
-  which is equivalent to:
-
-  ```jsx
-  MATCH (n:Person)-[e]-(m) RETURN n, e, m
-  ```
-
-  That is, `RETURN *` is equivalent to returning _all entities_ in the `MATCH` query.
-</Card>
 
 ## `CREATE` queries
 
@@ -143,18 +128,14 @@ is a valid query.
 Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
 
 ```sql
-CREATE (:Person)-[:FriendsWith]-(:Person)
+CREATE (:Person)-[:FriendsWith]->(:Person)
 ```
 
 However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
 
 ```sql
-CREATE (a:Corner)-[:Edge]-(b:Corner), (b)-[:Edge]-(c:Corner), (c)-[:Edge]-(a)
+CREATE (a:Corner)-[:Edge]->(b:Corner), (b)-[:Edge]->(c:Corner), (c)-[:Edge]->(a)
 ```
-
-<Info>
-  This can also be achieved over multiple `CREATE` queries using Node ID injection.
-</Info>
 
 # Data Types
 
