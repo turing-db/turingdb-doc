@@ -60,7 +60,6 @@
           {
             "group": "Python SDK",
             "pages": [
-              "pythonsdk/get_started",
               "pythonsdk/reference"
             ]
           },
