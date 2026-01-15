@@ -22,7 +22,7 @@ An example of an edge with a property constraint would be `[e {duration: 10}]`.
 
 Property and label constraints may be combined, for instance, `(n:Person {name: 'John'})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
 
-Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person, Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
+Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person:Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
 
 ### Summary:
 
@@ -40,7 +40,7 @@ You can add:
 Multiple labels and properties can be specified:
 
 ```sql
-(n:Person, Man {name: 'John', age: 20})
+(n:Person:Man {name: 'John', age: 20})
 ```
 
 # Queries
@@ -56,18 +56,15 @@ TuringDB supports two main query operations: `MATCH` and `CREATE`.
 It is easiest to demonstrate the syntax of a `MATCH` query with a concrete example:
 
 ```jsx
-MATCH (n)-[e]-(m) RETURN n 
+MATCH (n)-[e]->(m) RETURN n, e, m
+MATCH (m)<-[e]-(n) RETURN n, e, m  // also works
 ```
 
-The above query will look for nodes in the database which have at least one edge to a different node. The query will return the internal ID of the node `n`.
+The above query will look for all the directed edges in the graph. The query will return the internal ID of the node `n`.
 
 <Tip>
   When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
 </Tip>
-
-<Warning>
-  Specifying the direction of edges (e.g. `<-[e]-`) is not currently supported in TuringDB. All edges are implicitly directed from left-to-right.
-</Warning>
 
 `MATCH` queries are flexible: they can contain a single node and no edges, or any number of node, edge pairs. For example:
 
@@ -78,27 +75,27 @@ MATCH (n) RETURN n
 will match all nodes in the database. An example of a multi-hop `MATCH` query would be:
 
 ```jsx
-MATCH (n)-[e]-(m)-[f]-(p) RETURN p
+MATCH (n)-[e]->(m)-[f]->(p) RETURN n, m, p
 ```
 
 <Card title horizontal>
   Queries have _variables_, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
 
   ```jsx
-  MATCH (n)--(m) RETURN m
+  MATCH (n)-->(m) RETURN m
   ```
 
   Both node and edges can omit a variable name if they specify at least a label constraint:
 
   ```jsx
-  MATCH (:Person)-[:FriendsWith]-(m) RETURN m
+  MATCH (:Person)-[:FriendsWith]->(m) RETURN m
   ```
 </Card>
 
 You can also return multiple properties using a comma separated list:
 
 ```jsx
-MATCH (n:Person)--(m:Person) RETURN n.name, m.age
+MATCH (n:Person)-->(m:Person) RETURN n.name, m.age
 ```
 
 Combining the syntax of `MATCH` queries, and the ability to specify constraints, here are a few examples of some syntactically correct TuringDB `MATCH` queries:
