@@ -11,7 +11,7 @@ description: "Once you have a valid change, you can start adding new nodes and e
     client.checkout(my_change)
     
     # Create a node Person (Jane) - Edge (knows) - node (John)
-    client.query("CREATE (n:Person {Name: 'Jane'})-[e:KNOWS]->(m:Person {Name: 'John'})")
+    client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
     
     # Commit the change
     client.query("COMMIT")

@@ -67,7 +67,7 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
     client.checkout(change=change)
     
     # Create a node Person (Jane) - Edge (knows) - node (John)
-    client.query("CREATE (n:Person {Name: 'Jane'})-[e:KNOWS]->(m:Person {Name: 'John'})")
+    client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
     
     # Commit the change
     client.query("COMMIT")
