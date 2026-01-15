@@ -96,11 +96,11 @@ See also: [DataParts](/dataparts) and [Versioning](/commits)
 
 | Feature                  | Without SI                      | With Snapshot Isolation (TuringDB)      |
 | ------------------------ | ------------------------------- | --------------------------------------- |
-| Concurrent analytics     | Risk of inconsistency           | Always safe and repeatable            |
-| LLM or AI agent reads    | Can see in-progress updates     | Only sees committed graph states      |
-| Live dashboards          | Glitches from concurrent writes | Never interrupted or corrupted        |
-| Graph training workflows | Risk of nondeterminism          | Guaranteed reproducibility            |
-| Rollbacks or audits      | Hard to trace                   | Time-travel enabled by commit history |
+| Concurrent analytics     | Risk of inconsistency           | ✅ Always safe and repeatable            |
+| LLM or AI agent reads    | Can see in-progress updates     | ✅ Only sees committed graph states      |
+| Live dashboards          | Glitches from concurrent writes | ✅ Never interrupted or corrupted        |
+| Graph training workflows | Risk of nondeterminism          | ✅ Guaranteed reproducibility            |
+| Rollbacks or audits      | Hard to trace                   | ✅ Time-travel enabled by commit history |
 
 ## Further Reading
 
@@ -113,11 +113,16 @@ See also: [DataParts](/dataparts) and [Versioning](/commits)
 
 TuringDB offers **built-in Snapshot Isolation** that is:
 
-- Default
-- Immutable
-- Fast
-- Lock-free
-- Compatible with analytics and AI use cases
-- Based on a Git-like architecture built for parallelism and consistency
+✅ Default
+
+✅ Immutable
+
+✅ Fast
+
+✅ Lock-free
+
+✅ Compatible with analytics and AI use cases
+
+✅ Based on a Git-like architecture built for parallelism and consistency
 
 > It’s the first graph database to natively combine versioning, immutability, and snapshot isolation, without the tradeoffs.
