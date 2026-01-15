@@ -144,36 +144,7 @@ TuringDB offers the following data types for node and edge properties:
 - String
 - Boolean
 - Integer (signed)
-- Unsigned integer
 - Double (decimal)
-
-By default, if you create a property with a whole-number numeric value, it will be stored in the database engine as a signed integer. If you would like to explicitly use an unsigned value, you can use the `u` suffix after the numeric value in your create query:
-
-```sql
-CREATE (n:Person{age=20u, name="Jane"})
-```
-
-`MATCH` queries provide an automatic coercion from integer to unsigned integer, so if the above `CREATE` query is submitted, and you run
-
-```jsx
-MATCH (n{age=20}) return n.name
-```
-
-and it will match the node created above, returning
-
-```arduino
-+------+
-| Jane |
-|------|
-|  ... |
-+------+
-```
-
-However, the opposite coercion is not supported: if you use the `u` suffix in a `MATCH` query, the query will attempt to match an unsigned integer property.
-
-<Warning>
-  If you query a property with a type which does not match the type of the property stored in the database, the query will not execute (aside from the coercion described above).
-</Warning>
 
 String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (\`\`\`).
 
