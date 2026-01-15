@@ -7,139 +7,36 @@ description: "Once you have a valid change, you can start adding new nodes and e
 <Tabs>
   <Tab title="Python SDK">
     ```python
-    # client.set_graph("my-graph")
     client.checkout(my_change)
-    client.query('CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})')
-    ```
-
-    ### Then, commit them
-
-    ### 
-
-    ```python
-    # client.set_graph("my-graph")
-    # client.checkout(my_change)
-    client.query('COMMIT')
-    ```
-  </Tab>
-  <Tab title="cURL">
-    - Request
-
-    ```bash
-    # Create nodes Jane and John + edge 'Jane knows John'
-    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
-         -H "Authorization: Bearer $MY_API_KEY" \
-         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-         -H "Accept: application/json" \
-         -d 'CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})'
-    ```
-
-    - Response
-
-    ```bash
-      {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.267249
-    }
-    {
-    }
-    ```
-
-    ### Then, commit them
-
-    - Request
-
-    ```bash
-    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
-         -H "Authorization: Bearer $MY_API_KEY" \
-         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-         -H "Accept: application/json" \
-         -d 'COMMIT'
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.070778
-    }
-    ```
-  </Tab>
-  <Tab title="Javascript">
-    - Request
-
-    ```jsx
-    // Create nodes Jane and John + edge 'Jane knows John'
-    fetch(
-    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
-    	{
-    		method: "POST",
-    		headers: {
-    			Authorization: `Bearer ${MY_API_KEY}`,
-    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-    			Accept: "application/json",
-    		},
-    		body: 'CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})',
-    	},
-    );
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.267249
-    }
     
-    {
-    }
-    ```
-
-    ### Then, commit them
-
-    - Request
-
-    ```jsx
-    // Create nodes Jane and John + edge 'Jane knows John'
-    fetch(
-    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
-    	{
-    		method: "POST",
-    		headers: {
-    			Authorization: `Bearer ${MY_API_KEY}`,
-    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-    			Accept: "application/json",
-    		},
-    		body: 'COMMIT',
-    	},
-    );
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.070778
-    }
+    # Create a node Person (Jane) - Edge (knows) - node (John)
+    client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+    
+    # Commit the change
+    client.query("COMMIT")
     ```
   </Tab>
 </Tabs>
+
+In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
+
+```python
+client.checkout(my_change)
+
+# Create two nodes Person : Jane and John
+client.query("CREATE (n:Person {name: 'John'})")
+client.query("CREATE (n:Person {name: 'Jane'})")
+
+# You need to commit the changes after node creation
+client.query("COMMIT")
+
+# Create edge of label KNOWS between Jane and John
+client.query("MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'}) CREATE (n)-[e:KNOWS]->(m)")
+
+# Commit the change
+client.query("COMMIT")
+```
+
+<Warning>
+  In the case you create the nodes then the edges, you need to commit atfer node creation.
+</Warning>

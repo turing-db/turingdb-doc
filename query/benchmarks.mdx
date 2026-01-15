@@ -1,17 +1,16 @@
 ---
-title: 'Benchmarks'
-sidebarTitle: 'Benchmarks'
-description: 'Our current benchmarks for TuringDB'
+title: "Benchmarks"
+sidebarTitle: "Benchmarks"
+description: "Our current benchmarks for TuringDB"
 ---
 
-# 🚀 TuringDB Benchmarks
+# TuringDB Benchmarks
 
 This page showcases the performance of TuringDB vs Neo4j across a series of real-world graph analytics queries using the [Reactome biological knowledge graph](https://reactome.org/).
 
 The goal of this first benchmark is to compare the out-of-the-box performance of TuringDB with Neo4J on a few basic queries on the Reactome knowledge graph, without any particular indexing or optimization put in place on either side. Both TuringDB and Neo4J are started in a cold setting out of the box.
 
-
-## 🧪 Benchmark Setup
+## Benchmark Setup
 
 We use the open-source [`turing-bench`](https://github.com/turing-db/turing-bench) suite to evaluate performance. It runs equivalent queries across TuringDB and Neo4j, measuring latency, throughput, and result sizes.
 
@@ -21,11 +20,10 @@ We use the open-source [`turing-bench`](https://github.com/turing-db/turing-benc
 - [Neo4j Integration](https://github.com/turing-db/turing-bench/blob/main/neo4j/README.md)
 
 <Warning>
-Neo4j may fail to load the Reactome database on first boot. 
-  If this happens: Restart the Neo4j instance manually (details in the Neo4j README)
+  Neo4j may fail to load the Reactome database on first boot. If this happens: Restart the Neo4j instance manually (details in the Neo4j README)
 </Warning>
 
-## 🔧 How to Run the Benchmarks
+## How to Run the Benchmarks
 
 ```bash
 # Clone the benchmarking repo
@@ -47,67 +45,61 @@ cd build/build_package
 ./turing-bench -l reactome -q samples/reactome/str-prop-multihop.cypher -r 100 -p
 ```
 
+## Summary of Results
 
-## 📊 Summary of Results
-
-### 📍 Multi-hop Queries From A Set of Seed Nodes
+### Multi-hop Queries From A Set of Seed Nodes
 
 | Query Depth | Neo4j Mean | TuringDB Mean | Speedup |
-| --- | --- | --- | --- |
-| 1-hop | 1390ms | 12ms | 115x |
-| 2-hop | 1420ms | 11ms | 129x |
-| 4-hop | 1568ms | 14ms | 112x |
-| 7-hop | 51264ms | 172ms | 298x |
-| 8-hop | 98183ms | 476ms | 206x |
+| ----------- | ---------- | ------------- | ------- |
+| 1-hop       | 1390ms     | 12ms          | 115x    |
+| 2-hop       | 1420ms     | 11ms          | 129x    |
+| 4-hop       | 1568ms     | 14ms          | 112x    |
+| 7-hop       | 51264ms    | 172ms         | 298x    |
+| 8-hop       | 98183ms    | 476ms         | 206x    |
 
 Details: MATCH query returning node IDs from a set of 15 seed nodes with an increasing number of hops through outgoing edges.
 
 Example for 1 hop:
 
 ```jsx
-match (n{displayName:"Autophagy"})-->(m) return id(m)
+match (n {displayName: 'Autophagy'})-->(m) return id(m)
 ```
 
 TuringDB's columnar architecture and streaming engine allow it to scale even for long path queries.
 
+### Labelset Matching & Few-Hop Traversals
 
-### 🔖 Labelset Matching & Few-Hop Traversals
-
-| Query | Neo4j Mean | TuringDB Mean | Speedup |
-| --- | --- | --- | --- |
-| `match (n:Drug)` | 525ms | 0.43ms | 1200x |
-| `match (n:Drug:ProteinDrug)` | 644ms | 0.16ms | 4025x |
-| `match (n)--(m:Interaction)--(o)` | 7519ms | 141ms | 53x |
+| Query                             | Neo4j Mean | TuringDB Mean | Speedup |
+| --------------------------------- | ---------- | ------------- | ------- |
+| `match (n:Drug)`                  | 525ms      | 0.43ms        | 1200x   |
+| `match (n:Drug:ProteinDrug)`      | 644ms      | 0.16ms        | 4025x   |
+| `match (n)--(m:Interaction)--(o)` | 7519ms     | 141ms         | 53x     |
 
 TuringDB's label-based scans and columnar indexing drastically outperforms Neo4j's node-by-node traversal.
 
+### Edge-Type Queries
 
-### 🧵 Edge-Type Queries
+| Query                                      | Neo4j Mean | TuringDB Mean | Speedup |
+| ------------------------------------------ | ---------- | ------------- | ------- |
+| `match (n)-[:release]->(m)`                | 3881ms     | 822ms         | 5x      |
+| `match (n)-[:hasEvent]->(m)`               | 5447ms     | 843ms         | 6x      |
+| `match (n:Pathway)-[:hasEvent]->(m:Event)` | 3224ms     | 64ms          | 50x     |
+| `match (r:Reaction)-[:output]->(s:Entity)` | 5031ms     | 170ms         | 30x     |
 
-| Query | Neo4j Mean | TuringDB Mean | Speedup |
-| --- | --- | --- | --- |
-| `match (n)-[:release]->(m)` | 3881ms | 822ms | 5x |
-| `match (n)-[:hasEvent]->(m)` | 5447ms | 843ms | 6x |
-| `match (n:Pathway)-[:hasEvent]->(m:Event)` | 3224ms | 64ms | 50x |
-| `match (r:Reaction)-[:output]->(s:Entity)` | 5031ms | 170ms | 30x |
+### Deep Multidirectional Traversals
 
-
-### 🔁 Deep Multidirectional Traversals
-
-| Query | Neo4j Mean | TuringDB Mean | Speedup |
-| --- | --- | --- | --- |
-| `match (n:DatabaseObject{isChimeric:false}) return n` | 4496ms | 7ms | 642x |
-| `match (b)--(a:Pathway)` | 10874ms | 17ms | 640x |
-| `match (c)--(b)--(a:Pathway) return a, c` | 78079ms | 8348ms | 9x |
-| `match (c)--(b)--(a:Pathway) return b` | 52249ms | 8171ms | 6x |
-
+| Query                                                 | Neo4j Mean | TuringDB Mean | Speedup |
+| ----------------------------------------------------- | ---------- | ------------- | ------- |
+| `match (n:DatabaseObject{isChimeric:false}) return n` | 4496ms     | 7ms           | 642x    |
+| `match (b)--(a:Pathway)`                              | 10874ms    | 17ms          | 640x    |
+| `match (c)--(b)--(a:Pathway) return a, c`             | 78079ms    | 8348ms        | 9x      |
+| `match (c)--(b)--(a:Pathway) return b`                | 52249ms    | 8171ms        | 6x      |
 
 ## Observations
 
 - **TuringDB is orders of magnitude faster** for long-path traversals (e.g., 8-hop queries).
 - **Cold-start queries** in Neo4j are significantly slower due to record-oriented execution and lack of built-in versioning/indexing on properties.
 - **Columnar memory layout** and **streaming execution** give TuringDB consistent low-latency performance for both analytical and graph-native operations.
-
 
 ## Performance Insights
 
@@ -124,25 +116,22 @@ Learn more:
 - Streaming Execution Engine
 - Versioning & Snapshot Isolation
 
-
-## 🔍 Benchmark Data
+## Benchmark Data
 
 Full benchmarking data and instructions on Github:
 
 📂 [TuringDB Benchmark Suite](https://github.com/turing-db/turing-bench)
 
-
-## 🧪 Try It Yourself
+## Try It Yourself
 
 You can replicate these results on your own instance using the Reactome dataset.
 
 Follow the setup steps in the [Benchmark README](https://github.com/turing-db/turing-bench/blob/main/README.md)
 
-
-## ❓Need Help?
+## Need Help?
 
 Join our Discord or open an issue on [GitHub](https://github.com/turing-db/turing-bench).
 
-## 🛣️ Roadmap
+## Roadmap
 
 We will be expanding this benchmarks to other graph databases (such as Memgraph or TigerGraph) as well as other criteria to try and build the most reliable benchmark possible and have an honest view of where we may shine and where we may not.

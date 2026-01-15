@@ -90,7 +90,7 @@ Query examples:
 ```
 # Find all relationships between nodes whose
 # descriptions contain "FPGA" using string approximation
-MATCH (n{description ~= "FPGA"})-[e]-(m)
+MATCH (n{description ~= "FPGA"})-[e]->(m)
 RETURN n.displayName, n.description, e, m.displayName, m.description
 ```
 

@@ -1,37 +1,46 @@
 ---
 title: "Graph Examples in Python"
 sidebarTitle: "Graph Examples"
-description: "Example on how to create and query a graph from scratch in Python"
+description: "Complete example on how to create and query a graph from scratch in Python"
 ---
 
 ```python
 from turingdb import TuringDB
 
-# Connect to your TuringDB instance
-client = TuringDB()
+# Create TuringDB client
+## if TuringDB is running on a cloud instance
+client = TuringDB(
+	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+    auth_token=<your_auth_token>     # your authentification token
+)
+### if TuringDB is running locally
+#client = TuringDB(
+#	host="http://localhost:6666",  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
+#)
 
-# Set the graph you want to work with
-graph_name = "graph_name"
-client.set_graph(graph_name)
+# Create a new graph called my_graph
+client.create_graph("mygraph")
 
-# 1. Create a new change
-change_response = client.query("CHANGE NEW")
+# Set working graph
+client.set_graph("mygraph")
 
-# Extract the change ID (in hex format)
-change_id = change_response.iloc[0, 0]
-print(f"Created change ID: {change_id}")
+# Create a new change on the graph
+change = client.new_change()
 
-# 2. Checkout to the new change
-client.checkout(change=change_id)
+# Checkout into the change
+client.checkout(change=change)
 
-# 3. Submit a query to that change
-client.query('CREATE (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"})')
+# Create a node Person (Jane) - Edge (knows) - node (John)
+client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
 
-# 4. Submit the change to the main graph
+# Commit the change
+client.query("COMMIT")
 client.query("CHANGE SUBMIT")
 
-# 5. Query the main branch to validate
-client.checkout("main")  # back to HEAD
-df = client.query('MATCH (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"}) RETURN n, e, m')
+# Checkout back to main
+client.checkout()
+
+# Query graph
+df = client.query("MATCH (n:Person {name:'Jane'})-[e:KNOWS]-(m:Person {name:'John'}) RETURN n, e, m")
 print(df)
 ```

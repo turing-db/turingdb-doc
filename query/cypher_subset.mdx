@@ -4,9 +4,9 @@ sidebarTitle: "Query Language"
 description: "TuringDB uses Cypher as a query language and has some unique types of queries"
 ---
 
-TuringDB supports 99% of the **Cypher query language**, extended with versioning, metadata search, and flexible property matching.
+TuringDB supports most of the **Cypher query language**, extended with versioning, metadata search, and flexible property matching.
 
-This guide covers some examples of queries types, including `MATCH`, `CREATE`, property filters, node ID injection, metaqueries, and available data types.
+This guide covers some examples of queries types, including `MATCH`, `CREATE`, property filters, metaqueries, and available data types.
 
 # Basics
 
@@ -18,11 +18,11 @@ Nodes and edges can have both **label** and **property** constraints. As in stan
 
 An example of a node with a label constraint would be `(n:Person)`.
 
-An example of an edge with a property constraint would be `[e{duration=10}]`.
+An example of an edge with a property constraint would be `[e {duration: 10}]`.
 
-Property and label constraints may be combined, for instance, `(n:Person{name="John"})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
+Property and label constraints may be combined, for instance, `(n:Person {name: 'John'})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
 
-Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person,Man{name=”John”, age=20})`. These lists can be arbitrarily long.
+Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person:Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
 
 ### Summary:
 
@@ -34,13 +34,13 @@ Queries are built around **nodes** and **edges**:
 You can add:
 
 - **Labels** with a colon `:` - e.g. `(n:Person)`
-- **Property constraints** with curly braces `{}` - e.g. `[e{duration=10}]`
-- **Both** at once - e.g. `(n:Person{name="John"})`
+- **Property constraints** with curly braces `{}` - e.g. `[e {duration: 10}]`
+- **Both** at once - e.g. `(n:Person {name: 'John'})`
 
 Multiple labels and properties can be specified:
 
 ```sql
-(n:Person,Man{name="John", age=20})
+(n:Person:Man {name: 'John', age: 20})
 ```
 
 # Queries
@@ -56,18 +56,15 @@ TuringDB supports two main query operations: `MATCH` and `CREATE`.
 It is easiest to demonstrate the syntax of a `MATCH` query with a concrete example:
 
 ```jsx
-MATCH (n)-[e]-(m) RETURN n 
+MATCH (n)-[e]->(m) RETURN n, e, m
+MATCH (m)<-[e]-(n) RETURN n, e, m  // also works
 ```
 
-The above query will look for nodes in the database which have at least one edge to a different node. The query will return the internal ID of the node `n`.
+The above query will look for all the directed edges in the graph. The query will return the internal ID of the node `n`.
 
 <Tip>
   When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
 </Tip>
-
-<Warning>
-  Specifying the direction of edges (e.g. `<-[e]-`) is not currently supported in TuringDB. All edges are implicitly directed from left-to-right.
-</Warning>
 
 `MATCH` queries are flexible: they can contain a single node and no edges, or any number of node, edge pairs. For example:
 
@@ -78,54 +75,39 @@ MATCH (n) RETURN n
 will match all nodes in the database. An example of a multi-hop `MATCH` query would be:
 
 ```jsx
-MATCH (n)-[e]-(m)-[f]-(p) RETURN p
+MATCH (n)-[e]->(m)-[f]->(p) RETURN n, m, p
 ```
 
 <Card title horizontal>
   Queries have _variables_, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
 
   ```jsx
-  MATCH (n)--(m) RETURN m
+  MATCH (n)-->(m) RETURN m
   ```
 
   Both node and edges can omit a variable name if they specify at least a label constraint:
 
   ```jsx
-  MATCH (:Person)-[:FriendsWith]-(m) RETURN m
+  MATCH (:Person)-[:FriendsWith]->(m) RETURN m
   ```
 </Card>
 
 You can also return multiple properties using a comma separated list:
 
 ```jsx
-MATCH (n:Person)--(m:Person) RETURN n.name, m.age
+MATCH (n:Person)-->(m:Person) RETURN n.name, m.age
 ```
 
 Combining the syntax of `MATCH` queries, and the ability to specify constraints, here are a few examples of some syntactically correct TuringDB `MATCH` queries:
 
-- `MATCH (n:Person) return n.name`
-- `MATCH (:Person)—(n:Person) return n.age`
-- `MATCH (n:Person,Woman,SoftwareEngineer)—(m)-[e]-(p:Man)-[f]-(q) return e,f`
+- `MATCH (n:Person) RETURN n.name`
+- `MATCH (:Person)-->(n:Person) RETURN n.name`
+- `MATCH (n:Person:Woman:SoftwareEngineer) RETURN n.name`
+- `MATCH (n:Person:Woman:SoftwareEngineer)-->(m)-[e]->(p:Man)-[f]->(q) RETURN e, f`
 
 <Warning>
   Note that whilst all the above the queries are all _syntactically_ valid, if the graph does not have a node property which is used in a query, it will fail to execute.
 </Warning>
-
-<Card title horizontal>
-  `RETURN` clauses also support the `*` operator, as such:
-
-  ```jsx
-  MATCH (n:Person)-[e]-(m) RETURN *
-  ```
-
-  which is equivalent to:
-
-  ```jsx
-  MATCH (n:Person)-[e]-(m) RETURN n, e, m
-  ```
-
-  That is, `RETURN *` is equivalent to returning _all entities_ in the `MATCH` query.
-</Card>
 
 ## `CREATE` queries
 
@@ -146,18 +128,14 @@ is a valid query.
 Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
 
 ```sql
-CREATE (:Person)-[:FriendsWith]-(:Person)
+CREATE (:Person)-[:FriendsWith]->(:Person)
 ```
 
 However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
 
 ```sql
-CREATE (a:Corner)-[:Edge]-(b:Corner), (b)-[:Edge]-(c:Corner), (c)-[:Edge]-(a)
+CREATE (a:Corner)-[:Edge]->(b:Corner), (b)-[:Edge]->(c:Corner), (c)-[:Edge]->(a)
 ```
-
-<Info>
-  This can also be achieved over multiple `CREATE` queries using Node ID injection.
-</Info>
 
 # Data Types
 
@@ -166,78 +144,19 @@ TuringDB offers the following data types for node and edge properties:
 - String
 - Boolean
 - Integer (signed)
-- Unsigned integer
 - Double (decimal)
-
-By default, if you create a property with a whole-number numeric value, it will be stored in the database engine as a signed integer. If you would like to explicitly use an unsigned value, you can use the `u` suffix after the numeric value in your create query:
-
-```sql
-CREATE (n:Person{age=20u, name="Jane"})
-```
-
-`MATCH` queries provide an automatic coercion from integer to unsigned integer, so if the above `CREATE` query is submitted, and you run
-
-```jsx
-MATCH (n{age=20}) return n.name
-```
-
-and it will match the node created above, returning
-
-```arduino
-+------+
-| Jane |
-|------|
-|  ... |
-+------+
-```
-
-However, the opposite coercion is not supported: if you use the `u` suffix in a `MATCH` query, the query will attempt to match an unsigned integer property.
-
-<Warning>
-  If you query a property with a type which does not match the type of the property stored in the database, the query will not execute (aside from the coercion described above).
-</Warning>
 
 String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (\`\`\`).
 
 #  Operators
 
-TuringDB allows you to query against node and edge properties using the `:` or `=` operators, which both operate in exactly the same way: exact matching of the property value. This means both the following queries are equivalent:
+TuringDB requires you to query against node and edge properties using the `:` operator for exact matching of the property value.
 
 ```jsx
-MATCH (n{name="Matt", age:20, hasPhD=false}) RETURN n
-MATCH (n{name:"Matt", age=20, hasPhD:false}) RETURN n
+MATCH (n {name: 'Matt', age: 20, hasPhD: false}) RETURN n
 ```
 
 Additionally, TuringDB supports the approximate string operator, `~=`, which is explained here.
-
-# Node ID Injection
-
-It is possible to reference existing nodes in the database using their internal ID.
-
-<Info>
-  The internal ID of a node, `n`, is the value returned by the query `MATCH (n) return n`.
-</Info>
-
-Node ID injection can be performed using the `@` operator or the `AT` keyword. The basic syntax is flexible, as
-
-```jsx
-MATCH (n @ 1) RETURN n.name
-MATCH (n:Person @ 1) RETURN n.name
-MATCH (n:Person{name="Jane"} @ 1) RETURN n.name
-MATCH (n:Person @ 1 {name="Jane}) RETURN n.name
-MATCH (n @ 1 {name="Jane}) RETURN n.name
-MATCH (n {name="Jane} @ 1) RETURN n.name
-```
-
-are all valid uses of the `@` operator to perform injection by node ID. Further, replacing `@` with `AT` is equally valid in all the above cases.
-
-It is also possible to inject a number of node IDs, which can be achieved by providing a comma-separated list of node IDs:
-
-```jsx
-MATCH (n:Person @ 1, 2, 3) return n.name
-```
-
-which will return the `name` property values for the nodes with IDs `1`, `2`, and `3`.
 
 # Metaqueries
 
@@ -245,10 +164,10 @@ On top of supporting queries which return or alter information _in the graph_, T
 
 These queries follow the `CALL` syntax, and the following variants are supported:
 
-1. `CALL PROPERTIES ()` - returns a column of all the different node and edge properties and their types in the database
-2. `CALL LABELS ()` - returns a column of all the different node labels
-3. `CALL EDGETYPES()` - returns a column of all the different edge types (edge equivalent of node labels)
-4. `CALL LABELSETS ()` - returns a two columns describing combinations of node labels
+1. `CALL db.propertyTypes ()` - returns a column of all the different node and edge properties and their types in the database
+2. `CALL db.labels ()` - returns a column of all the different node labels
+3. `CALL db.edgeTypes()` - returns a column of all the different edge types (edge equivalent of node labels)
+4. `CALL db.history ()` - returns a dataframe containing commit history
 
 These metaqueries are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
 
@@ -269,4 +188,4 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 
 # 🛣️ Roadmap
 
-Whilst TuringDB currently supports 99% of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms. 
+Whilst TuringDB currently supports most of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms.

@@ -46,7 +46,6 @@
           {
             "group": "Tutorials",
             "pages": [
-              "tutorials/create_graph",
               "tutorials/example_notebooks"
             ]
           },
@@ -61,7 +60,6 @@
           {
             "group": "Python SDK",
             "pages": [
-              "pythonsdk/get_started",
               "pythonsdk/reference"
             ]
           },

@@ -28,14 +28,14 @@ pip install turingdb
 from turingdb import TuringDB
 
 # Create TuringDB client
-## if TuringDB is running locally
+## if TuringDB is running on a cloud instance
 client = TuringDB(
-	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
+	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+    auth_token=<your_auth_token>     # your authentification token
 )
-### if TuringDB is running on a cloud instance
+### if TuringDB is running locally
 #client = TuringDB(
-#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
-#    auth_token=<your_auth_token>  # your authentification token
+#	host="http://localhost:6666",  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
 #)
 
 # List available graphs
@@ -65,7 +65,7 @@ client.list_loaded_graphs()
 Creates a new empty graph with the specified name.
 
 ```python
-client.create_graph("my_new_graph")
+client.create_graph("mygraph")
 ```
 
 > Internally executes `CREATE GRAPH "graph_name"`
@@ -75,7 +75,7 @@ client.create_graph("my_new_graph")
 Loads a previously created graph into memory.
 
 ```python
-client.load_graph("my_graph")
+client.load_graph("mygraph")
 ```
 
 If `raise_if_loaded=False`, it will silently continue if the graph is already loaded.
@@ -161,23 +161,26 @@ except TuringDBException as e:
 from turingdb import TuringDB
 
 # Create TuringDB client
-## if TuringDB is running locally
+## if TuringDB is running on a cloud instance
 client = TuringDB(
-	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
+	instance_id=<your_instance_ID>,  # found on the Database Instances management page
+    auth_token=<your_auth_token>     # your authentification token
 )
-### if TuringDB is running on a cloud instance
+### if TuringDB is running locally
 #client = TuringDB(
-#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
-#    auth_token=<your_auth_token>  # your authentification token
+#	host="http://localhost:6666",  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
 #)
 
-# Create and set working graph
-client.create_graph("biograph")
-client.set_graph("biograph")
+# Create a new graph called mygraph
+client.create_graph("mygraph")
 
-# Create and set new change
+# Set working graph
+client.set_graph("mygraph")
+
+# Create a new change on the graph
 change = client.new_change()
-print(f"Change: {change}")
+
+# Checkout into the change
 client.checkout(change=change)
 
 # Multiple nodes and edges can be created at the same time
