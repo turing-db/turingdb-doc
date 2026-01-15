@@ -21,7 +21,9 @@ description: "Create a graph object"
     #)
     
     # Create a new graph called my_graph
-    client.query("CREATE GRAPH mygraph")
+    client.create_graph("mygraph")
+    
+    # Set working graph
     client.set_graph("mygraph")
     ```
   </Tab>

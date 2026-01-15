@@ -7,8 +7,11 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
 <Tabs>
   <Tab title="Python SDK">
     ```python
-    # client.set_graph("my-graph")
-    client.query("CHANGE NEW")
+    # Create a new change on the graph
+    change = client.new_change()
+    
+    # Checkout into the change
+    client.checkout(change=change)
     ```
   </Tab>
   <Tab title="cURL">
