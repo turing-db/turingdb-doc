@@ -9,15 +9,15 @@ description: "You can time travel in you graph databases and see the commit hist
     ## Show Commit History
 
     ```python
-    client.query('HISTORY')
+    client.query("CALL db.history()")
     ```
 
     ## Read a Previous Commit
 
     ```python
-    # client.set_graph("my-graph")
+    # client.set_graph("mygraph")
     client.checkout(change="main", commit="c0a6ce3c0315be7a")
-    client.query('MATCH (n:Person {Name:"Jane"})-[e:knows]-(m:Person {Name:"John"}) RETURN n, e, m')
+    client.query("MATCH (n:Person {Name:'Jane'})-[e:KNOWS]-(m:Person {Name:'John'}) RETURN n, e, m")
     ```
   </Tab>
   <Tab title="cURL">
