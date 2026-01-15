@@ -67,7 +67,7 @@ match (n {displayName: 'Autophagy'})-->(m) return id(m)
 
 TuringDB's columnar architecture and streaming engine allow it to scale even for long path queries.
 
-### 🔖 Labelset Matching & Few-Hop Traversals
+### Labelset Matching & Few-Hop Traversals
 
 | Query                             | Neo4j Mean | TuringDB Mean | Speedup |
 | --------------------------------- | ---------- | ------------- | ------- |
@@ -77,7 +77,7 @@ TuringDB's columnar architecture and streaming engine allow it to scale even for
 
 TuringDB's label-based scans and columnar indexing drastically outperforms Neo4j's node-by-node traversal.
 
-### 🧵 Edge-Type Queries
+### Edge-Type Queries
 
 | Query                                      | Neo4j Mean | TuringDB Mean | Speedup |
 | ------------------------------------------ | ---------- | ------------- | ------- |
@@ -86,7 +86,7 @@ TuringDB's label-based scans and columnar indexing drastically outperforms Neo4j
 | `match (n:Pathway)-[:hasEvent]->(m:Event)` | 3224ms     | 64ms          | 50x     |
 | `match (r:Reaction)-[:output]->(s:Entity)` | 5031ms     | 170ms         | 30x     |
 
-### 🔁 Deep Multidirectional Traversals
+### Deep Multidirectional Traversals
 
 | Query                                                 | Neo4j Mean | TuringDB Mean | Speedup |
 | ----------------------------------------------------- | ---------- | ------------- | ------- |
@@ -116,22 +116,22 @@ Learn more:
 - Streaming Execution Engine
 - Versioning & Snapshot Isolation
 
-## 🔍 Benchmark Data
+## Benchmark Data
 
 Full benchmarking data and instructions on Github:
 
 📂 [TuringDB Benchmark Suite](https://github.com/turing-db/turing-bench)
 
-## 🧪 Try It Yourself
+## Try It Yourself
 
 You can replicate these results on your own instance using the Reactome dataset.
 
 Follow the setup steps in the [Benchmark README](https://github.com/turing-db/turing-bench/blob/main/README.md)
 
-## ❓Need Help?
+## Need Help?
 
 Join our Discord or open an issue on [GitHub](https://github.com/turing-db/turing-bench).
 
-## 🛣️ Roadmap
+## Roadmap
 
 We will be expanding this benchmarks to other graph databases (such as Memgraph or TigerGraph) as well as other criteria to try and build the most reliable benchmark possible and have an honest view of where we may shine and where we may not.
