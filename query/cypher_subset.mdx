@@ -4,9 +4,9 @@ sidebarTitle: "Query Language"
 description: "TuringDB uses Cypher as a query language and has some unique types of queries"
 ---
 
-TuringDB supports 99% of the **Cypher query language**, extended with versioning, metadata search, and flexible property matching.
+TuringDB supports most of the **Cypher query language**, extended with versioning, metadata search, and flexible property matching.
 
-This guide covers some examples of queries types, including `MATCH`, `CREATE`, property filters, node ID injection, metaqueries, and available data types.
+This guide covers some examples of queries types, including `MATCH`, `CREATE`, property filters, metaqueries, and available data types.
 
 # Basics
 
@@ -18,11 +18,11 @@ Nodes and edges can have both **label** and **property** constraints. As in stan
 
 An example of a node with a label constraint would be `(n:Person)`.
 
-An example of an edge with a property constraint would be `[e{duration=10}]`.
+An example of an edge with a property constraint would be `[e {duration: 10}]`.
 
-Property and label constraints may be combined, for instance, `(n:Person{name="John"})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
+Property and label constraints may be combined, for instance, `(n:Person {name: 'John'})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
 
-Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person,Man{name=”John”, age=20})`. These lists can be arbitrarily long.
+Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person, Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
 
 ### Summary:
 
@@ -34,13 +34,13 @@ Queries are built around **nodes** and **edges**:
 You can add:
 
 - **Labels** with a colon `:` - e.g. `(n:Person)`
-- **Property constraints** with curly braces `{}` - e.g. `[e{duration=10}]`
-- **Both** at once - e.g. `(n:Person{name="John"})`
+- **Property constraints** with curly braces `{}` - e.g. `[e {duration: 10}]`
+- **Both** at once - e.g. `(n:Person {name: 'John'})`
 
 Multiple labels and properties can be specified:
 
 ```sql
-(n:Person,Man{name="John", age=20})
+(n:Person, Man {name: 'John', age: 20})
 ```
 
 # Queries
@@ -269,4 +269,4 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 
 # 🛣️ Roadmap
 
-Whilst TuringDB currently supports 99% of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms. 
+Whilst TuringDB currently supports 99% of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms.

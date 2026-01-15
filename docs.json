@@ -46,7 +46,6 @@
           {
             "group": "Tutorials",
             "pages": [
-              "tutorials/create_graph",
               "tutorials/example_notebooks"
             ]
           },
