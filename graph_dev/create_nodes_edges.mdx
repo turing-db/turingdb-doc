@@ -24,7 +24,7 @@ description: "Once you have a valid change, you can start adding new nodes and e
     // You need to commit the changes after node creation
     COMMIT
     
-    // Create edge of label KNOWS between Jane and John
+    // Match Jane and John nodes to create edge of label KNOWS between them
     MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'})
     CREATE (n)-[e:KNOWS]->(m)
     

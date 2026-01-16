@@ -8,11 +8,13 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
   <Tab title="Cypher">
     ```jsx
     // Create a new change on the graph
-    CHANGE NEW
+    change new
     
     // Checkout into the change
-    CHECKOUT "my-change"
+    checkout change-<ID>  // e.g. checkout change-0
     ```
+
+    Each time you execute `change new`, a new change is created using the next integer available. This means if 3 changes have already been created (with IDs `0`, `1` and `2`), the next change will have the ID `3`. To checkout in this change, execute `checkout change-3`.
   </Tab>
   <Tab title="Python SDK">
     ```python
@@ -22,5 +24,7 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
     # Checkout into the change
     client.checkout(change=change)
     ```
+
+    Each time you execute `client.new_change()`, a new change is created using the next integer available. This means if 3 changes have already been created (with IDs `0`, `1` and `2`), the next change will have the ID `3`. To checkout in this change, execute `client.checkout(change=3)`.
   </Tab>
 </Tabs>
