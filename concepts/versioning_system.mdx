@@ -54,45 +54,43 @@ Roll back accidental or problematic changes
 1. Create and switch to a new Change
 
 ```graphql
-> change new "my-change"
-> checkout "my-change"
+> change new
+> checkout change-<ID>  // e.g. checkout change-42
 ```
 
-This creates a new branch (change) called my-change and switches your workspace to it.
+This creates a new branch (change) and switches your workspace to it.
 
-2. Modify the graph Make updates using Cypher-style queries:
+2. Modify the graph using Cypher-style queries:
 
 ```graphql
 > CREATE ...
-> SET ...
+> MATCH ... CREATE ...
 > commit
 ```
 
 A change can contain any number of commits. Each commit captures the exact transformation applied to the graph.
 
-3. Merge back to main Once you're happy with your updates:
+3. Merge back to main once you're happy with your updates:
 
 ```graphql
 > change submit
 > history
 ```
 
-This submits your change to the main branch and merges all its commits. You can then inspect your updated graph history.
+This submits your changes to the main branch and merges all its commits. You can then inspect your updated graph history.
 
 ## Practical Example: Protein Interaction Study
 
 Load the Reactome knowledge graph
 
 ```graphql
-> history
+> CALL db.history()
 
-+-----------------------+
-| Commit: 701edb        |
-+-----------------------+
-| Commit: be9643 (HEAD) |
-|   - 2,588,826 nodes   |
-|   - 10,042,846 edges  |
-+-----------------------+
++------------------+-----------+------------+-----------+
+| commit           | nodeCount | edgeCount  | partCount |
++------------------+-----------+------------+-----------+
+| be9643           | 2,588,826 | 10,042,846 | 1         |
++------------------+-----------+------------+-----------+
 ```
 
 Query original graph
@@ -129,19 +127,17 @@ Submit the change
 
 ```graphql
 > change submit
-> history
+> CALL db.history()
 
-+-----------------------+
-| Commit: 701edb        |
-+-----------------------+
-| Commit: be9643        |
-|   - 2,588,826 nodes   |
-|   - 10,042,846 edges  |
-+-----------------------+
-| Commit: 35fcd8 (HEAD) |
-|   - 1 nodes           |
-|   - 1 edges           |
-+-----------------------+
++------------------+-----------+------------+-----------+
+| commit           | nodeCount | edgeCount  | partCount |
++------------------+-----------+------------+-----------+
+| 701edb           | 0         | 0          | 1         |
++------------------+-----------+------------+-----------+
+| be9643           | 2,588,826 | 10,042,846 | 1         |
++------------------+-----------+------------+-----------+
+| 35fcd8           | 1         | 1          | 1         |
++------------------+-----------+------------+-----------+
 ```
 
 The current state of the graph's history can be represented by the following diagram.
