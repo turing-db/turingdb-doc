@@ -25,7 +25,7 @@
             "pages": [
               "concepts/overview",
               "concepts/columnar_storage",
-              "concepts/commits",
+              "concepts/versioning_system",
               "concepts/dataparts",
               "concepts/zero_locking", 
               "concepts/snapshots"

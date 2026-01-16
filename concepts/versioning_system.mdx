@@ -98,8 +98,8 @@ Load the Reactome knowledge graph
 Query original graph
 
 ```graphql
-> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
-  RETURN n,  m."displayName (String)"
+> MATCH (n:Protein {`displayName (String)`: 'APOE-4 [extracellular region]'})-->(m)
+  RETURN n,  m.`displayName (String)`
    
 +--------+-----------------------------------------+
 | 514785 | extracellular region                    |
@@ -115,12 +115,12 @@ Query original graph
 Add new data
 
 ```graphql
-> CREATE (at 514785)
-           -[e:HasWikipediaPage]
-           -(m:WikipediaPage {
-              "displayName (String)": "APOE-4 wiki",
-              "url (String)": "https://en.wikipedia.org/wiki/Apolipoprotein_E"
-            })
+> MATCH (n {`displayName (String)`: 'APOE-4 [extracellular region]'})
+  CREATE (n)-[e:HasWikipediaPage]->
+         (m:WikipediaPage {
+             `displayName (String)`: "APOE-4 wiki",
+             `url (String)`: "https://en.wikipedia.org/wiki/Apolipoprotein_E"
+         })
 ```
 
 This adds a WikipediaPage node and connects it to APOE-4.
@@ -162,8 +162,8 @@ gitGraph
 Now everyone sees the APOE-4 wiki connection as part of the main graph.
 
 ```graphql
-> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
-  RETURN n,  m."displayName (String)"
+> MATCH (n {`displayName (String)`: 'APOE-4 [extracellular region]'})-->(m)
+  RETURN n,  m.`displayName (String)`
    
 +--------+-----------------------------------------+
 | 514785 | **APOE-4 wiki**                             |
@@ -182,8 +182,8 @@ Time Travel Need to reproduce a past result? Just check out a previous commit:
 
 ```graphql
 > checkout be9643
-> MATCH (n { "displayName (String)": "APOE-4 [extracellular region]" })--(m)
-  RETURN n,  m."displayName (String)"
+> MATCH (n {`displayName (String)`: 'APOE-4 [extracellular region]'})-->(m)
+  RETURN n,  m.`displayName (String)`
    
 +--------+-----------------------------------------+
 | 514785 | New APOE-4 neighbour                    |
