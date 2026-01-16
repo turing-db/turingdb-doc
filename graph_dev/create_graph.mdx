@@ -1,72 +1,30 @@
 ---
 title: "Create Graph"
 sidebarTitle: "Create Graph"
-description: "Create a graph object"
+description: "Create a TuringDB graph"
 ---
 
 <Tabs>
+  <Tab title="Cypher">
+    ```jsx
+    // Create a new change on the graph
+    CREATE GRAPH my_graph
+    ```
+  </Tab>
   <Tab title="Python SDK">
     ```python
     from turingdb import TuringDB
     
     # Create TuringDB client
-    ## if TuringDB is running on a cloud instance
-    client = TuringDB(
-    	instance_id=<your_instance_ID>,  # found on the Database Instances management page
-        auth_token=<your_auth_token>     # your authentification token
-    )
-    ### if TuringDB is running locally
-    #client = TuringDB(
-    #	host="http://localhost:6666",  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
-    #)
+    # set host parameter to the URL (as string) on which TuringDB is running,
+    # default "http://localhost:6666"
+    client = TuringDB(host="http://localhost:6666")
     
     # Create a new graph called my_graph
     client.create_graph("mygraph")
     
     # Set working graph
     client.set_graph("mygraph")
-    ```
-  </Tab>
-  <Tab title="cURL">
-    - Request
-
-    ```bash
-    # Create a new graph called my_graph
-    curl "https://engines.turingdb.ai/sdk/query" \
-         -H "Authorization: Bearer $MY_API_KEY" \
-         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-         -H "Accept: application/json" \
-         -d "CREATE GRAPH my_graph"
-    ```
-
-    - Response
-
-    ```json
-    
-     {{"header":{"column_names":[],"column_types":[]},"data":[],"time":0.873002}
-    
-    ```
-  </Tab>
-  <Tab title="Javascript">
-    - Request
-
-    ```jsx
-    // Create a new graph called my_graph
-    fetch(`https://engines.turingdb.ai/sdk/query`, {
-    	method: "POST",
-    	headers: {
-    		Authorization: `Bearer ${MY_API_KEY}`,
-    		"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-    		Accept: "application/json",
-    	},
-    	body: "CREATE GRAPH my_graph",
-    });
-    ```
-
-    - Response
-
-    ```json
-    {{"header":{"column_names":[],"column_types":[]},"data":[],"time":0.873002}
     ```
   </Tab>
 </Tabs>

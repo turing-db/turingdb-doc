@@ -5,84 +5,20 @@ description: "List all the changes done on the graph database"
 ---
 
 <Tabs>
+  <Tab title="Cypher">
+    ```jsx
+    // Lis
+    
+    t all the changes done on the graph database
+    CHANGE LIST
+    
+    ```
+  </Tab>
   <Tab title="Python SDK">
     ```python
+    # List all the changes done on the graph database
     client.query("CHANGE LIST")
-    ```
-  </Tab>
-  <Tab title="cURL">
-    - Request
-
-    ```bash
-    # Create a new change in the graph
-    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH" \
-         -H "Authorization: Bearer $MY_API_KEY" \
-         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-         -H "Accept: application/json" \
-         -d "CHANGE LIST"
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [
-          "Change ID"
-        ],
-        "column_types": [
-          "UInt64"
-        ]
-      },
-      "data": [
-        [
-          [
-            1,
-            0
-          ]
-        ]
-      ],
-      "time": 0.039308
-    }
-    ```
-  </Tab>
-  <Tab title="Javascript">
-    - Request
-
-    ```jsx
-    fetch(`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}`, {
-    	method: "POST",
-    	headers: {
-    		Authorization: `Bearer ${MY_API_KEY}`,
-    		"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-    		Accept: "application/json",
-    	},
-    	body: "CHANGE LIST",
-    });
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [
-          "Change ID"
-        ],
-        "column_types": [
-          "UInt64"
-        ]
-      },
-      "data": [
-        [
-          [
-            1,
-            0
-          ]
-        ]
-      ],
-      "time": 0.039308
-    }
+    
     ```
   </Tab>
 </Tabs>

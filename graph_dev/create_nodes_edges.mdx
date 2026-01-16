@@ -5,38 +5,68 @@ description: "Once you have a valid change, you can start adding new nodes and e
 ---
 
 <Tabs>
+  <Tab title="Cypher">
+    ```jsx
+    // Create a node Person (Jane) - Edge (knows) - node Person (John)
+    CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})
+    
+    // Commit the changes
+    COMMIT
+    ```
+
+    In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
+
+    ```jsx
+    // Create two nodes Person : Jane and John
+    CREATE (:Person {name: 'John'})
+    CREATE (:Person {name: 'Jane'})
+    
+    // You need to commit the changes after node creation
+    COMMIT
+    
+    // Create edge of label KNOWS between Jane and John
+    MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'})
+    CREATE (n)-[e:KNOWS]->(m)
+    
+    // Commit the changes
+    COMMIT
+    ```
+
+    <Warning>
+      In the case you create the nodes then the edges, you need to commit your changes after node creation.
+    </Warning>
+  </Tab>
   <Tab title="Python SDK">
     ```python
-    client.checkout(my_change)
+    # Create a node Person (Jane) - Edge (knows) - node Person (John)
+    client.query("CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})")
     
-    # Create a node Person (Jane) - Edge (knows) - node (John)
-    client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+    # Commit the changes
+    client.query("COMMIT")
+    ```
+
+    In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
+
+    ```python
+    # Create two nodes Person : Jane and John
+    client.query("CREATE (:Person {name: 'John'})")
+    client.query("CREATE (:Person {name: 'Jane'})")
+    
+    # You need to commit the changes after node creation
+    client.query("COMMIT")
+    
+    # Create edge of label KNOWS between Jane and John
+    client.query("""
+    MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'})
+    CREATE (n)-[e:KNOWS]->(m)
+    """)
     
     # Commit the change
     client.query("COMMIT")
     ```
+
+    <Warning>
+      In the case you create the nodes then the edges, you need to commit your changes after node creation.
+    </Warning>
   </Tab>
 </Tabs>
-
-In the `CREATE` query above, the two nodes having label Person and the edge were created in the same query. You can also create nodes and queries one by one (less efficient).
-
-```python
-client.checkout(my_change)
-
-# Create two nodes Person : Jane and John
-client.query("CREATE (n:Person {name: 'John'})")
-client.query("CREATE (n:Person {name: 'Jane'})")
-
-# You need to commit the changes after node creation
-client.query("COMMIT")
-
-# Create edge of label KNOWS between Jane and John
-client.query("MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'}) CREATE (n)-[e:KNOWS]->(m)")
-
-# Commit the change
-client.query("COMMIT")
-```
-
-<Warning>
-  In the case you create the nodes then the edges, you need to commit atfer node creation.
-</Warning>
