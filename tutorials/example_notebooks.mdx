@@ -88,9 +88,8 @@ Illustrates how to model a manufacturing and supply chain graph. Tracks the flow
 Query examples:
 
 ```
-# Find all relationships between nodes whose
-# descriptions contain "FPGA" using string approximation
-MATCH (n{description ~= "FPGA"})-[e]->(m)
+# Find all relationships involving FPGAs
+MATCH (n {description: "FPGA"})-[e]->(m)
 RETURN n.displayName, n.description, e, m.displayName, m.description
 ```
 
@@ -105,7 +104,7 @@ Query examples:
 ```
 # Find all nodes of type "EntityWithAccessionedSequence"
 # and referenceType "ReferenceGeneProduct"
-MATCH (n:EntityWithAccessionedSequence {"referenceType"="ReferenceGeneProduct"})
+MATCH (n:EntityWithAccessionedSequence {referenceType: "ReferenceGeneProduct"})
 RETURN n.displayName, n.schemaClass, n.referenceType
 ```
 
@@ -118,7 +117,7 @@ Query examples:
 ```
 # Find all patients who took Paracetamol
 MATCH (p:Patient)-[:TOOK_MEDICATION]->
-      (m:Medication {"displayName": "Paracetamol"})
+      (m:Medication {displayName: "Paracetamol"})
 RETURN p.id, p.displayName, m.displayName
 ```
 
