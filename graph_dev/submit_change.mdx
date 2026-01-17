@@ -5,66 +5,22 @@ description: "Submit changes done to the database (just like a commit being subm
 ---
 
 <Tabs>
+  <Tab title="Cypher">
+    ```jsx
+    // Submit changes done to the database
+    CHANGE SUBMIT
+    
+    // Checkout to main branch
+    checkout
+    ```
+  </Tab>
   <Tab title="Python SDK">
     ```python
+    # Submit changes done to the database
     client.query("CHANGE SUBMIT")
-    client.checkout()  # back to main branch by default
-    ```
-  </Tab>
-  <Tab title="cURL">
-    - Request
-
-    ```bash
-    # Submit a change to the graph you are working on
-    curl "https://engines.turingdb.ai/sdk/query?graph=$GRAPH&change=$CHANGE" \
-         -H "Authorization: Bearer $MY_API_KEY" \
-         -H "Turing-Instance-Id: $MY_INSTANCE_ID" \
-         -H "Accept: application/json" \
-         -d 'CHANGE SUBMIT'
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.055101
-    }
-    ```
-  </Tab>
-  <Tab title="Javascript">
-    - Request
-
-    ```jsx
-    fetch(
-    	`https://engines.turingdb.ai/sdk/query?graph=${GRAPH}&change=${CHANGE}`,
-    	{
-    		method: "POST",
-    		headers: {
-    			Authorization: `Bearer ${MY_API_KEY}`,
-    			"Turing-Instance-Id": `${MY_INSTANCE_ID}`,
-    			Accept: "application/json",
-    		},
-    		body: "CHANGE SUBMIT",
-    	},
-    );
-    ```
-
-    - Response
-
-    ```json
-    {
-      "header": {
-        "column_names": [],
-        "column_types": []
-      },
-      "data": [],
-      "time": 0.055101
-    }
+    
+    # Checkout to main branch
+    client.checkout()
     ```
   </Tab>
 </Tabs>
