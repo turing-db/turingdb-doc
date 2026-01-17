@@ -32,6 +32,14 @@
             ]
           },
           {
+            "group": "Query Language",
+            "pages": [
+              "query/cypher_subset",
+              "query/cheatsheet",
+              "query/benchmarks"
+            ]
+          },
+          {
             "group": "Graph Development",
             "pages": [
               "graph_dev/create_graph",
@@ -47,14 +55,6 @@
             "group": "Tutorials",
             "pages": [
               "tutorials/example_notebooks"
-            ]
-          },
-          {
-            "group": "Query Language",
-            "pages": [
-              "query/cypher_subset",
-              "query/cheatsheet",
-              "query/benchmarks"
             ]
           },
           {
