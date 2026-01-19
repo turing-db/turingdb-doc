@@ -14,7 +14,10 @@ description: "You can time travel in you graph databases and see the commit hist
     checkout c0a6ce3c0315be7a
     
     // Query graph at specific commit
-    MATCH (n:Person {Name:'Jane'})-[e:KNOWS]->(m:Person {Name:'John'}) RETURN n, e, m")
+    MATCH (n:Person)-[e:KNOWS]->(m:Person)
+    WHERE n.name = 'Jane'
+    AND n.name = 'John
+    RETURN n, e, m
     ```
   </Tab>
   <Tab title="Python SDK">
@@ -26,7 +29,12 @@ description: "You can time travel in you graph databases and see the commit hist
     client.checkout(change="main", commit="c0a6ce3c0315be7a")
     
     # Query graph at specific commit
-    client.query("MATCH (n:Person {Name:'Jane'})-[e:KNOWS]-(m:Person {Name:'John'}) RETURN n, e, m")
+    client.query("""
+    MATCH (n:Person)-[e:KNOWS]->(m:Person)
+    WHERE n.name = 'Jane'
+    AND n.name = 'John
+    RETURN n, e, m
+    """)
     ```
   </Tab>
 </Tabs>

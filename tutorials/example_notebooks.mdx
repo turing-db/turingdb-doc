@@ -18,12 +18,12 @@ Uses the synthetic PaySim dataset to simulate a transactional graph. Highlights 
 
 Query examples:
 
-```
-# Find all transactions between two accounts
+```jsx
+// Find all transactions between two accounts
 MATCH (a1:Account)-->(t:Transaction)-->(a2:Account)
 RETURN a1.id, a1.type, t.amount, t.type, a2.id, a2.type, t.is_fraud
 
-# Find all 2-hops transaction chains
+// Find all 2-hops transaction chains
 MATCH (a1:Account)-[s1:SENT]->(t1:Transaction)-[r1:RECEIVED]->
       (a2:Account)-[s2:SENT]->(t2:Transaction)-[r2:RECEIVED]->
       (a3:Account)
@@ -37,8 +37,8 @@ Demonstrates risk analysis on crypto transaction data. Focuses on exploring wall
 
 Query examples:
 
-```
-# Find all 4-hops transaction chains
+```jsx
+// Find all 4-hops transaction chains
 MATCH (a:Entity)-[:TRANSACTION]->(b:Entity)-[:TRANSACTION]->
       (c:Entity)-[:TRANSACTION]->(d:Entity)
 RETURN a, b, c, d
@@ -52,16 +52,18 @@ Models the London transport network as a graph. Investigates connections between
 
 Query examples:
 
-```
-# Check if there is a path between
-# Notting Hill Gate and High Street Kensington stations
-# in 1 hop specifically using Circle Line
-MATCH (start {displayName: 'Notting Hill Gate'})-[e:CONNECTED {Line: 'Circle'}]->
-      (end {displayName: 'High Street Kensington'})
+```jsx
+// Check if there is a path between
+// Notting Hill Gate and High Street Kensington stations
+// in 1 hop specifically using Circle Line
+MATCH (start)-[e:CONNECTED]->(end)
+WHERE start.displayName = 'Notting Hill Gate'
+AND e.line = 'Circle'
+AND end.displayName = 'High Street Kensington'
 RETURN start.displayName, e.Line, end.displayName
 
-# Find 8-hops paths between Paddington and Blackfriars stations
-MATCH (start:Station{displayName:"Paddington"})-[e1:CONNECTED]->
+// Find 8-hops paths between Paddington and Blackfriars stations
+MATCH (start:Station)-[e1:CONNECTED]->
       (s1:Station)-[e2:CONNECTED]->
       (s2:Station)-[e3:CONNECTED]->
       (s3:Station)-[e4:CONNECTED]->
@@ -69,7 +71,9 @@ MATCH (start:Station{displayName:"Paddington"})-[e1:CONNECTED]->
       (s5:Station)-[e6:CONNECTED]->
       (s6:Station)-[e7:CONNECTED]->
       (s7:Station)-[e8:CONNECTED]->
-      (end:Station{displayName="Blackfriars"})
+      (end:Station)
+WHERE start.displayName = 'Paddington'
+AND end.displayName = 'Blackfriars'
 RETURN start.displayName, start.Note, e1.Line,
        s1.displayName, s1.Note, e2.Line,
        s2.displayName, s2.Note, e3.Line, 
@@ -87,9 +91,10 @@ Illustrates how to model a manufacturing and supply chain graph. Tracks the flow
 
 Query examples:
 
-```
-# Find all relationships involving FPGAs
-MATCH (n {description: "FPGA"})-[e]->(m)
+```jsx
+// Find all relationships involving FPGAs
+MATCH (n)-[e]->(m)
+WHERE n.description = 'FPGA'
 RETURN n.displayName, n.description, e, m.displayName, m.description
 ```
 
@@ -101,10 +106,11 @@ Explores the Reactome knowledge base of biological pathways. Showcases how Turin
 
 Query examples:
 
-```
-# Find all nodes of type "EntityWithAccessionedSequence"
-# and referenceType "ReferenceGeneProduct"
-MATCH (n:EntityWithAccessionedSequence {referenceType: "ReferenceGeneProduct"})
+```jsx
+// Find all nodes of type "EntityWithAccessionedSequence"
+// and referenceType "ReferenceGeneProduct"
+MATCH (n:EntityWithAccessionedSequence)
+WHERE n.referenceType = 'ReferenceGeneProduct'
 RETURN n.displayName, n.schemaClass, n.referenceType
 ```
 
@@ -114,10 +120,11 @@ Builds a patient-centric knowledge graph combining symptoms, diagnoses, treatmen
 
 Query examples:
 
-```
-# Find all patients who took Paracetamol
+```jsx
+// Find all patients who took Paracetamol
 MATCH (p:Patient)-[:TOOK_MEDICATION]->
-      (m:Medication {displayName: "Paracetamol"})
+      (m:Medication)
+WHERE m.displayName = 'Paracetamol'
 RETURN p.id, p.displayName, m.displayName
 ```
 

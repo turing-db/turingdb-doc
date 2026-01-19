@@ -6,7 +6,7 @@ description: "A compact reference for querying, creating, and exploring graphs i
 
 ## MATCH: Pattern Matching
 
-```cypher
+```jsx
 MATCH (n) RETURN n
 MATCH (n:Person {name: 'Alice'}) RETURN n.age
 MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
@@ -20,7 +20,7 @@ MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 
 ## CREATE: Add Nodes & Edges
 
-```cypher
+```jsx
 CREATE (:Person {name: 'Alice', age: 30})
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
 CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
@@ -42,7 +42,7 @@ CREATE (gabby:Person {name: 'Gabby', age: 27}),
 
 To filter on node label:
 
-```
+```jsx
 MATCH (n)
 WHERE n:Person
 RETURN n, n.age
@@ -50,7 +50,7 @@ RETURN n, n.age
 
 To filter on node property:
 
-```
+```jsx
 MATCH (n)
 WHERE n.name = 'Alice'
 RETURN n, n.age
@@ -58,7 +58,7 @@ RETURN n, n.age
 
 To filter on edge label:
 
-```
+```jsx
 MATCH (n)-[e]->(m)
 WHERE e:PLAY_POKER_TOGETHER
 RETURN n.name, m.age
@@ -66,7 +66,7 @@ RETURN n.name, m.age
 
 To filter on edge property:
 
-```cypher
+```jsx
 MATCH (n)-[e]->(m:Person)
 WHERE n.name = 'Gabby'
 AND e.play_poker_together = true
@@ -75,7 +75,7 @@ RETURN n.name, m.age
 
 ## Property Match Operators
 
-```cypher
+```jsx
 MATCH (n {name: 'Alice'}) RETURN n
 # exact equivalent of
 MATCH (n) WHERE n.name = 'Alice' RETURN n
@@ -88,7 +88,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 
 - `OR`
 
-  ```
+  ```jsx
   MATCH (n:Person)
   WHERE n.medication = "Aspirin"
   OR n.medication = "Ibuprofen"
@@ -96,7 +96,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
   ```
 - `AND`
 
-  ```
+  ```jsx
   MATCH (n)
   WHERE n.name = 'Matt'
   AND n.age = 20
@@ -108,7 +108,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 
 - Equal: `=`
 
-  ```
+  ```jsx
   # Find antibodies targeting proteins in Human
   MATCH (ab:Antibody)-->(prot:Protein)
   WHERE prot.host = 'Human'
@@ -116,7 +116,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
   ```
 - Inequal: `<>`
 
-  ```cypher
+  ```jsx
   # Find antibodies (associated to a protein) used together
   # in same publication (2-hop)
   MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
@@ -128,7 +128,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 - Greater than: `>`
 - Greater than or equal to: `>=`
 
-  ```cypher
+  ```jsx
   # Publications published on 2020 or after
   MATCH (pub:Publication)
   WHERE pub.published_year >= 2020
@@ -137,7 +137,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 - is null:`IS NULL`
 - is not null:`IS NOT NULL`
 
-  ```cypher
+  ```jsx
   # Publications from the United States
   MATCH (pub:Publication)
   WHERE pub.country = 'United States'
@@ -156,7 +156,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 
 ## RETURN Clause
 
-```sql
+```jsx
 MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 ```
 
@@ -186,7 +186,7 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 
 ## Useful Patterns
 
-```cypher
+```jsx
 -- Two-hop connection
 MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 

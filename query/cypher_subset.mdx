@@ -45,7 +45,7 @@ You can add:
 
 Multiple labels and properties can be specified:
 
-```sql
+```jsx
 (n:Person:Man {name: 'John', age: 20})
 ```
 
@@ -133,13 +133,13 @@ is a valid query.
 
 Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
 
-```sql
+```jsx
 CREATE (:Person)-[:FRIENDS_WITH]->(:Person)
 ```
 
 However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
 
-```sql
+```jsx
 CREATE (a:Corner)-[:EDGE]->(b:Corner), (b)-[:EDGE]->(c:Corner), (c)-[:EDGE]->(a)
 ```
 
@@ -149,7 +149,7 @@ The `WHERE` clause allows to filter the results on node and/or edge labels and/o
 
 To filter on node label:
 
-```
+```jsx
 MATCH (n)
 WHERE n:Person
 RETURN n, n.age
@@ -157,7 +157,7 @@ RETURN n, n.age
 
 To filter on node property:
 
-```
+```jsx
 MATCH (n)
 WHERE n.name = 'Alice'
 RETURN n, n.age
@@ -165,7 +165,7 @@ RETURN n, n.age
 
 To filter on edge label:
 
-```
+```jsx
 MATCH (n)-[e]->(m)
 WHERE e:PLAYPOKER
 RETURN n.name, m.age
@@ -173,7 +173,7 @@ RETURN n.name, m.age
 
 To filter on edge property:
 
-```cypher
+```jsx
 MATCH (n)-[e]->(m:Person)
 WHERE n.name = 'Gabby'
 AND e.play_poker = true
@@ -197,14 +197,14 @@ String properties can be enclosed using double quotes (`"`), single quotes (`'`)
 
 The `OR` and  `AND` operartors are used to filter on multiple conditions:
 
-```
+```jsx
 MATCH (n:Person)
 WHERE n.medication = "Aspirin"
 OR n.medication = "Ibuprofen"
 RETURN n.name
 ```
 
-```
+```jsx
 MATCH (n)
 WHERE n.name = 'Matt'
 AND n.age = 20
@@ -216,7 +216,7 @@ RETURN n
 
 TuringDB allows you to query against node and edge properties using the `:` operator for exact matching of the property value.
 
-```cypher
+```jsx
 MATCH (n {name: 'Matt', age: 20, hasPhD: false}) RETURN n
 ```
 
@@ -242,7 +242,7 @@ Implemented comparison operators:
   ```
 - Inequal: `<>`
 
-  ```cypher
+  ```jsx
   # Find antibodies (associated to a protein) used together
   # in same publication (2-hop)
   MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
@@ -254,7 +254,7 @@ Implemented comparison operators:
 - Greater than: `>`
 - Greater than or equal to: `>=`
 
-  ```cypher
+  ```jsx
   # Publications published on 2020 or after
   MATCH (pub:Publication)
   WHERE pub.published_year >= 2020
@@ -263,7 +263,7 @@ Implemented comparison operators:
 - is null:`IS NULL`
 - is not null:`IS NOT NULL`
 
-  ```cypher
+  ```jsx
   # Publications from the United States
   MATCH (pub:Publication)
   WHERE pub.country = 'United States'
