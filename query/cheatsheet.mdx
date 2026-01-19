@@ -6,10 +6,9 @@ description: "A compact reference for querying, creating, and exploring graphs i
 
 ## MATCH: Pattern Matching
 
-```sql
+```cypher
 MATCH (n) RETURN n
 MATCH (n:Person {name: 'Alice'}) RETURN n.age
-MATCH (a)-[e]->(b) RETURN *
 MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 ```
 
@@ -21,7 +20,7 @@ MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 
 ## CREATE: Add Nodes & Edges
 
-```sql
+```cypher
 CREATE (:Person {name: 'Alice', age: 30})
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
 CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
@@ -39,19 +38,118 @@ CREATE (gabby:Person {name: 'Gabby', age: 27}),
 - No `RETURN` clause
 - Use commas to create multiple items at once
 
-## Property Match Operators
+## WHERE: Filter nodes and edges by properties
 
-```sql
-MATCH (n {name: 'Alice'}) RETURN n
+To filter on node label:
+
+```
+MATCH (n)
+WHERE n:Person
+RETURN n, n.age
 ```
 
-- `:` → exact match
+To filter on node property:
+
+```
+MATCH (n)
+WHERE n.name = 'Alice'
+RETURN n, n.age
+```
+
+To filter on edge label:
+
+```
+MATCH (n)-[e]->(m)
+WHERE e:PLAY_POKER_TOGETHER
+RETURN n.name, m.age
+```
+
+To filter on edge property:
+
+```cypher
+MATCH (n)-[e]->(m:Person)
+WHERE n.name = 'Gabby'
+AND e.play_poker_together = true
+RETURN n.name, m.age
+```
+
+## Property Match Operators
+
+```cypher
+MATCH (n {name: 'Alice'}) RETURN n
+# exact equivalent of
+MATCH (n) WHERE n.name = 'Alice' RETURN n
+```
+
+- `:` → exact match using property filter in node directly
+- `=` → exact match using property filter in WHERE clause
+
+## Boolean operators
+
+- `OR`
+
+  ```
+  MATCH (n:Person)
+  WHERE n.medication = "Aspirin"
+  OR n.medication = "Ibuprofen"
+  RETURN n.name
+  ```
+- `AND`
+
+  ```
+  MATCH (n)
+  WHERE n.name = 'Matt'
+  AND n.age = 20
+  AND n.hasPhD = false
+  RETURN n
+  ```
+
+## Comparison operators
+
+- Equal: `=`
+
+  ```
+  # Find antibodies targeting proteins in Human
+  MATCH (ab:Antibody)-->(prot:Protein)
+  WHERE prot.host = 'Human'
+  RETURN ab.name, prot.name
+  ```
+- Inequal: `<>`
+
+  ```cypher
+  # Find antibodies (associated to a protein) used together
+  # in same publication (2-hop)
+  MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
+  WHERE ab1.name <> ab2.name
+  RETURN ab1.name, ab2.name, prot.name, prot.gene_name
+  ```
+- Less than: `<`
+- Less than or equal to: `<=`
+- Greater than: `>`
+- Greater than or equal to: `>=`
+
+  ```cypher
+  # Publications published on 2020 or after
+  MATCH (pub:Publication)
+  WHERE pub.published_year >= 2020
+  RETURN pub.displayName, pub.pubmedid, pub.published_year, pub.country
+  ```
+- is null:`IS NULL`
+- is not null:`IS NOT NULL`
+
+  ```cypher
+  # Publications from the United States
+  MATCH (pub:Publication)
+  WHERE pub.country = 'United States'
+  AND pub.institution IS NOT NULL
+  RETURN pub.displayName, pub.institution, pub.published_year
+  ```
 
 ## Data Types
 
 | Type    | Example                |
 | ------- | ---------------------- |
-| String  | `"hello"` or `'hello'` |
+| String  | `'hello'` or `"hello"` |
 | Integer | `age=30`               |
 | Boolean | `flag=true`            |
 | Double  | `score=3.14`           |
@@ -88,10 +186,12 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 
 ## Useful Patterns
 
-```sql
+```cypher
 -- Two-hop connection
 MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 
 -- All people named John
 MATCH (n:Person {name: 'John'}) RETURN n
+# exact equivalent of
+MATCH (n:Person) WHERE n.name = 'John' RETURN n
 ```

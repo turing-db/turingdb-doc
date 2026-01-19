@@ -24,6 +24,12 @@ Property and label constraints may be combined, for instance, `(n:Person {name: 
 
 Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person:Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
 
+By convention:
+
+- we prefer using single quotes around strings (even if double quotes alsowork )
+- node label are written in Pascal case (no spaces): e.g. `Person`, `BankAccount`, `BloodType`
+- edge label are written in upper case (spaces replaced by underscores): e.g. `TRANSACTION`, `FRIENDS_WITH`, `IS_CLIENT_OF`
+
 ### Summary:
 
 Queries are built around **nodes** and **edges**:
@@ -88,7 +94,7 @@ MATCH (n)-[e]->(m)-[f]->(p) RETURN n, m, p
   Both node and edges can omit a variable name if they specify at least a label constraint:
 
   ```jsx
-  MATCH (:Person)-[:FriendsWith]->(m) RETURN m
+  MATCH (:Person)-[:FRIENDS_WITH]->(m) RETURN m
   ```
 </Card>
 
@@ -128,13 +134,50 @@ is a valid query.
 Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
 
 ```sql
-CREATE (:Person)-[:FriendsWith]->(:Person)
+CREATE (:Person)-[:FRIENDS_WITH]->(:Person)
 ```
 
 However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
 
 ```sql
-CREATE (a:Corner)-[:Edge]->(b:Corner), (b)-[:Edge]->(c:Corner), (c)-[:Edge]->(a)
+CREATE (a:Corner)-[:EDGE]->(b:Corner), (b)-[:EDGE]->(c:Corner), (c)-[:EDGE]->(a)
+```
+
+## `WHERE` queries
+
+The `WHERE` clause allows to filter the results on node and/or edge labels and/or properties.
+
+To filter on node label:
+
+```
+MATCH (n)
+WHERE n:Person
+RETURN n, n.age
+```
+
+To filter on node property:
+
+```
+MATCH (n)
+WHERE n.name = 'Alice'
+RETURN n, n.age
+```
+
+To filter on edge label:
+
+```
+MATCH (n)-[e]->(m)
+WHERE e:PLAYPOKER
+RETURN n.name, m.age
+```
+
+To filter on edge property:
+
+```cypher
+MATCH (n)-[e]->(m:Person)
+WHERE n.name = 'Gabby'
+AND e.play_poker = true
+RETURN n.name, m.age
 ```
 
 # Data Types
@@ -150,13 +193,83 @@ String properties can be enclosed using double quotes (`"`), single quotes (`'`)
 
 #  Operators
 
-TuringDB requires you to query against node and edge properties using the `:` operator for exact matching of the property value.
+## Boolean operators
 
-```jsx
+The `OR` and  `AND` operartors are used to filter on multiple conditions:
+
+```
+MATCH (n:Person)
+WHERE n.medication = "Aspirin"
+OR n.medication = "Ibuprofen"
+RETURN n.name
+```
+
+```
+MATCH (n)
+WHERE n.name = 'Matt'
+AND n.age = 20
+AND n.hasPhD = false
+RETURN n
+```
+
+## Comparison operators
+
+TuringDB allows you to query against node and edge properties using the `:` operator for exact matching of the property value.
+
+```cypher
 MATCH (n {name: 'Matt', age: 20, hasPhD: false}) RETURN n
 ```
 
-Additionally, TuringDB supports the approximate string operator, `~=`, which is explained here.
+You can also pass through the WHERE clause to do the exact equivalent query:
+
+```
+MATCH (n)
+WHERE n.name = 'Matt'
+AND n.age = 20
+AND n.hasPhD = false
+RETURN n
+```
+
+Implemented comparison operators:
+
+- Equal: `=`
+
+  ```
+  # Find antibodies targeting proteins in Human
+  MATCH (ab:Antibody)-->(prot:Protein)
+  WHERE prot.host = 'Human'
+  RETURN ab.name, prot.name
+  ```
+- Inequal: `<>`
+
+  ```cypher
+  # Find antibodies (associated to a protein) used together
+  # in same publication (2-hop)
+  MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
+  WHERE ab1.name <> ab2.name
+  RETURN ab1.name, ab2.name, prot.name, prot.gene_name
+  ```
+- Less than: `<`
+- Less than or equal to: `<=`
+- Greater than: `>`
+- Greater than or equal to: `>=`
+
+  ```cypher
+  # Publications published on 2020 or after
+  MATCH (pub:Publication)
+  WHERE pub.published_year >= 2020
+  RETURN pub.displayName, pub.pubmedid, pub.published_year, pub.country
+  ```
+- is null:`IS NULL`
+- is not null:`IS NOT NULL`
+
+  ```cypher
+  # Publications from the United States
+  MATCH (pub:Publication)
+  WHERE pub.country = 'United States'
+  AND pub.institution IS NOT NULL
+  RETURN pub.displayName, pub.institution, pub.published_year
+  ```
 
 # Metaqueries
 
