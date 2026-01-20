@@ -117,7 +117,7 @@ Combining the syntax of `MATCH` queries, and the ability to specify constraints,
 
 ## `CREATE` queries
 
-`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints, but they do not have `RETURN` clauses. There is also the additional requirement that all nodes and edges _must have at least one label_. This means a query such as
+`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints. `CREATE` queries may have `RETURN` clauses, but they do not need them. There is also the additional requirement that all nodes and edges _must have at least one label_. This means a query such as
 
 ```jsx
 CREATE (n)
@@ -131,7 +131,7 @@ CREATE (n:Person)
 
 is a valid query.
 
-Because `CREATE` queries have no `RETURN` clause, there is no requirement to declare any names for any variables. This means we can have queries such as
+There is no requirement to declare any names for any variables. This means we can have queries such as
 
 ```jsx
 CREATE (:Person)-[:FRIENDS_WITH]->(:Person)
@@ -141,6 +141,27 @@ However, naming variables can be useful if you want to create multiple edges to 
 
 ```jsx
 CREATE (a:Corner)-[:EDGE]->(b:Corner), (b)-[:EDGE]->(c:Corner), (c)-[:EDGE]->(a)
+```
+
+## `MATCH ... CREATE ...` and `MATCH ... CREATE ... RETURN ...` queries
+
+`MATCH`, `CREATE` and `RETURN` statements can be used together in queries.
+
+For example, to create a edge between two existing graph, the following queries can be used:
+
+```jsx
+// Create two nodes Person
+CREATE (:Person {name: 'Alice', age: 24})
+CREATE (:Person {name: 'John', age: 27})
+
+// Match two nodes to create the edge between them
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
+CREATE (n)-[:FRIENDS_WITH]->(m)
+
+// RETURN clause can also be added
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
+CREATE (n)-[:FRIENDS_WITH]->(m)
+RETURN n.name, n.age, m.name, m.age
 ```
 
 ## `WHERE` queries
