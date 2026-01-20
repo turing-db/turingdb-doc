@@ -204,11 +204,11 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 ## Useful Patterns
 
 ```jsx
--- Two-hop connection
+// Two-hop connection
 MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 
--- All people named John
+// All people named John
 MATCH (n:Person {name: 'John'}) RETURN n
-# exact equivalent of
+/// exact equivalent of
 MATCH (n:Person) WHERE n.name = 'John' RETURN n
 ```
