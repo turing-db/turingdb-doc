@@ -38,6 +38,23 @@ CREATE (gabby:Person {name: 'Gabby', age: 27}),
 - No `RETURN` clause
 - Use commas to create multiple items at once
 
+## MATCH + CREATE and MATCH + CREATE + RETURN
+
+```jsx
+// Create two nodes Person
+CREATE (:Person {name: 'Alice', age: 24}),
+	   (:Person {name: 'John', age: 27})
+
+// Match two nodes to create the edge between them
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
+CREATE (n)-[:FRIENDS_WITH]->(m)
+
+// RETURN clause can also be added
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
+CREATE (n)-[:FRIENDS_WITH]->(m)
+RETURN n.name, n.age, m.name, m.age
+```
+
 ## WHERE: Filter nodes and edges by properties
 
 To filter on node label:
@@ -77,7 +94,7 @@ RETURN n.name, m.age
 
 ```jsx
 MATCH (n {name: 'Alice'}) RETURN n
-# exact equivalent of
+// exact equivalent of
 MATCH (n) WHERE n.name = 'Alice' RETURN n
 ```
 
