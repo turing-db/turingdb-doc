@@ -32,7 +32,7 @@
             ]
           },
           {
-            "group": "Queries and Benchmarking",
+            "group": "Query Language",
             "pages": [
               "query/cypher_subset",
               "query/cheatsheet",
