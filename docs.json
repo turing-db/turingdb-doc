@@ -37,7 +37,7 @@
               "query/cypher_subset",
               "query/cheatsheet",
               "query/benchmarks",
-              "query/benchmarking-tool"
+              "query/benchmark-report"
             ]
           },
           {
