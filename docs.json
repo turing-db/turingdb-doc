@@ -27,16 +27,17 @@
               "concepts/columnar_storage",
               "concepts/versioning_system",
               "concepts/dataparts",
-              "concepts/zero_locking", 
+              "concepts/zero_locking",
               "concepts/snapshots"
             ]
           },
           {
-            "group": "Query Language",
+            "group": "Queries and Benchmarking",
             "pages": [
               "query/cypher_subset",
               "query/cheatsheet",
-              "query/benchmarks"
+              "query/benchmarks",
+              "query/benchmarking-tool"
             ]
           },
           {
@@ -71,11 +72,7 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/turingdb_logo.png",
