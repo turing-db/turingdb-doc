@@ -84,7 +84,7 @@ will match all nodes in the database. An example of a multi-hop `MATCH` query wo
 MATCH (n)-[e]->(m)-[f]->(p) RETURN n, m, p
 ```
 
-<Card title horizontal>
+<Card horizontal>
   Queries have _variables_, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
 
   ```jsx
@@ -309,16 +309,17 @@ These metaqueries are useful for exploring the data which is available in the gr
 
 Outside of CYPHER, there are a number of commands which you can use to interact with the TuringDB engine.
 
-| Command                     | Explanation                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------------- |
-| `CREATE GRAPH <graph name>` | Create a graph with the specified name                                                       |
-| `LOAD GRAPH <graph name>`   | Load the specified graph. Requires the graph files to be accessible to the TuringDB instance |
-| `HISTORY`                   | Prints the history of the version control system                                             |
-| `CHANGE NEW`                | Creates a new change, returning a column with the ID of the created change                   |
-| `CHANGE SUBMIT`             | When checked out on a specific change, submits all changes made to the “master branch”       |
-| `CHANGE DELETE`             | Deletes the currently checked out change                                                     |
-| `CHANGE LIST`               | Lists the currently active (uncommitted) changes                                             |
-| `LIST GRAPH`                | Lists the available graphs                                                                   |
+| Command                                | Explanation                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `CREATE GRAPH <graph name>`            | Create a graph with the specified name                                                                                                |
+| `LOAD GRAPH <graph name>`              | Load the specified TuringDB graph. Requires the graph files to be accessible in TuringDB directory (`--turing-dir`, `graphs` subdir)  |
+| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)     |
+| `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir) |
+| `CHANGE NEW`                           | Creates a new change, returning a column with the ID of the created change                                                            |
+| `CHANGE SUBMIT`                        | When checked out on a specific change, submits all changes made to the “master branch”                                                |
+| `CHANGE DELETE`                        | Deletes the currently checked out change                                                                                              |
+| `CHANGE LIST`                          | Lists the currently active (uncommitted) changes                                                                                      |
+| `LIST GRAPH`                           | Lists the available graphs                                                                                                            |
 
 # 🛣️ Roadmap
 
