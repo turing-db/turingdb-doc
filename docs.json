@@ -36,7 +36,6 @@
             "pages": [
               "query/cypher_subset",
               "query/cheatsheet",
-              "query/benchmarks",
               "query/benchmark-report"
             ]
           },
