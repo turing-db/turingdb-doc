@@ -1,0 +1,41 @@
+---
+title: "Load external data types"
+sidebarTitle: "Load External data"
+description: "Load external data types into a TuringDB graph"
+---
+
+We provide different ways to load external data into a TuringDB graph. As for now, the following format can be imported to a TuringDB graph:
+
+- `jsonl`
+- `gml`
+
+To be able to import external files into a TuringDB graph, they have to be saved into the `data` subdirectory in the TuringDB directory: `-turing-dir` flag when you run `turingdb` (by default is `$HOME/.turing`).
+
+<Tabs>
+  <Tab title="Cypher">
+    Load a `jsonl` file as a TuringDB graph:
+
+    ```jsx
+    LOAD JSONL 'myjsonl.json' AS mygraph
+    ```
+
+    Load a `gml` file as a TuringDB graph:
+
+    ```jsx
+    LOAD GML 'mygml.gml' AS mygraph
+    ```
+  </Tab>
+  <Tab title="Python SDK">
+    Load a jsonl file as a TuringDB graph:
+
+    ```python
+    client.query("LOAD JSONL 'myjsonl.json' AS mygraph")
+    ```
+
+    Load a gml file as a TuringDB graph:
+
+    ```python
+    client.query("LOAD GML 'mygml.gml' AS mygraph")
+    ```
+  </Tab>
+</Tabs>

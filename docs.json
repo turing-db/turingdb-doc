@@ -43,6 +43,7 @@
             "group": "Graph Development",
             "pages": [
               "graph_dev/create_graph",
+              "graph_dev/load_external",
               "graph_dev/create_change",
               "graph_dev/list_changes",
               "graph_dev/create_nodes_edges",

@@ -1,5 +1,5 @@
 ---
-title: "Turing DB Query Language Cheatsheet"
+title: "TuringDB Query Language Cheatsheet"
 sidebarTitle: "CheatSheet"
 description: "A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions."
 ---
@@ -190,16 +190,18 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 
 ## Engine Commands
 
-| Command               | Description                      |
-| --------------------- | -------------------------------- |
-| `CREATE GRAPH <name>` | Create a new named graph         |
-| `LOAD GRAPH <name>`   | Load an existing graph           |
-| `LIST GRAPH`          | List all available graphs        |
-| `HISTORY`             | Show commit history (versioning) |
-| `CHANGE NEW`          | Create a new isolated change     |
-| `CHANGE SUBMIT`       | Merge current change into main   |
-| `CHANGE DELETE`       | Delete current change            |
-| `CHANGE LIST`         | List active uncommitted changes  |
+| Command                                | Description                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `CREATE GRAPH <name>`                  | Create a new named graph                                                                                                              |
+| `LOAD GRAPH <name>`                    | Load an existing graph                                                                                                                |
+| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)     |
+| `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir) |
+| `LIST GRAPH`                           | List all available graphs                                                                                                             |
+| `HISTORY`                              | Show commit history (versioning)                                                                                                      |
+| `CHANGE NEW`                           | Create a new isolated change                                                                                                          |
+| `CHANGE SUBMIT`                        | Merge current change into main                                                                                                        |
+| `CHANGE DELETE`                        | Delete current change                                                                                                                 |
+| `CHANGE LIST`                          | List active uncommitted changes                                                                                                       |
 
 ## Useful Patterns
 
