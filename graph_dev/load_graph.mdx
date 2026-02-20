@@ -1,0 +1,24 @@
+---
+title: "Load TuringDB graph"
+sidebarTitle: "Load External data"
+description: "Load existing TuringDB graph"
+---
+
+To be able to load TuringDB files into a graph, they have to be saved into the `graphs` subdirectory in the TuringDB directory: `-turing-dir` flag when you run `turingdb` (by default is `$HOME/.turing`).
+
+<Tabs>
+  <Tab title="Cypher">
+    Load a TuringDB graph:
+
+    ```jsx
+    LOAD mygraph
+    ```
+  </Tab>
+  <Tab title="Python SDK">
+    Load a TuringDB graph:
+
+    ```python
+    client.load_graph("mygraph")
+    ```
+  </Tab>
+</Tabs>
