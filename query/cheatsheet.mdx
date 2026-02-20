@@ -179,6 +179,26 @@ MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
 
 - Select fields with `RETURN n.prop, m.prop`
 
+## LOAD graphs
+
+### Load TuringDB graph
+
+Files have to be available in `graphs` subdirectory of `turing-dir`.
+```jsx
+LOAD graph_name
+```
+
+### Load external data into TuringDB graph
+
+Files have to be available in `data` subdirectory of `turing-dir`.
+```jsx
+LOAD GML 'mygml.gml' AS my_graph
+```
+
+```jsx
+LOAD JSONL 'myjsonl.jsonl' AS my_graph
+```
+
 ## Metaqueries (`CALL`)
 
 | Query                     | Description                         |
