@@ -4,9 +4,32 @@ sidebarTitle: "Troubleshooting"
 description: "Come here if you have any trouble or want to contact us"
 ---
 
-## Help will always be given at TuringDB to those who ask for it.
+## "Graph outdated" or TuringDB fails to start
 
-If you have any feedback, bugs to report, or features requests please send us an emailtrouble please send us an email: [team@turingdb.ai](team@turingdb.ai)
+After updating TuringDB, you may encounter a **"Graph outdated"** error or TuringDB may fail to start.
+This happens when the default graph was created by an older version of TuringDB and its storage format is no longer compatible.
+
+To fix this, restart TuringDB with the `-reset-default` flag:
+
+```bash
+turingdb -reset-default
+```
+
+This deletes the existing default graph and lets TuringDB recreate a fresh one on startup.
+
+<Warning>This will permanently delete all data stored in the default graph. Make sure to back up any important data before running this command.</Warning>
+
+If you are using a custom turing directory, pass it along:
+
+```bash
+turingdb -reset-default -turing-dir /path/to/your/turing/dir
+```
+
+---
+
+## Contact us
+
+If you have any feedback, bugs to report, or features requests please send us an email: [team@turingdb.ai](team@turingdb.ai)
 
 Or send us a message on [Discord](https://discord.gg/dMM48ns5VY)
 
