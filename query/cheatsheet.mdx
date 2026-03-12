@@ -100,6 +100,22 @@ MATCH (n) RETURN n LIMIT 10
 MATCH (n) RETURN n SKIP 10 LIMIT 10
 ```
 
+## ORDER BY
+
+```jsx
+// Sort ascending (default)
+MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age
+
+// Sort descending
+MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC
+
+// Sort by multiple properties
+MATCH (n:Person) RETURN n.name, n.age, n.city ORDER BY n.city, n.age DESC
+
+// Combined with pagination
+MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 10 LIMIT 10
+```
+
 ## Property Match Operators
 
 ```jsx

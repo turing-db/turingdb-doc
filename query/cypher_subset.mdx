@@ -228,6 +228,42 @@ SKIP 10
 LIMIT 10
 ```
 
+## Sorting with `ORDER BY`
+
+**ORDER BY** sorts the results by one or more properties. By default, results are sorted in ascending order.
+
+```cypher
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age
+```
+
+Use `DESC` to sort in descending order:
+
+```cypher
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC
+```
+
+You can sort by multiple properties. Results are sorted by the first property, then ties are broken by subsequent properties:
+
+```cypher
+MATCH (n:Person)
+RETURN n.name, n.age, n.city
+ORDER BY n.city, n.age DESC
+```
+
+`ORDER BY` can be combined with `SKIP` and `LIMIT` for sorted pagination:
+
+```cypher
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC
+SKIP 10
+LIMIT 10
+```
+
 # Data Types
 
 TuringDB offers the following data types for node and edge properties:
