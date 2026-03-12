@@ -1,0 +1,85 @@
+---
+title: "CLI Commands"
+sidebarTitle: "Commands"
+description: "Reference for TuringDB CLI commands: start and stop."
+---
+
+## Start
+
+Starts the TuringDB server. This is the default command, running `turingdb` without a subcommand is equivalent to `turingdb start`.
+
+```bash
+turingdb start [options]
+```
+
+### Options
+
+| Flag | Description | Default |
+|---|---|---|
+| `-demon` | Run TuringDB as a background daemon | off |
+| `-p <port>` | HTTP server listen port | `6666` |
+| `-i <addr>` | HTTP server listen address | `127.0.0.1` |
+| `-turing-dir <path>` | Root Turing home directory | `~/.turing` |
+| `-load <graph>` | Load a graph at startup (can be repeated) | |
+| `-in-memory` | Run without writing graphs to disk | off |
+| `-reset-default` | Delete the default graph before starting | off |
+| `-ui` | Launch the built-in visualizer proxy | off |
+| `-ui-port <port>` | Visualizer proxy port | `8080` |
+| `-start-timeout <ms>` | Time to wait for daemon readiness | `500` |
+
+### Examples
+
+Interactive mode (default):
+
+```bash
+turingdb
+```
+
+Daemon mode on a custom port:
+
+```bash
+turingdb start -demon -p 7777
+```
+
+Daemon mode with the visualizer:
+
+```bash
+turingdb -demon -ui
+```
+
+Load a graph at startup:
+
+```bash
+turingdb -load mygraph
+```
+
+---
+
+## Stop
+
+Gracefully stops a TuringDB instance running as a daemon. It sends a stop signal through the Unix socket and waits for the process to shut down gracefully.
+
+```bash
+turingdb stop [options]
+```
+
+### Options
+
+| Flag | Description | Default |
+|---|---|---|
+| `-turing-dir <path>` | Root Turing directory of the instance to stop | `~/.turing` |
+| `-timeout <ms>` / `-t <ms>` | Time to wait for the process to release its lock | `3000` |
+
+### Examples
+
+Stop the default instance:
+
+```bash
+turingdb stop
+```
+
+Stop an instance running in a custom directory:
+
+```bash
+turingdb stop -turing-dir /data/myturing
+```
