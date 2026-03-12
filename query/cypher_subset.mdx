@@ -401,6 +401,7 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 | `CHANGE SUBMIT`                        | When checked out on a specific change, submits all changes made to the “master branch”                                                |
 | `CHANGE DELETE`                        | Deletes the currently checked out change                                                                                              |
 | `CHANGE LIST`                          | Lists the currently active (uncommitted) changes                                                                                      |
+| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory for querying. Required when sending queries directly to the REST API for non-HEAD commits. The CLI `checkout` and Python SDK handle this automatically. |
 | `LIST GRAPH`                           | Lists the available graphs                                                                                                            |
 
 # Roadmap

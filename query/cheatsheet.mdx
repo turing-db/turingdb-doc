@@ -263,6 +263,7 @@ LOAD JSONL 'myjsonl.jsonl' AS my_graph
 | `LOAD GRAPH <name>`                    | Load an existing graph                                                                                                                |
 | `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)     |
 | `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir) |
+| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory (needed for REST API queries on non-HEAD commits; CLI and SDK do this automatically)                    |
 | `LIST GRAPH`                           | List all available graphs                                                                                                             |
 | `HISTORY`                              | Show commit history (versioning)                                                                                                      |
 | `CHANGE NEW`                           | Create a new isolated change                                                                                                          |

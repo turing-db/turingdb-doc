@@ -9,14 +9,14 @@ description: "You can time travel in you graph databases and see the commit hist
     ```jsx
     // Show commit history
     CALL db.history()
-    
+
     // Read a previous commit
     checkout c0a6ce3c0315be7a
-    
+
     // Query graph at specific commit
     MATCH (n:Person)-[e:KNOWS]->(m:Person)
     WHERE n.name = 'Jane'
-    AND n.name = 'John
+    AND n.name = 'John'
     RETURN n, e, m
     ```
   </Tab>
@@ -24,17 +24,53 @@ description: "You can time travel in you graph databases and see the commit hist
     ```python
     # Show commit history
     client.query("CALL db.history()")
-    
+
     # Read a previous commit
     client.checkout(change="main", commit="c0a6ce3c0315be7a")
-    
+
     # Query graph at specific commit
     client.query("""
     MATCH (n:Person)-[e:KNOWS]->(m:Person)
     WHERE n.name = 'Jane'
-    AND n.name = 'John
+    AND n.name = 'John'
     RETURN n, e, m
     """)
     ```
   </Tab>
 </Tabs>
+
+## Lazy Commit Loading
+
+TuringDB lazily loads commits from disk. When a graph is loaded, only the **HEAD commit** (the latest commit on the current branch) is fully loaded into memory. All other commits are registered but their data remains on disk until explicitly requested.
+
+This means that to query a past commit, its data must first be loaded into memory using the `LOAD COMMIT` command:
+
+```jsx
+LOAD COMMIT 'c0a6ce3c0315be7a'
+```
+
+<Check>
+  **When do I need `LOAD COMMIT`?**
+
+  - **TuringDB CLI**: The `checkout` command automatically loads the commit for you — no need to call `LOAD COMMIT` manually.
+  - **Python SDK**: `client.checkout()` automatically loads the commit for you — no need to call `LOAD COMMIT` manually.
+  - **REST API (`/query` endpoint)**: If you send Cypher queries directly to the `/query` endpoint, you **must** call `LOAD COMMIT '<hash>'` explicitly before querying any commit that is not the HEAD commit at startup time.
+</Check>
+
+### Example: Querying a Past Commit via the REST API
+
+```jsx
+// Step 1: Load the commit into memory
+LOAD COMMIT 'be9643a1c03f8e2b'
+
+// Step 2: Now you can query at that commit
+MATCH (n:Person)-[e:KNOWS]->(m:Person)
+RETURN n.name, m.name
+```
+
+<Warning>
+  If you try to query a commit that has not been loaded, TuringDB will return an error:
+  `Commit not loaded to memory - use LOAD COMMIT '<hash>' to load a commit`
+</Warning>
+
+`LOAD COMMIT` is **idempotent** — calling it on an already-loaded commit is a no-op and returns immediately.
