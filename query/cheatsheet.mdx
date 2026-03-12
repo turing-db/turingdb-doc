@@ -116,6 +116,44 @@ MATCH (n:Person) RETURN n.name, n.age, n.city ORDER BY n.city, n.age DESC
 MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 10 LIMIT 10
 ```
 
+## Joins and Cartesian Products
+
+```jsx
+// Cartesian product: all combinations of Person × Interest
+MATCH (a:Person), (b:Interest) RETURN a.name, b.name
+
+// Three-way cartesian product
+MATCH (p:Person), (i:Interest), (c:Category) RETURN p.name, i.name, c.name
+
+// Join on shared variable: persons sharing an interest
+MATCH (a:Person)-->(b:Interest)<--(c:Person)
+WHERE a.name <> c.name
+RETURN a.name, b.name, c.name
+
+// With explicit edge types
+MATCH (a:Person)-[:INTERESTED_IN]->(b:Interest)<-[:INTERESTED_IN]-(c:Person)
+WHERE a.name <> c.name
+RETURN a.name, b.name, c.name
+
+// Multi-hop join
+MATCH (a:Person)-->(i:Interest)-->(c:Category)
+RETURN a.name, i.name, c.name
+
+// Mix path + cartesian product
+MATCH (a:Person)-->(i:Interest), (c:Category)
+WHERE c.name = 'Cat1'
+RETURN a.name, i.name, c.name
+
+// Two independent paths (cartesian of each path's results)
+MATCH (a:Person)-->(i1:Interest), (b:Person)-->(i2:Interest)
+WHERE a.name <> b.name
+RETURN a.name, i1.name, b.name, i2.name
+```
+
+- Comma `,` separates independent patterns
+- Shared variables between patterns create joins
+- Unrelated patterns create cartesian products (N × M rows)
+
 ## Property Match Operators
 
 ```jsx
@@ -281,4 +319,16 @@ MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
 MATCH (n:Person {name: 'John'}) RETURN n
 /// exact equivalent of
 MATCH (n:Person) WHERE n.name = 'John' RETURN n
+
+// Find co-authors: two persons linked to the same publication
+MATCH (a:Person)-->(p:Publication)<--(b:Person)
+WHERE a.name <> b.name
+RETURN a.name, b.name, p.title
+
+// Match existing nodes then create edge between them
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
+CREATE (n)-[:KNOWS]->(m)
+
+// Cartesian: pair every person with every city
+MATCH (p:Person), (c:City) RETURN p.name, c.name
 ```

@@ -199,6 +199,90 @@ AND e.play_poker = true
 RETURN n.name, m.age
 ```
 
+## Multi-pattern queries (Joins and Cartesian Products)
+
+TuringDB supports matching multiple patterns in a single query by separating them with commas. Depending on whether the patterns share variables, this results in either a **join** or a **cartesian product**.
+
+### Cartesian Product
+
+When patterns in a `MATCH` clause are separated by commas and do **not** share any variables, TuringDB computes a cartesian product of the results. Every row from the first pattern is combined with every row from the second.
+
+```cypher
+MATCH (a:Person), (b:Interest)
+RETURN a.name, b.name
+```
+
+This returns all combinations of Person nodes with Interest nodes. If there are 6 persons and 5 interests, the result contains 30 rows.
+
+You can use `WHERE` to filter the cartesian product:
+
+```cypher
+MATCH (p:Person), (i:Interest)
+WHERE p.isFrench = true AND i.name = 'MegaHub'
+RETURN p.name, i.name
+```
+
+Three or more patterns can be combined:
+
+```cypher
+MATCH (p:Person), (i:Interest), (c:Category)
+WHERE p.name = 'A' AND i.name = 'Shared' AND c.name = 'Cat1'
+RETURN p.name, i.name, c.name
+```
+
+<Warning>
+  Cartesian products can produce very large result sets. A product of N nodes by M nodes produces N × M rows. Use `WHERE` filters or `LIMIT` to keep result sizes manageable.
+</Warning>
+
+### Pattern-based Joins
+
+When two paths converge on a shared node variable, TuringDB performs a **hash join** on that variable. This is useful for finding entities that share a common connection.
+
+```cypher
+MATCH (a:Person)-->(b:Interest)<--(c:Person)
+WHERE a.name <> c.name
+RETURN a.name, b.name, c.name
+```
+
+This finds pairs of different persons who share a common interest. The variable `b` acts as the join point.
+
+Multi-hop joins are also supported:
+
+```cypher
+MATCH (a:Person)-->(i:Interest)-->(c:Category)
+RETURN a.name, i.name, c.name
+```
+
+You can specify edge types explicitly:
+
+```cypher
+MATCH (a:Person)-[:INTERESTED_IN]->(b:Interest)<-[:INTERESTED_IN]-(c:Person)
+WHERE a.name <> c.name
+RETURN a.name, b.name, c.name
+```
+
+### Mixing Paths and Cartesian Products
+
+Connected paths and independent patterns can be combined in the same query. Shared variables create joins, while unrelated patterns create cartesian products.
+
+```cypher
+MATCH (a:Person)-->(i:Interest), (c:Category)
+WHERE c.name = 'Cat1'
+RETURN a.name, i.name, c.name
+```
+
+This returns every Person→Interest connection combined with the Cat1 category node.
+
+Two independent paths can also be combined:
+
+```cypher
+MATCH (a:Person)-->(i1:Interest), (b:Person)-->(i2:Interest)
+WHERE a.name = 'Alice' AND b.name = 'Bob' AND i1.name <> i2.name
+RETURN a.name, i1.name, b.name, i2.name
+```
+
+This finds all combinations of Alice's interests with Bob's interests, excluding pairs where both interests are the same.
+
 ## `LIMIT` keyword
 
 **LIMIT** restricts the number of returned results. The following query returns only the first 10 results:
