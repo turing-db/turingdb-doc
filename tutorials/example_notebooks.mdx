@@ -128,6 +128,51 @@ WHERE m.displayName = 'Paracetamol'
 RETURN p.id, p.displayName, m.displayName
 ```
 
+### [CiteAb Antibody Data](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/CiteAb_antibody_data.ipynb)
+
+Explores the CiteAb antibody database as a knowledge graph linking antibodies, publications, and suppliers. Demonstrates property-based filtering, edge traversal, and LLM-assisted natural language querying with an auto-generated Cypher system prompt.
+
+Query examples:
+
+```jsx
+// Top publications by citation count
+MATCH (n:Publication)
+RETURN n.displayName, n.cited_by_count
+ORDER BY n.cited_by_count DESC
+LIMIT 10
+
+// Publications from a specific year using toInteger()
+MATCH (n:Publication)
+WHERE n.year = toInteger("2022")
+RETURN n.displayName, n.year
+LIMIT 10
+```
+
+## Domain: Corporate & Governance
+
+### [French Corporate Network](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/french_corporate_network.ipynb)
+
+Builds a corporate governance graph from the French public company registry (CAC 40 companies). Models board members, executive roles, and audit firms. Explores interlocking directorates (people sitting on multiple boards), non-executive roles, and media-corporate board overlaps through graph queries and interactive PyVis visualizations.
+
+Query examples:
+
+```jsx
+// All executive officers of a given company
+MATCH (p:Person)-[r:IS_OFFICER_OF]->(c:Company)
+WHERE c.displayName = 'Air Liquide'
+RETURN p.displayName, r.qualite
+
+// All Directeur Général across CAC 40 companies
+MATCH (p:Person)-[r:IS_OFFICER_OF]->(c:Company)
+WHERE r.qualite = 'Directeur Général'
+RETURN p.displayName, c.displayName
+ORDER BY c.displayName
+```
+
+## [Integrate RDF File](https://github.com/turing-db/turingdb-examples/blob/main/examples/notebooks/public_version/integrate_rdf_file.ipynb)
+
+Shows how to convert an RDF/OWL ontology file into TuringDB's JSONL format and load it as a graph. Covers subject–predicate–object triple flattening, label mapping, and querying the resulting semantic graph.
+
 ## Running the Notebooks
 
 ## **Quick Start**
@@ -141,24 +186,24 @@ RETURN p.id, p.displayName, m.displayName
 
 1. **Clone the repository:**
 
-   ```
+   ```text
    git clone https://github.com/turing-db/turingdb-examples.git
    cd turingdb-examples
    ```
 2. **Install dependencies:**
 
-   ```
+   ```text
    uv sync
    ```
 3. **Start Jupyter Lab:**
 
-   ```
+   ```text
    uv run jupyter lab
    ```
 
    This will start the Jupyter server and display output like:
 
-   ```
+   ```text
    [I 2024-09-26 16:30:15.123 ServerApp] Jupyter Server is running at:
    [I 2024-09-26 16:30:15.123 ServerApp] http://localhost:8888/lab?token=abc123...
    

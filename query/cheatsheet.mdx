@@ -293,6 +293,23 @@ LOAD JSONL 'myjsonl.jsonl' AS my_graph
 | ------------------------------------------ | -------------------------------------------------------- |
 | `shortestPath(n, m, distance, dist, path)` | Shortest path between nodes using the Dijkstra processor |
 
+## Functions
+
+| Function          | Description                                                        |
+| ----------------- | ------------------------------------------------------------------ |
+| `labels(n)`       | Returns the label of node `n` as a string (RETURN only, not WHERE) |
+| `toInteger(expr)` | Parses a string as an integer                                       |
+| `toFloat(expr)`   | Parses a string as a float                                          |
+
+```jsx
+// Label introspection
+MATCH (n) RETURN labels(n), n.name
+
+// Type conversion
+MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name
+MATCH (n) RETURN n.price * toFloat("1.07")
+```
+
 ## Engine Commands
 
 | Command                                | Description                                                                                                                           |
@@ -301,7 +318,7 @@ LOAD JSONL 'myjsonl.jsonl' AS my_graph
 | `LOAD GRAPH <name>`                    | Load an existing graph                                                                                                                |
 | `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)     |
 | `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir) |
-| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory (needed for REST API queries on non-HEAD commits; CLI and SDK do this automatically)                    |
+| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory (needed for REST API queries on non-HEAD commits; CLI and SDK do this automatically)                   |
 | `LIST GRAPH`                           | List all available graphs                                                                                                             |
 | `HISTORY`                              | Show commit history (versioning)                                                                                                      |
 | `CHANGE NEW`                           | Create a new isolated change                                                                                                          |
