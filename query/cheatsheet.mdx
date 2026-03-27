@@ -55,6 +55,35 @@ CREATE (n)-[:FRIENDS_WITH]->(m)
 RETURN n.name, n.age, m.name, m.age
 ```
 
+## SET: Update Properties
+
+```jsx
+// Update a single property
+MATCH (n:Person {name: 'Alice'})
+SET n.age = 30
+
+// Update multiple properties at once
+MATCH (n:Person {name: 'Alice'})
+SET n.position = 'Developer', n.surname = 'Taylor'
+
+// Update from an expression
+MATCH (p:Product)
+SET p.discountPrice = p.price * (1 - 0.15)
+
+// Update edge property
+MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
+SET e.since = 2020
+
+// Conditional update with WHERE
+MATCH (n:Person)
+WHERE n.age < 18
+SET n.isMinor = true
+```
+
+- Always used with `MATCH`, not `CREATE`
+- Creates the property if it does not already exist
+- Use `COMMIT` to persist changes
+
 ## WHERE: Filter nodes and edges by properties
 
 To filter on node label:
