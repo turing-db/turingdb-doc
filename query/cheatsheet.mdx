@@ -74,6 +74,14 @@ SET p.discountPrice = p.price * (1 - 0.15)
 MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
 SET e.since = 2020
 
+// Set an embedding vector
+MATCH (n:Person {name: 'Alice'})
+SET n.emb = [1.2, 2.0, 0.0, 12.0]
+
+// Set an embedding vector by node ID
+MATCH (n) WHERE n = 1234
+SET n.emb = [1.2, 2.0, 0.0, 12.0]
+
 // Conditional update with WHERE
 MATCH (n:Person)
 WHERE n.age < 18
