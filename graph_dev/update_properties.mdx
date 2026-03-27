@@ -1,0 +1,182 @@
+---
+title: "Update Properties"
+sidebarTitle: "Update Properties"
+description: "Use the SET clause to update properties on existing nodes and edges in TuringDB"
+---
+
+The `SET` clause is used to update property values on existing nodes and edges. It is always used in combination with a `MATCH` clause that identifies the entities to update.
+
+<Tabs>
+  <Tab title="Cypher">
+    ```jsx
+    // Update a single property
+    MATCH (n:Person {name: 'Alice'})
+    SET n.age = 30
+
+    // Commit the changes
+    COMMIT
+    ```
+
+    ## Setting a single property
+
+    To update a property on a node or edge, use `SET` followed by a property assignment.
+
+    ```jsx
+    MATCH (n:Person {name: 'Alice'})
+    SET n.age = 30
+    ```
+
+    This sets the `age` property of the matched node to `30`. If the property does not already exist, it will be created.
+
+    ## Setting multiple properties
+
+    Multiple properties can be updated in a single `SET` clause by separating assignments with commas.
+
+    ```jsx
+    MATCH (n:Person {name: 'Alice'})
+    SET n.position = 'Developer', n.surname = 'Taylor'
+    ```
+
+    ## Setting a property from an expression
+
+    The value assigned can be any expression, including arithmetic operations on existing properties.
+
+    ```jsx
+    MATCH (p:Product)
+    SET p.discountPrice = p.price * (1 - 0.15)
+    ```
+
+    ## Setting a property from another variable
+
+    You can copy a property value from one matched entity to another.
+
+    ```jsx
+    MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
+    SET n.age = m.age
+    ```
+
+    ## Updating edge properties
+
+    Edge properties can be updated using the same syntax.
+
+    ```jsx
+    MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
+    SET e.since = 2020
+    ```
+
+    ## Updating a specific node by internal ID
+
+    Every node in TuringDB has an internal ID. You can target a specific node by comparing it directly to its ID in a `WHERE` clause. This is useful when you already know the exact node you want to update.
+
+    ```jsx
+    MATCH (n)
+    WHERE n = 1234
+    SET n.age = 42
+    ```
+
+    ## Using SET with WHERE
+
+    `SET` can be combined with `WHERE` to update properties on nodes that match a condition.
+
+    ```jsx
+    MATCH (n:Person)
+    WHERE n.age < 18
+    SET n.isMinor = true
+    ```
+
+    <Warning>
+      `CREATE ... SET` is not supported. When creating nodes or edges, use brace initialisation to set properties directly in the `CREATE` clause:
+      ```jsx
+      CREATE (:Person {name: 'Alice', age: 30})
+      ```
+    </Warning>
+  </Tab>
+  <Tab title="Python SDK">
+    ```python
+    # Update a single property
+    client.query("MATCH (n:Person {name: 'Alice'}) SET n.age = 30")
+
+    # Commit the changes
+    client.query("COMMIT")
+    ```
+
+    ## Setting a single property
+
+    To update a property on a node or edge, use `SET` followed by a property assignment.
+
+    ```python
+    client.query("MATCH (n:Person {name: 'Alice'}) SET n.age = 30")
+    ```
+
+    This sets the `age` property of the matched node to `30`. If the property does not already exist, it will be created.
+
+    ## Setting multiple properties
+
+    Multiple properties can be updated in a single `SET` clause by separating assignments with commas.
+
+    ```python
+    client.query("MATCH (n:Person {name: 'Alice'}) SET n.position = 'Developer', n.surname = 'Taylor'")
+    ```
+
+    ## Setting a property from an expression
+
+    The value assigned can be any expression, including arithmetic operations on existing properties.
+
+    ```python
+    client.query("MATCH (p:Product) SET p.discountPrice = p.price * (1 - 0.15)")
+    ```
+
+    ## Setting a property from another variable
+
+    You can copy a property value from one matched entity to another.
+
+    ```python
+    client.query("""
+    MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
+    SET n.age = m.age
+    """)
+    ```
+
+    ## Updating edge properties
+
+    Edge properties can be updated using the same syntax.
+
+    ```python
+    client.query("""
+    MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
+    SET e.since = 2020
+    """)
+    ```
+
+    ## Updating a specific node by internal ID
+
+    Every node in TuringDB has an internal ID. You can target a specific node by comparing it directly to its ID in a `WHERE` clause. This is useful when you already know the exact node you want to update.
+
+    ```python
+    client.query("""
+    MATCH (n)
+    WHERE n = 1234
+    SET n.age = 42
+    """)
+    ```
+
+    ## Using SET with WHERE
+
+    `SET` can be combined with `WHERE` to update properties on nodes that match a condition.
+
+    ```python
+    client.query("""
+    MATCH (n:Person)
+    WHERE n.age < 18
+    SET n.isMinor = true
+    """)
+    ```
+
+    <Warning>
+      `CREATE ... SET` is not supported. When creating nodes or edges, use brace initialisation to set properties directly in the `CREATE` clause:
+      ```python
+      client.query("CREATE (:Person {name: 'Alice', age: 30})")
+      ```
+    </Warning>
+  </Tab>
+</Tabs>
