@@ -1,7 +1,7 @@
 ---
 title: "Use TuringDB with Claude Code"
 sidebarTitle: "Claude Code Skill"
-description: "Install the TuringDB Claude Code skill with `npx skills add https://github.com/turing-db/turingdb-skills` so Claude can start, query, and write to TuringDB for you."
+description: "Install the TuringDB Claude Code skill so Claude can start, query, and write to TuringDB for you."
 ---
 
 TuringDB ships an official [Claude Code](https://claude.com/claude-code) skill. Once installed, Claude knows how to start a TuringDB server, load graphs, write Cypher queries, create changes and commits, run vector search, and use the Python SDK, without you having to paste documentation into every conversation.
@@ -20,12 +20,17 @@ This registers the skill with your local Claude Code installation. No other setu
 
 Inside any Claude Code session, invoke the skill by starting your prompt with `/turingdb` followed by what you want to do. For example:
 
-```
-/turingdb create a graph called movies, load ./movies.jsonl, then return the top 10 most connected nodes
+```text
+/turingdb
+  create a graph called movies,
+  load ./movies.jsonl,
+  then return the top 10 most connected nodes
 ```
 
-```
-/turingdb run a vector search on the embeddings property of my Document nodes
+```text
+/turingdb
+  run a vector search on the embeddings property
+  of my Document nodes
 ```
 
 Claude will automatically pull in the right reference material (startup, querying, writing, algorithms, introspection) based on the task.
