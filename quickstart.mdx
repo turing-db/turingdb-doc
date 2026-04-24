@@ -16,16 +16,21 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
   Then in Claude Code run `/turingdb install turingdb and create a first graph`. See the [Claude Code Skill](/claude-skill) page for more.
 </Tip>
 
+<Card title="Quick install" icon="rocket">
+  The fastest way to install TuringDB, no Python or package manager required:
+
+  ```bash
+  curl https://raw.githubusercontent.com/turing-db/turingdb/refs/heads/main/scripts/install.sh | bash
+  ```
+
+  Prefer installing inside a Python project? Follow the steps below for `uv` or `pip`.
+</Card>
+
+## Create a Python project with TuringDB
+
+The steps below walk you through setting up a Python project, installing the TuringDB SDK, and running your first graph.
+
 <Steps>
-  <Step title="Quick install" titleSize="h2">
-    The fastest way to install TuringDB, no Python or package manager required:
-
-    ```bash
-    curl https://raw.githubusercontent.com/turing-db/turingdb/refs/heads/main/scripts/install.sh | bash
-    ```
-
-    Prefer installing inside a Python project? Skip to the next steps for `uv` or `pip`.
-  </Step>
   <Step title="Create a UV project" titleSize="h2">
     Create a new directory for your project and initialize it with `uv`:
 
