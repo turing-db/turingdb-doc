@@ -1,0 +1,52 @@
+---
+title: "Use TuringDB with Claude Code"
+sidebarTitle: "Claude Code Skill"
+description: "Install the TuringDB Claude Code skill with `npx skills add https://github.com/turing-db/turingdb-skills` so Claude can start, query, and write to TuringDB for you."
+---
+
+TuringDB ships an official [Claude Code](https://claude.com/claude-code) skill. Once installed, Claude knows how to start a TuringDB server, load graphs, write Cypher queries, create changes and commits, run vector search, and use the Python SDK, without you having to paste documentation into every conversation.
+
+## Install
+
+Run this one command from your terminal:
+
+```bash
+npx skills add https://github.com/turing-db/turingdb-skills
+```
+
+This registers the skill with your local Claude Code installation. No other setup is required.
+
+## Use it
+
+Inside any Claude Code session, invoke the skill by starting your prompt with `/turingdb` followed by what you want to do. For example:
+
+```
+/turingdb create a graph called movies, load ./movies.jsonl, then return the top 10 most connected nodes
+```
+
+```
+/turingdb run a vector search on the embeddings property of my Document nodes
+```
+
+Claude will automatically pull in the right reference material (startup, querying, writing, algorithms, introspection) based on the task.
+
+## What the skill covers
+
+The skill is structured so Claude only loads the reference it needs:
+
+| Module | Covers |
+| --- | --- |
+| `startup` | Installation, starting the server, connecting, loading a graph |
+| `querying` | `MATCH`, `WHERE`, joins, built-in functions |
+| `writing` | `CREATE`, `SET`, the change and commit workflow |
+| `algorithms` | Shortest path, vector search |
+| `introspection` | Schema exploration, Python SDK reference |
+
+## Links
+
+* Skill repository: [github.com/turing-db/turingdb-skills](https://github.com/turing-db/turingdb-skills)
+* TuringDB Community: [github.com/turing-db/turingdb](https://github.com/turing-db/turingdb)
+
+<Check>
+  Once installed, try `/turingdb show me the schema of my current graph` to confirm everything is wired up.
+</Check>
