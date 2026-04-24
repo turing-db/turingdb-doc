@@ -1,7 +1,7 @@
 ---
 title: "CLI Commands"
 sidebarTitle: "Commands"
-description: "Reference for TuringDB CLI commands: start and stop."
+description: "Reference for TuringDB CLI commands: start, UI, and stop."
 ---
 
 ## Start
@@ -51,6 +51,39 @@ Load a graph at startup:
 
 ```bash
 turingdb -load mygraph
+```
+
+---
+
+## UI
+
+Launches the built-in graph visualizer.
+
+```bash
+turingdb start -ui [options]
+```
+
+Once started, open the visualizer at `http://127.0.0.1:8080` (or the port set via `-ui-port`).
+
+### Options
+
+| Flag | Description | Default |
+|---|---|---|
+| `-ui` | Launch the built-in visualizer | off |
+| `-ui-port <port>` | Visualizer port | `8080` |
+
+### Examples
+
+Start TuringDB with the UI:
+
+```bash
+turingdb -ui
+```
+
+Start TuringDB as a daemon with the UI on a custom port:
+
+```bash
+turingdb -demon -ui -ui-port 9090
 ```
 
 ---
