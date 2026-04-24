@@ -8,14 +8,21 @@ description: "Quickly get started with the TuringDB PythonSDK"
 
 This guide walks you through the essentials of getting started with the `turingdb` Python SDK: installing the SDK, creating your first graph, and running Cypher queries.
 
-## 1. Install the SDK
+## 1. Create a UV project
 
-### Option A: Using `uv` (modern package manager)
+Create a new directory for your project and initialize it with `uv`:
 
 ```bash
 mkdir my_app
 cd my_app
 uv init
+```
+
+## 2. Install the SDK
+
+### Option A: Using `uv` (modern package manager)
+
+```bash
 uv add turingdb
 ```
 
@@ -27,7 +34,7 @@ source .venv/bin/activate
 pip install turingdb
 ```
 
-## 2. Create a Graph:
+## 3. Create a Graph:
 
 Create a graph and set active graph:
 
@@ -39,7 +46,7 @@ client.create_graph("my_first_graph")
 client.set_graph("my_first_graph")
 ```
 
-## 3. Create Nodes & Edges
+## 4. Create Nodes & Edges
 
 First of all, create a new change on the graph
 
@@ -76,7 +83,7 @@ client.checkout()
 
 > You can create as many commits as you want before submitting a change
 
-## 4. Query the Graph
+## 5. Query the Graph
 
 Retrieve data using Cypher `MATCH` queries.
 
@@ -96,7 +103,7 @@ print(df)
 df = client.query("MATCH (n{name~='alice'}) RETURN n")
 ```
 
-## 5. Version Control & Snapshots
+## 6. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
 
