@@ -76,11 +76,11 @@ SET e.since = 2020
 
 // Set an embedding vector
 MATCH (n:Person {name: 'Alice'})
-SET n.emb = [1.2, 2.0, 0.0, 12.0]
+SET n.emb = (1.2, 2.0, 0.0, 12.0)
 
 // Set an embedding vector by node ID
 MATCH (n) WHERE n = 1234
-SET n.emb = [1.2, 2.0, 0.0, 12.0]
+SET n.emb = (1.2, 2.0, 0.0, 12.0)
 
 // Conditional update with WHERE
 MATCH (n:Person)
@@ -271,7 +271,7 @@ MATCH (n) WHERE n.name = 'Alice' RETURN n
 | Integer   | `age=30`                 |
 | Boolean   | `flag=true`              |
 | Double    | `score=3.14`             |
-| Embedding | `emb=[1.2, 2.0, 0.0]`   |
+| Embedding | `emb=(1.2, 2.0, 0.0)`   |
 
 ## RETURN Clause
 

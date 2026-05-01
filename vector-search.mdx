@@ -79,7 +79,7 @@ LOAD VECTOR FROM "<filepath>" IN <index_name>
 
 **Syntax:**
 ```
-VECTOR SEARCH IN <index_name> FOR <k> [<vector>] YIELD <variable>
+VECTOR SEARCH IN <index_name> FOR <k> (<vector>) YIELD <variable>
 ```
 
 | Parameter      | Description                                                |
@@ -94,14 +94,14 @@ VECTOR SEARCH IN <index_name> FOR <k> [<vector>] YIELD <variable>
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    VECTOR SEARCH IN doc_embeddings FOR 5 [0.12, 0.45, 0.78, 0.33] YIELD ids
+    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids
     RETURN ids
     ```
   </Tab>
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    VECTOR SEARCH IN doc_embeddings FOR 5 [0.12, 0.45, 0.78, 0.33] YIELD ids
+    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids
     RETURN ids
     """)
     print(df)
@@ -116,7 +116,7 @@ This is where it gets interesting. Chain `VECTOR SEARCH` with a `MATCH` clause t
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    VECTOR SEARCH IN doc_embeddings FOR 10 [0.12, 0.45, 0.78, 0.33] YIELD ids
+    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids
     MATCH (d:Document) WHERE d.id = ids
     RETURN d.title, d.summary
     ```
@@ -124,7 +124,7 @@ This is where it gets interesting. Chain `VECTOR SEARCH` with a `MATCH` clause t
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    VECTOR SEARCH IN doc_embeddings FOR 10 [0.12, 0.45, 0.78, 0.33] YIELD ids
+    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids
     MATCH (d:Document) WHERE d.id = ids
     RETURN d.title, d.summary
     """)
@@ -163,7 +163,7 @@ This removes the index and frees the associated resources.
     LOAD VECTOR FROM "product_embeddings.csv" IN product_vectors
 
     // 3. Find the 10 most similar products to a query embedding
-    VECTOR SEARCH IN product_vectors FOR 10 [0.15, 0.82, 0.44, 0.91] YIELD ids
+    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids
     MATCH (p:Product) WHERE p.id = ids
     RETURN p.name, p.price, p.category
 
@@ -188,7 +188,7 @@ This removes the index and frees the associated resources.
 
     # 3. Find the 10 most similar products to a query embedding
     df = client.query("""
-    VECTOR SEARCH IN product_vectors FOR 10 [0.15, 0.82, 0.44, 0.91] YIELD ids
+    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids
     MATCH (p:Product) WHERE p.id = ids
     RETURN p.name, p.price, p.category
     """)
