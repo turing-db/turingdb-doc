@@ -22,7 +22,7 @@ turing-parquet \
     -graph mygraph
 ```
 
-This writes the graph `mygraph` under `./turingdb.out/graphs/`. Move that subdirectory into your TuringDB working directory (default `$HOME/.turing/graphs/`) and load it with `load mygraph`.
+This writes the graph `mygraph` under `./turingdb.out/graphs/`. Move that subdirectory into your TuringDB working directory (default `$HOME/.turing/graphs/`) and load it with `load graph mygraph`.
 
 ## Expected file format
 
@@ -87,7 +87,7 @@ The example below uses the [OptimusKG](https://optimuskg.ai/) biomedical knowled
     <Tabs>
       <Tab title="Cypher">
         ```jsx
-        load optimuskg
+        load graph optimuskg
 
         cd optimuskg
 
