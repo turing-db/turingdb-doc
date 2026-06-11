@@ -3,9 +3,16 @@
   "theme": "mint",
   "name": "TuringDB",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#18181B",
+    "light": "#E4E4E7",
+    "dark": "#09090B"
+  },
+  "fonts": {
+    "heading": {
+      "family": "Goethe",
+      "source": "/fonts/Goethe-OLW3.woff2",
+      "format": "woff2"
+    }
   },
   "favicon": "/favicon.png",
   "navigation": {
