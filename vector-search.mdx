@@ -203,3 +203,49 @@ This removes the index and frees the associated resources.
   </Tab>
 </Tabs>
 
+## Embeddings as node properties
+
+The vector index above is a standalone, root-level structure keyed by numeric IDs. Separately, you can store an embedding directly as a **node or edge property** (type `Embedding`) and compare embeddings inline with the `cosine_similarity` and `euclidean_distance` functions — no index required.
+
+Embedding literals use **parentheses** `(...)`, not square brackets (which are list literals):
+
+```jsx
+// Set an embedding property (inside a change)
+MATCH (n:Document {name: 'intro'}) SET n.emb = (0.12, 0.45, 0.78, 0.33)
+
+// Compare embeddings inline
+MATCH (n:Document) RETURN n.name, cosine_similarity(n.emb, (0.12, 0.45, 0.78, 0.33))
+MATCH (n:Document) RETURN n.name, euclidean_distance(n.emb, (0.12, 0.45, 0.78, 0.33))
+```
+
+### Bulk-loading embeddings from Parquet — `LOAD EMBEDDING FROM`
+
+To attach embeddings to **existing** nodes in bulk, load them from a Parquet file. This is a write, so run it inside a change.
+
+**Syntax:**
+```
+LOAD EMBEDDING FROM "<filepath>" AS <property_name>
+```
+
+The Parquet file (relative to the TuringDB `data` directory) must have exactly two columns:
+
+| Column      | Type                                   | Description                                              |
+| ----------- | -------------------------------------- | -------------------------------------------------------- |
+| `node_id`   | `INT64`                                | Internal TuringDB node ID to attach the embedding to     |
+| `embedding` | `FIXED_LEN_BYTE_ARRAY` (`dim × 4` bytes) | Little-endian float32 vector; dimension inferred from width |
+
+```python
+change = client.new_change()
+client.checkout(change=change)
+client.query('LOAD EMBEDDING FROM "embeddings.parquet" AS emb')
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+client.checkout()
+```
+
+The named property is created with type `Embedding`. The load **fails** if any `node_id` is missing from the graph, or if the property name already exists with a non-embedding type.
+
+<Note>
+  When importing a graph from JSONL, you can mark embedding properties at load time instead — see [`LOAD JSONL ... WITH EMBEDDINGS`](/import_data/jsonl#loading-embedding-properties).
+</Note>
+
