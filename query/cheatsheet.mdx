@@ -301,7 +301,7 @@ MATCH (n) RETURN n.val + n.tax
 Files have to be available in `graphs` subdirectory of `turing-dir`.
 
 ```jsx
-LOAD graph_name
+LOAD GRAPH graph_name
 ```
 
 ### Load external data into TuringDB graph
@@ -320,32 +320,85 @@ LOAD JSONL 'myjsonl.jsonl' AS my_graph
 
 | Query                     | Description                         |
 | ------------------------- | ----------------------------------- |
-| `CALL db.labels()`        | All node labels                     |
-| `CALL db.propertyTypes()` | All node/edge property keys & types |
-| `CALL db.edgeTypes()`     | All edge types                      |
-| `CALL db.history()`       | Commit history                      |
+| `CALL db.labels()`         | All node labels                            |
+| `CALL db.propertyTypes()`  | All node/edge property keys & types        |
+| `CALL db.edgeTypes()`      | All edge types                             |
+| `CALL db.history()`        | Commit history                             |
+| `CALL db.describeCommit('<hash>')` | Counts for a single commit         |
+| `CALL db.procedures()`     | List available procedures                  |
+| `CALL db.showIndexes()`    | List property indexes                      |
+
+Procedure outputs can be `YIELD`ed and chained: `CALL db.labels() YIELD label MATCH (n) WHERE n.name = label RETURN n`.
+
+## DELETE
+
+```jsx
+// Delete a node (must have no edges)
+MATCH (n:Person {name: 'Alice'}) DELETE n
+
+// Delete a node and all its edges
+MATCH (n:Person {name: 'Alice'}) DETACH DELETE n
+
+// Delete an edge
+MATCH (n)-[e:KNOWS]->(m) DELETE e
+```
+
+## DISTINCT, OPTIONAL MATCH, variable-length paths
+
+```jsx
+// De-duplicate rows
+MATCH (n:Person) RETURN DISTINCT n.city
+
+// Keep left side even with no match
+OPTIONAL MATCH (a:Person)-[:KNOWS]->(b) RETURN a, b
+
+// Variable-length paths (postfix quantifiers, not Neo4j's -[*1..3]-)
+MATCH (a:Person)-[e]->+(b:Person) RETURN a, b      // one or more hops
+MATCH (a:Person)-[e]->*(b:Person) RETURN a, b      // zero or more hops
+MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
+```
+
+## String matching
+
+```jsx
+MATCH (n) WHERE n.country IN ['UK', 'France'] RETURN n.name
+MATCH (n) WHERE n.name STARTS WITH 'Al' RETURN n.name
+MATCH (n) WHERE n.name ENDS WITH 'ice' RETURN n.name
+MATCH (n) WHERE n.bio CONTAINS 'engineer' RETURN n.name
+```
 
 ## Graph algorithms
 
 | Function                                   | Description                                              |
 | ------------------------------------------ | -------------------------------------------------------- |
-| `shortestPath(n, m, distance, dist, path)` | Shortest path between nodes using the Dijkstra processor |
+| `shortestPath(n, m, distance, dist, path)` | Shortest path between nodes using the Dijkstra processor (the weight is a **bare** property name, not quoted) |
 
 ## Functions
 
+Scalar functions work in both `RETURN` and `WHERE`; aggregates are `RETURN`-only.
+
 | Function          | Description                                                        |
 | ----------------- | ------------------------------------------------------------------ |
-| `labels(n)`       | Returns the label of node `n` as a string (RETURN only, not WHERE) |
-| `toInteger(expr)` | Parses a string as an integer                                       |
-| `toFloat(expr)`   | Parses a string as a float                                          |
+| `labels(n)`       | Node label as a string                                             |
+| `type(e)` / `edgeType(e)` | Edge type as a string (aliases)                            |
+| `keys(n)`         | Property keys of a node or edge                                    |
+| `toInteger(expr)` | Parses a string as an integer                                      |
+| `toFloat(expr)`   | Parses a string as a float                                         |
+| `toBoolean(expr)` | Parses a string as a boolean                                       |
+| `cosine_similarity(a, b)` | Cosine similarity of two embeddings                        |
+| `euclidean_distance(a, b)` | Euclidean distance of two embeddings                      |
+| `count(*)`, `min(e)`, `max(e)`, `avg(e)` | Aggregates (RETURN only)                     |
 
 ```jsx
-// Label introspection
-MATCH (n) RETURN labels(n), n.name
+// Introspection
+MATCH (n)-[e]->(m) RETURN labels(n), type(e), keys(n)
 
 // Type conversion
 MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name
 MATCH (n) RETURN n.price * toFloat("1.07")
+
+// Aggregates
+MATCH (n:Person) RETURN count(*), avg(n.age)
 ```
 
 ## Engine Commands
@@ -354,8 +407,9 @@ MATCH (n) RETURN n.price * toFloat("1.07")
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `CREATE GRAPH <name>`                  | Create a new named graph                                                                                                              |
 | `LOAD GRAPH <name>`                    | Load an existing graph                                                                                                                |
-| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)     |
-| `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir) |
+| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)      |
+| `LOAD JSONL 'mygraph.jsonl' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`-turing-dir`, `data` subdir) |
+| `COMMIT`                               | Persist intermediate state within a change (needed between separate node/edge create steps)                                          |
 | `LOAD COMMIT '<hash>'`                 | Load a past commit into memory (needed for REST API queries on non-HEAD commits; CLI and SDK do this automatically)                   |
 | `LIST GRAPH`                           | List all available graphs                                                                                                             |
 | `HISTORY`                              | Show commit history (versioning)                                                                                                      |
@@ -363,6 +417,9 @@ MATCH (n) RETURN n.price * toFloat("1.07")
 | `CHANGE SUBMIT`                        | Merge current change into main                                                                                                        |
 | `CHANGE DELETE`                        | Delete current change                                                                                                                 |
 | `CHANGE LIST`                          | List active uncommitted changes                                                                                                       |
+| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index                                                                 |
+| `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor vector search                                                                        |
+| `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes                                                                            |
 
 ## Useful Patterns
 

@@ -459,35 +459,55 @@ AND r.value_usd > 0
 RETURN r.value_usd / r.value_satoshi * 100000000.0
 ```
 
-# Type Conversion & Introspection Functions
+# String Matching
 
-TuringDB supports a set of built-in functions for type conversion and node introspection.
-
-## `labels()`
-
-Returns the label of a node as a string. Can only be used in `RETURN` — not in `WHERE`.
+Beyond equality, `WHERE` supports membership and substring predicates:
 
 ```jsx
-MATCH (n) RETURN labels(n), n.name
+// Membership
+MATCH (n) WHERE n.country IN ['UK', 'France', 'Spain'] RETURN n.name
+
+// Prefix / suffix / substring
+MATCH (n) WHERE n.name STARTS WITH 'Al' RETURN n.name
+MATCH (n) WHERE n.name ENDS WITH 'ice' RETURN n.name
+MATCH (n) WHERE n.bio CONTAINS 'engineer' RETURN n.name
 ```
 
-## `toInteger()`
+# Built-in Functions
 
-Parses a string literal as an integer. Useful for type-safe comparisons and arithmetic.
+TuringDB supports built-in functions for type conversion, introspection, and embedding comparison. These **scalar** functions can be used in both `RETURN` and `WHERE`.
+
+## Introspection: `labels()`, `type()` / `edgeType()`, `keys()`
 
 ```jsx
-MATCH (n)
-WHERE n.year > toInteger("2020")
-RETURN n.name, n.year
+MATCH (n)-[e]->(m) RETURN labels(n), type(e), labels(m)   // type(e) and edgeType(e) are aliases
+MATCH (n) RETURN keys(n)                                   // property keys of a node or edge
 ```
 
-## `toFloat()`
-
-Parses a string literal as a float. Useful for arithmetic on string-encoded numeric properties.
+## Type conversion: `toInteger()`, `toFloat()`, `toBoolean()`
 
 ```jsx
-MATCH (n)
-RETURN n.name, n.price * toFloat("1.07")
+MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name, n.year
+MATCH (n) RETURN n.name, n.price * toFloat("1.07")
+MATCH (n) RETURN toBoolean("true")
+```
+
+## Embedding comparison: `cosine_similarity()`, `euclidean_distance()`
+
+Compare two embeddings (embedding literals use parentheses — see [Vector Search](/vector-search)):
+
+```jsx
+MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
+MATCH (n:Document) RETURN n.title, euclidean_distance(n.emb, (0.4, 0.3, 0.8, 0.1))
+```
+
+## Aggregates: `count()`, `min()`, `max()`, `avg()`
+
+Aggregate functions can only be used in `RETURN` — not in `WHERE`, `ORDER BY`, `SKIP`, or `LIMIT`.
+
+```jsx
+MATCH (n:Person) RETURN count(*)
+MATCH (n:Person) RETURN min(n.age), max(n.age), avg(n.age)
 ```
 
 # Procedures
@@ -496,12 +516,22 @@ On top of supporting queries which return or alter information _in the graph_, T
 
 These queries follow the `CALL` syntax, and the following variants are supported:
 
-1. `CALL db.propertyTypes ()` - returns a column of all the different node and edge properties and their types in the database
-2. `CALL db.labels ()` - returns a column of all the different node labels
-3. `CALL db.edgeTypes()` - returns a column of all the different edge types (edge equivalent of node labels)
-4. `CALL db.history ()` - returns a dataframe containing commit history
+1. `CALL db.propertyTypes()` - all node and edge property keys and their types
+2. `CALL db.labels()` - all node labels
+3. `CALL db.edgeTypes()` - all edge types (edge equivalent of node labels)
+4. `CALL db.history()` - the commit history (commit, nodeCount, edgeCount, partCount)
+5. `CALL db.describeCommit('<hash>')` - node/edge/part counts for a single commit
+6. `CALL db.procedures()` - list the available procedures and their signatures
+7. `CALL db.showIndexes()` - list property indexes and their sizes
 
 These procedures are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
+
+A procedure's output columns can be `YIELD`ed and fed into a following `MATCH`/`WHERE`:
+
+```jsx
+CALL db.propertyTypes() YIELD propertyType, valueType RETURN *
+CALL db.labels() YIELD label, id MATCH (n) WHERE n.name = label RETURN n, label
+```
 
 # Commands
 
@@ -510,15 +540,18 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 | Command                                | Explanation                                                                                                                                                                            |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CREATE GRAPH <graph name>`            | Create a graph with the specified name                                                                                                                                                 |
-| `LOAD GRAPH <graph name>`              | Load the specified TuringDB graph. Requires the graph files to be accessible in TuringDB directory (`--turing-dir`, `graphs` subdir)                                                   |
-| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)                                                      |
-| `LOAD JSONL 'mygraph.gml' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`--turing-dir`, `data` subdir)                                                  |
+| `LOAD GRAPH <graph name>`              | Load the specified TuringDB graph. Requires the graph files to be accessible in TuringDB directory (`-turing-dir`, `graphs` subdir)                                                    |
+| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                       |
+| `LOAD JSONL 'mygraph.jsonl' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                 |
+| `COMMIT`                               | Persist intermediate state within a change (needed between separate node and edge create steps)                                                                                        |
 | `CHANGE NEW`                           | Creates a new change, returning a column with the ID of the created change                                                                                                             |
 | `CHANGE SUBMIT`                        | When checked out on a specific change, submits all changes made to the “master branch”                                                                                                 |
 | `CHANGE DELETE`                        | Deletes the currently checked out change                                                                                                                                               |
 | `CHANGE LIST`                          | Lists the currently active (uncommitted) changes                                                                                                                                       |
 | `LOAD COMMIT '<hash>'`                 | Load a past commit into memory for querying. Required when sending queries directly to the REST API for non-HEAD commits. The CLI `checkout` and Python SDK handle this automatically. |
 | `LIST GRAPH`                           | Lists the available graphs                                                                                                                                                             |
+| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index (see [Vector Search](/vector-search))                                                                            |
+| `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor search over a vector index                                                                                                            |
 
 # Roadmap
 
