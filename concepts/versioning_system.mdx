@@ -4,7 +4,7 @@ sidebarTitle: "Versioning System"
 description: "Git-like versioning in your graph database"
 ---
 
-TuringDB is a graph database that stores connected data (nodes and relationships) with **built-in version control**. The system combines graph database capabilities with **time travel**, enabling isolated workspaces, full change tracking, and safe collaboration—without merge conflicts or stale state worries.
+TuringDB is a graph database that stores connected data (nodes and relationships) with **built-in version control**. The system combines graph database capabilities with **time travel**, enabling isolated workspaces, full change tracking, and safe collaboration. When you submit a Change, TuringDB checks it against the current state of `main` and rejects conflicting submissions, so you never silently overwrite someone else's work.
 
 ```mermaid
 gitGraph
@@ -74,10 +74,10 @@ A change can contain any number of commits. Each commit captures the exact trans
 
 ```graphql
 > change submit
-> history
+> CALL db.history()
 ```
 
-This submits your changes to the main branch and merges all its commits. You can then inspect your updated graph history.
+This submits your changes to the main branch and merges all its commits. You can then inspect your updated graph history. (`CALL db.history()` is the way to view history — there is no bare `history` command.)
 
 ## Practical Example: Protein Interaction Study
 

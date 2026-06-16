@@ -39,9 +39,13 @@ TuringDB supports the full ACID model:
 | **Atomicity**   | All-or-nothing: if a transaction fails, nothing is applied             |
 | **Consistency** | Every transaction transforms the graph from one valid state to another |
 | **Isolation**   | Each transaction operates as if it’s the only one                      |
-| **Durability**  | Once committed, data survives crashes and restarts                     |
+| **Durability**  | Committed data is preserved on disk once the graph is persisted (see note) |
 
 _Based on the definition of Jim Gray & Andreas Reuter_ ([Gray & Reuter, 1993](https://archive.org/details/transactionproce0000gray))
+
+<Note>
+  TuringDB is an in-memory engine. Commits are durable once the graph is written to the TuringDB directory on disk (graphs loaded from / saved to `-turing-dir`); running with `-in-memory` keeps everything in RAM only. There is no write-ahead log, so durability follows the persistence model rather than a per-commit fsync.
+</Note>
 
 ## Industry Comparisons: Neo4J and MemGraph
 
@@ -90,7 +94,7 @@ Every graph in TuringDB is stored as a **sequence of immutable commits**, much l
 
 > TuringDB doesn’t need to acquire write locks or maintain transaction logs for reads. SI is built-in, not bolted on.
 
-See also: [DataParts](/dataparts) and [Versioning](/commits)
+See also: [DataParts](/concepts/dataparts) and [Versioning](/concepts/versioning_system)
 
 ## Why It Matters
 

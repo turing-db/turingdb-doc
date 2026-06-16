@@ -51,6 +51,7 @@
             "group": "Importing data",
             "pages": [
               "import_data/jsonl",
+              "import_data/csv",
               "import_data/neo4j",
               "import_data/gml",
               "import_data/parquet"
@@ -60,10 +61,12 @@
             "group": "Graph Development",
             "pages": [
               "graph_dev/create_graph",
+              "graph_dev/load_graph",
               "graph_dev/load_external",
               "graph_dev/create_change",
               "graph_dev/list_changes",
               "graph_dev/create_nodes_edges",
+              "graph_dev/update_properties",
               "graph_dev/submit_change",
               "graph_dev/time_travelling",
               "graph_dev/graph_examples"
@@ -90,6 +93,7 @@
           {
             "group": "Python SDK",
             "pages": [
+              "pythonsdk/get_started",
               "pythonsdk/reference"
             ]
           },

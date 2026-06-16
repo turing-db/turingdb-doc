@@ -80,7 +80,7 @@ try:
     print(f"Loaded graph with {len(graph.nodes())} nodes and {len(graph.edges())} edges")
 
     # Create a new change
-    change = client.query("CHANGE NEW")["Change ID"][0]
+    change = client.new_change()
     print(f"Created change: {change}")
 
     # Checkout into the change

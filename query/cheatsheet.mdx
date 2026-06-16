@@ -420,6 +420,33 @@ MATCH (n:Person) RETURN count(*), avg(n.age)
 | `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index                                                                 |
 | `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor vector search                                                                        |
 | `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes                                                                            |
+| `CREATE INDEX <name> FOR (n) ON n.prop` / `FOR [e] ON e.prop` | Create a property index (write; commit to take effect)                                          |
+| `DROP INDEX <name>`                    | Drop a property or vector index                                                                                                      |
+| `MERGE_DATAPARTS`                      | Compact the current graph's DataParts into one                                                                                      |
+| `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures                                                     |
+| `LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP\|FAIL] AS row` | Stream CSV rows (see [CSV import](/import_data/csv))                                                       |
+
+## UNWIND
+
+```jsx
+// Expand a literal list into rows (literal lists only)
+UNWIND [1, 2, 3] AS x RETURN x
+
+// Return a list literal directly
+RETURN [1, 2, 3] AS nums
+```
+
+## Property indexes
+
+```jsx
+// Indexes are writes — create inside a change, then commit
+CHANGE NEW
+CREATE INDEX age_index FOR (n) ON n.age
+CHANGE SUBMIT
+MATCH (n) WHERE n.age = 30 RETURN n   // optimizer uses the index
+
+DROP INDEX age_index                  // remove
+```
 
 ## Useful Patterns
 

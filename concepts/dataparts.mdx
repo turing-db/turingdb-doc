@@ -3,15 +3,21 @@ title: "The DataPart System"
 description: "DataParts are the units that allows us to be columnar and have version control"
 ---
 
-## Intelligent DataPart Merging
+## Merging DataParts
 
-We have developed policies and algorithms to **intelligently merge DataParts** in the background. The goal is to:
+Writes accumulate as multiple immutable DataParts, which keeps ingestion fast. To consolidate them into a single compact part for read-optimized scans, run the `MERGE_DATAPARTS` command against the current graph:
 
-- Automatically compact multiple DataParts into fewer ones
-- Detect hot paths and frequently accessed subgraphs
-- Optimize for query throughput and storage locality
+```jsx
+MERGE_DATAPARTS
+```
 
-Commits **start as multiple data parts for fast ingestion** and **converge toward compact forms** for analytical speed, combining the best of both worlds.
+This merges **all** DataParts of the current head commit into one, dropping tombstoned (deleted) entities along the way. It runs synchronously when you invoke it — today it is a manual maintenance operation, not an automatic background process.
+
+<Note>
+  Automatic, policy-driven background merging — compacting hot subgraphs and converging toward compact forms without an explicit command — is on the roadmap. For now, trigger compaction explicitly with `MERGE_DATAPARTS`.
+</Note>
+
+Commits **start as multiple data parts for fast ingestion** and, once merged, **converge toward compact forms** for analytical speed.
 
 ## Summary
 

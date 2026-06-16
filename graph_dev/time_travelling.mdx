@@ -16,7 +16,7 @@ description: "You can time travel in you graph databases and see the commit hist
     // Query graph at specific commit
     MATCH (n:Person)-[e:KNOWS]->(m:Person)
     WHERE n.name = 'Jane'
-    AND n.name = 'John'
+    AND m.name = 'John'
     RETURN n, e, m
     ```
   </Tab>
@@ -32,7 +32,7 @@ description: "You can time travel in you graph databases and see the commit hist
     client.query("""
     MATCH (n:Person)-[e:KNOWS]->(m:Person)
     WHERE n.name = 'Jane'
-    AND n.name = 'John'
+    AND m.name = 'John'
     RETURN n, e, m
     """)
     ```

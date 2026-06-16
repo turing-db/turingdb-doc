@@ -1,0 +1,56 @@
+---
+title: "Load a CSV file"
+sidebarTitle: "CSV"
+description: "Stream rows from a CSV file in a query with LOAD CSV"
+---
+
+`LOAD CSV` streams the rows of a CSV file into a query. Unlike `LOAD JSONL` / `LOAD GML` (which build a whole graph from a file), `LOAD CSV` is a **reading statement** that yields one row at a time, bound to a variable you can reference in `RETURN`, `MATCH`, or `CREATE`.
+
+The file must live in the `data` subdirectory of the TuringDB working directory (set by `-turing-dir`, default `$HOME/.turing`).
+
+## Syntax
+
+```
+LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP | ON ERROR FAIL] AS <row>
+```
+
+| Clause | Description |
+| ------ | ----------- |
+| `WITH HEADERS` | Treat the first line as column names; access columns as `row.<name>`. Without it, access columns by **0-based index** `row[0]`, `row[1]`, … |
+| `ON ERROR SKIP` | Skip malformed rows |
+| `ON ERROR FAIL` | Abort on the first malformed row (the default) |
+| `AS <row>` | Variable bound to each row |
+
+All values come back as **strings** — wrap them in `toInteger(...)` / `toFloat(...)` if you need numbers.
+
+## With headers
+
+```jsx
+LOAD CSV "people.csv" WITH HEADERS AS row
+RETURN row.name AS name, row.age AS age, row.city AS city
+```
+
+## Without headers (index access)
+
+```jsx
+LOAD CSV "people.csv" AS row
+RETURN row[0] AS name, row[1] AS age
+LIMIT 5
+```
+
+## Building a graph from CSV
+
+Because `LOAD CSV` yields rows, you can drive `CREATE` from it inside a change:
+
+```python
+change = client.new_change()
+client.checkout(change=change)
+client.query('LOAD CSV "people.csv" WITH HEADERS AS row CREATE (:Person {name: row.name, age: toInteger(row.age)})')
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+client.checkout()
+```
+
+<Note>
+  `LOAD CSV` followed by `MATCH` in the same read statement is not yet supported. Use `LOAD CSV … CREATE …` (as above) or a standalone `LOAD CSV … RETURN …`.
+</Note>

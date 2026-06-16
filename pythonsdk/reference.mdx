@@ -192,6 +192,29 @@ Probe connectivity (`try_reach`) or warm the connection with a lightweight query
 
 Return the server-side execution time and the full round-trip time (in milliseconds) of the last query.
 
+## S3 / Data Transfer
+
+These helpers move graph data between local paths, S3, and the TuringDB server. They are only available on the default `json` backend.
+
+### `s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)`
+
+Connect an S3 client for transfers. Credentials are optional — if omitted, the machine's configured AWS credentials are used.
+
+```python
+client.s3_connect("my-bucket", region="eu-west-1")
+```
+
+### `transfer(src, dst)`
+
+Transfer data between a local path, an `s3://…` URI, or a `turingdb://…` path. The direction and mechanism are inferred from the URI schemes.
+
+```python
+client.transfer("s3://graphs/data.jsonl", "turingdb://data.jsonl")  # S3 → server
+client.transfer("./local.gml", "turingdb://local.gml")               # local → server (via scratch)
+```
+
+The equivalent engine commands (issued directly via `query`) are `S3 CONNECT "<key>" "<secret>" "<region>"`, `S3 PULL "<s3-url>" "<dst>"`, and `S3 PUSH "<src>" "<s3-url>"`.
+
 ## Response Format
 
 All queries return a `pandas.DataFrame`, typed according to schema:
