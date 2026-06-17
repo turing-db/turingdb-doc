@@ -459,29 +459,14 @@ AND r.value_usd > 0
 RETURN r.value_usd / r.value_satoshi * 100000000.0
 ```
 
-# String Matching
-
-Beyond equality, `WHERE` supports membership and substring predicates:
-
-```jsx
-// Membership
-MATCH (n) WHERE n.country IN ['UK', 'France', 'Spain'] RETURN n.name
-
-// Prefix / suffix / substring
-MATCH (n) WHERE n.name STARTS WITH 'Al' RETURN n.name
-MATCH (n) WHERE n.name ENDS WITH 'ice' RETURN n.name
-MATCH (n) WHERE n.bio CONTAINS 'engineer' RETURN n.name
-```
-
 # Built-in Functions
 
-TuringDB supports built-in functions for type conversion, introspection, and embedding comparison. These **scalar** functions can be used in both `RETURN` and `WHERE`.
+TuringDB supports built-in functions for type conversion, introspection, and embedding comparison.
 
-## Introspection: `labels()`, `type()` / `edgeType()`, `keys()`
+## Introspection: `labels()`, `edgeType()`
 
 ```jsx
-MATCH (n)-[e]->(m) RETURN labels(n), type(e), labels(m)   // type(e) and edgeType(e) are aliases
-MATCH (n) RETURN keys(n)                                   // property keys of a node or edge
+MATCH (n)-[e]->(m) RETURN labels(n), edgeType(e), labels(m)
 ```
 
 ## Type conversion: `toInteger()`, `toFloat()`, `toBoolean()`
@@ -501,13 +486,11 @@ MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)
 MATCH (n:Document) RETURN n.title, euclidean_distance(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
-## Aggregates: `count()`, `min()`, `max()`, `avg()`
-
-Aggregate functions can only be used in `RETURN` — not in `WHERE`, `ORDER BY`, `SKIP`, or `LIMIT`.
+## Aggregation: `count()`
 
 ```jsx
 MATCH (n:Person) RETURN count(*)
-MATCH (n:Person) RETURN min(n.age), max(n.age), avg(n.age)
+MATCH (n:Person) RETURN count(n.age)
 ```
 
 # Procedures
@@ -543,6 +526,7 @@ Outside of CYPHER, there are a number of commands which you can use to interact 
 | `LOAD GRAPH <graph name>`              | Load the specified TuringDB graph. Requires the graph files to be accessible in TuringDB directory (`-turing-dir`, `graphs` subdir)                                                    |
 | `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                       |
 | `LOAD JSONL 'mygraph.jsonl' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                 |
+| `LOAD JSONL 'mygraph.jsonl' AS my_graph WITH EMBEDDINGS [{"emb", 384}]` | Load JSONL and mark array properties as embeddings (see [JSONL import](/import_data/jsonl#loading-embedding-properties))                |
 | `COMMIT`                               | Persist intermediate state within a change (needed between separate node and edge create steps)                                                                                        |
 | `CHANGE NEW`                           | Creates a new change, returning a column with the ID of the created change                                                                                                             |
 | `CHANGE SUBMIT`                        | When checked out on a specific change, submits all changes made to the “master branch”                                                                                                 |

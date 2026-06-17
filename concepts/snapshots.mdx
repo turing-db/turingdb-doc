@@ -39,12 +39,14 @@ TuringDB supports the full ACID model:
 | **Atomicity**   | All-or-nothing: if a transaction fails, nothing is applied             |
 | **Consistency** | Every transaction transforms the graph from one valid state to another |
 | **Isolation**   | Each transaction operates as if it’s the only one                      |
-| **Durability**  | Committed data is preserved on disk once the graph is persisted (see note) |
+| **Durability**  | Submitting a change writes its new commit to disk, so submitted history survives a restart (see note) |
 
 _Based on the definition of Jim Gray & Andreas Reuter_ ([Gray & Reuter, 1993](https://archive.org/details/transactionproce0000gray))
 
 <Note>
-  TuringDB is an in-memory engine. Commits are durable once the graph is written to the TuringDB directory on disk (graphs loaded from / saved to `-turing-dir`); running with `-in-memory` keeps everything in RAM only. There is no write-ahead log, so durability follows the persistence model rather than a per-commit fsync.
+  **How persistence works.** TuringDB is an in-memory engine with on-disk persistence. By default, `CHANGE SUBMIT` synchronously writes the **new commit and its constituent dataparts** to the on-disk graph in the TuringDB directory (`-turing-dir`, default `~/.turing`). DataParts are immutable, so previously-persisted ones are written once and shared — a submit appends only what's new, it does not rewrite the whole graph. Once a change is submitted, its data and history survive a restart. Work *inside* a change — intermediate `COMMIT`s and any un-submitted state — lives only in RAM until you submit.
+
+  Running the server with `-in-memory` turns disk persistence off entirely — nothing is written.
 </Note>
 
 ## Industry Comparisons: Neo4J and MemGraph

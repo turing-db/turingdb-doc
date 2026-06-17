@@ -89,15 +89,6 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 print(df)
 ```
 
-### Substring search
-
-```python
-# Find nodes whose name contains 'alice'
-df = client.query("MATCH (n) WHERE n.name CONTAINS 'alice' RETURN n")
-```
-
-TuringDB also supports `STARTS WITH` and `ENDS WITH` for prefix/suffix matching.
-
 ## 5. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.

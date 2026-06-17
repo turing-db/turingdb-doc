@@ -40,11 +40,13 @@ print(client.list_available_graphs())
 
 `TuringDB(...)` is a facade over three interchangeable backends, chosen with the `type` argument (or the `TURINGDB_TYPE` environment variable, default `"json"`):
 
-| `type` | Transport | Constructor arguments |
-| ------ | --------- | --------------------- |
-| `"json"` *(default)* | HTTP / REST against a running daemon | `host="http://localhost:6666"` |
-| `"native"` | Native binary protocol (faster; requires the compiled extension) | `host="localhost"`, `port=6666` |
+| `type` | Encoding / transport | Constructor arguments |
+| ------ | -------------------- | --------------------- |
+| `"json"` *(default)* | JSON payloads over HTTP against a running daemon | `host="http://localhost:6666"` |
+| `"native"` | Binary (Turing proto) payloads over HTTP — faster; requires the compiled extension | `host="localhost"`, `port=6666` |
 | `"embedded"` | In-process engine, no daemon or socket | `data_dir="/path/to/.turing"` |
+
+Both `json` and `native` talk to a daemon over HTTP; they differ in the wire encoding (JSON vs. binary). `embedded` runs the engine in-process with no network at all.
 
 ```python
 # Default HTTP client
@@ -58,14 +60,14 @@ client = TuringDB(type="embedded", data_dir="~/.turing")
 ```
 
 <Note>
-  `list_available_graphs()` and the S3 helpers (`s3_connect`, `transfer`) are only supported on the default `json` backend.
+  `list_available_graphs()` and the S3 helpers (`s3_connect`, `transfer`) are only supported on the default JSON backend (`type="json"`).
 </Note>
 
 ## Core Methods
 
 ### `list_available_graphs() → list[str]`
 
-Returns the graphs persisted on disk in the TuringDB data directory (json backend only).
+Returns the graphs persisted on disk in the TuringDB data directory (JSON backend only).
 
 ```python
 client.list_available_graphs()
@@ -123,7 +125,7 @@ Returns whether the current graph is loaded in memory.
 
 ### `new_change() → int`
 
-Creates a new isolated change (runs `CHANGE NEW`), makes it the active change, and returns its integer ID.
+Creates a new isolated change (equivalent to `CHANGE NEW`), makes it the active change, and returns its integer ID.
 
 ```python
 change = client.new_change()
@@ -194,7 +196,7 @@ Return the server-side execution time and the full round-trip time (in milliseco
 
 ## S3 / Data Transfer
 
-These helpers move graph data between local paths, S3, and the TuringDB server. They are only available on the default `json` backend.
+These helpers move graph data between local paths, S3, and the TuringDB server. They are only available on the JSON backend (`type="json"`).
 
 ### `s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)`
 
@@ -285,7 +287,7 @@ print(df)
 
 ## Notes
 
-- The default (`json`) backend uses `httpx` for HTTP requests; the `native` and `embedded` backends use a compiled extension
+- The JSON backend (`type="json"`) uses `httpx`; the `native` and `embedded` backends use a compiled extension
 - Only the graph name, change ID, and commit hash are sent with HTTP requests
 - The SDK supports the full TuringDB **Cypher dialect**, including matching by internal node ID (`WHERE n = 1234`) and versioned queries against past commits
 
