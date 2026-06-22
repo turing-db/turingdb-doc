@@ -459,6 +459,22 @@ AND r.value_usd > 0
 RETURN r.value_usd / r.value_satoshi * 100000000.0
 ```
 
+# Aggregate Functions
+
+TuringDB supports the `count()` and `avg()` aggregating functions.
+
+Aggregate functions may only be used when the query has a single return item, e.g.
+
+~~~
+MATCH (n) RETURN count(n.age)
+~~~
+
+However, aggregates may be combined in a single return item, e.g.
+
+~~~
+MATCH (n) RETURN count(n) + avg(n.age)
+~~~
+
 # Type Conversion & Introspection Functions
 
 TuringDB supports a set of built-in functions for type conversion and node introspection.

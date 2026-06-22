@@ -339,6 +339,13 @@ LOAD JSONL 'myjsonl.jsonl' AS my_graph
 | `toInteger(expr)` | Parses a string as an integer                                       |
 | `toFloat(expr)`   | Parses a string as a float                                          |
 
+## Aggregate Functions
+
+| Function          | Description                                                        |
+| ----------------- | ------------------------------------------------------------------ |
+| `count(expr)`   | Returns the number of non-null rows in the column corresponding to `expr`  |
+| `avg(expr)`   | Returns the average value of non-null rows in the numeric-valued column corresponding to `expr`  |
+
 ```jsx
 // Label introspection
 MATCH (n) RETURN labels(n), n.name
