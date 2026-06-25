@@ -486,11 +486,20 @@ MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)
 MATCH (n:Document) RETURN n.title, euclidean_distance(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
-## Aggregation: `count()`
+## Aggregation: `count()`, `avg()`
+
+TuringDB supports the `count()` and `avg()` aggregating functions. Aggregates may only be used when the query has a single return item:
 
 ```jsx
 MATCH (n:Person) RETURN count(*)
 MATCH (n:Person) RETURN count(n.age)
+MATCH (n:Person) RETURN avg(n.age)
+```
+
+Aggregates may be combined within that single return item:
+
+```jsx
+MATCH (n:Person) RETURN count(n) + avg(n.age)
 ```
 
 # Procedures

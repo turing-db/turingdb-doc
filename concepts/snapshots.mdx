@@ -39,7 +39,7 @@ TuringDB supports the full ACID model:
 | **Atomicity**   | All-or-nothing: if a transaction fails, nothing is applied             |
 | **Consistency** | Every transaction transforms the graph from one valid state to another |
 | **Isolation**   | Each transaction operates as if it’s the only one                      |
-| **Durability**  | Submitting a change writes its new commit to disk, so submitted history survives a restart (see note) |
+| **Durability**  | Submitting a change writes its new commit to disk (see note)           |
 
 _Based on the definition of Jim Gray & Andreas Reuter_ ([Gray & Reuter, 1993](https://archive.org/details/transactionproce0000gray))
 

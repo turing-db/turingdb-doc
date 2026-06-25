@@ -351,9 +351,9 @@ MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
 
 ## Graph algorithms
 
-| Function                                   | Description                                              |
-| ------------------------------------------ | -------------------------------------------------------- |
-| `shortestPath(n, m, distance, dist, path)` | Shortest path between nodes using the Dijkstra processor (the weight is a **bare** property name, not quoted) |
+| Function                                   | Description                                                    |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `shortestPath(n, m, distanceProperty, distOutputVar, pathOutputVar)` | Shortest path between nodes using the Dijkstra processor |
 
 ## Functions
 
@@ -366,7 +366,13 @@ MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
 | `toBoolean(expr)` | Parses a string as a boolean                                       |
 | `cosine_similarity(a, b)` | Cosine similarity of two embeddings                        |
 | `euclidean_distance(a, b)` | Euclidean distance of two embeddings                      |
-| `count(...)`      | Aggregate row count (RETURN only)                                  |
+
+## Aggregate Functions
+
+| Function          | Description                                                        |
+| ----------------- | ------------------------------------------------------------------ |
+| `count(expr)`   | Returns the number of non-null rows in the column corresponding to `expr`  |
+| `avg(expr)`   | Returns the average value of non-null rows in the numeric-valued column corresponding to `expr`  |
 
 ```jsx
 // Introspection
