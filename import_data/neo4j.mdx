@@ -44,7 +44,7 @@ Then start Neo4j 5.x and proceed with the export below.
     </Warning>
   </Step>
   <Step title="Copy the file to TuringDB's data directory">
-    TuringDB only reads external files from the `data` subdirectory of its working directory (set by `--turing-dir`, default `$HOME/.turing`).
+    TuringDB only reads external files from the `data` subdirectory of its working directory (set by `-turing-dir`, default `$HOME/.turing`).
 
     ```bash
     cp $NEO4J_HOME/import/output.json ~/.turing/data/

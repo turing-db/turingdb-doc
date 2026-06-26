@@ -66,8 +66,8 @@ def build_create_query(graph):
     # Remove the trailing comma and newline
     return query[:-2]
 
-# Initialize TuringDB client
-client = TuringDB(auth_token=YOUR_AUTH_TOKEN, instance_id=YOUR_INSTANCE_ID)
+# Initialize TuringDB client (connect to a locally running server)
+client = TuringDB(host="http://localhost:6666")
 
 # Create and set up the graph
 client.create_graph("imported_gml_graph")
@@ -80,7 +80,7 @@ try:
     print(f"Loaded graph with {len(graph.nodes())} nodes and {len(graph.edges())} edges")
 
     # Create a new change
-    change = client.query("CHANGE NEW")["Change ID"][0]
+    change = client.new_change()
     print(f"Created change: {change}")
 
     # Checkout into the change

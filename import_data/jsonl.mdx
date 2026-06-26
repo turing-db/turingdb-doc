@@ -41,11 +41,25 @@ Each line is a self-contained JSON object representing either a node or a relati
 | `start` / `end` | Required. Either: <br />- a bare integer (or string parseable as integer) referencing a node `id`<br />- a dictionary with an `id` key holding an integer (or string parseable as integer) referencing a node `id`. |
 | `properties`    | Optional. Dictionary with property keys and values.                                                                                                                                                                 |
 
+## Loading embedding properties
+
+By default, an array-valued property in the JSONL is stored as a string. To load specific array properties as **embeddings** (type `Embedding`, usable with `cosine_similarity` / `euclidean_distance`), append a `WITH EMBEDDINGS` clause listing each embedding property and its dimension:
+
+```jsx
+LOAD JSONL 'mydata.jsonl' AS mygraph WITH EMBEDDINGS [{"embedding", 384}, {"summary_vec", 768}]
+```
+
+Each spec is `{"<property name>", <dimension>}`. The dimension must be **greater than 1**, and every array under that property must have exactly that many numeric elements (otherwise the load fails). This works for both node and relationship properties. Array properties not listed in `WITH EMBEDDINGS` are still stored as strings.
+
+<Note>
+  This sets embeddings as node/edge **properties**. To bulk-load embeddings onto an *existing* graph from a Parquet file, use [`LOAD EMBEDDING FROM`](/vector-search#embeddings-as-node-properties) instead.
+</Note>
+
 ## Import steps
 
 <Steps>
   <Step title="Place your file in the TuringDB data directory">
-    TuringDB only reads external files from the `data` subdirectory of its working directory (set by `--turing-dir`, default `$HOME/.turing`).
+    TuringDB only reads external files from the `data` subdirectory of its working directory (set by `-turing-dir`, default `$HOME/.turing`).
 
     ```bash
     cp mydata.jsonl ~/.turing/data/

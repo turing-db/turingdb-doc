@@ -36,11 +36,38 @@ client = TuringDB(host="http://localhost:6666")
 print(client.list_available_graphs())
 ```
 
+## Client backends
+
+`TuringDB(...)` is a facade over three interchangeable backends, chosen with the `type` argument (or the `TURINGDB_TYPE` environment variable, default `"json"`):
+
+| `type` | Encoding / transport | Constructor arguments |
+| ------ | -------------------- | --------------------- |
+| `"json"` *(default)* | JSON payloads over HTTP against a running daemon | `host="http://localhost:6666"` |
+| `"native"` | Binary (Turing proto) payloads over HTTP — faster; requires the compiled extension | `host="localhost"`, `port=6666` |
+| `"embedded"` | In-process engine, no daemon or socket | `data_dir="/path/to/.turing"` |
+
+Both `json` and `native` talk to a daemon over HTTP; they differ in the wire encoding (JSON vs. binary). `embedded` runs the engine in-process with no network at all.
+
+```python
+# Default HTTP client
+client = TuringDB(host="http://localhost:6666")
+
+# Native binary protocol
+client = TuringDB(type="native", host="localhost", port=6666)
+
+# Embedded, in-process — no server needed
+client = TuringDB(type="embedded", data_dir="~/.turing")
+```
+
+<Note>
+  `list_available_graphs()` and the S3 helpers (`s3_connect`, `transfer`) are only supported on the default JSON backend (`type="json"`).
+</Note>
+
 ## Core Methods
 
 ### `list_available_graphs() → list[str]`
 
-Returns all graphs you have access to on the TuringDB Cloud backend.
+Returns the graphs persisted on disk in the TuringDB data directory (JSON backend only).
 
 ```python
 client.list_available_graphs()
@@ -84,6 +111,31 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 
 Returns results as a `pandas.DataFrame`, with automatic typing and parsing.
 
+### `query_raw(query: str) → dict`
+
+Like `query`, but returns the raw server response as a `dict` instead of a DataFrame. Useful for inspecting result metadata or column dtypes directly.
+
+### `get_graph() → str` / `set_graph(graph_name: str)`
+
+Get or set the active graph for subsequent queries.
+
+### `is_graph_loaded() → bool`
+
+Returns whether the current graph is loaded in memory.
+
+### `new_change() → int`
+
+Creates a new isolated change (equivalent to `CHANGE NEW`), makes it the active change, and returns its integer ID.
+
+```python
+change = client.new_change()
+client.checkout(change=change)
+```
+
+<Note>
+  There is no `submit()` method — submit a change by running `client.query("CHANGE SUBMIT")`.
+</Note>
+
 ## Version Control Helpers
 
 TuringDB supports **snapshot isolation** and **versioned commits**.
@@ -126,17 +178,56 @@ Change the current graph context.
 client.set_graph("another_graph")
 ```
 
+You can also read the current context through the `current_graph`, `current_commit` (default `"HEAD"`), and `current_change` (default `"main"`) properties.
+
+## Connection & Timing Helpers
+
+### `reconnect()`
+
+Resets the connection. A no-op for the HTTP and embedded backends; reopens the socket for the native backend.
+
+### `try_reach(timeout: int = 5)` / `warmup(timeout: int = 5)`
+
+Probe connectivity (`try_reach`) or warm the connection with a lightweight query (`warmup`).
+
+### `get_query_exec_time() → float | None` / `get_total_exec_time() → float | None`
+
+Return the server-side execution time and the full round-trip time (in milliseconds) of the last query.
+
+## S3 / Data Transfer
+
+These helpers move graph data between local paths, S3, and the TuringDB server. They are only available on the JSON backend (`type="json"`).
+
+### `s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)`
+
+Connect an S3 client for transfers. Credentials are optional — if omitted, the machine's configured AWS credentials are used.
+
+```python
+client.s3_connect("my-bucket", region="eu-west-1")
+```
+
+### `transfer(src, dst)`
+
+Transfer data between a local path, an `s3://…` URI, or a `turingdb://…` path. The direction and mechanism are inferred from the URI schemes.
+
+```python
+client.transfer("s3://graphs/data.jsonl", "turingdb://data.jsonl")  # S3 → server
+client.transfer("./local.gml", "turingdb://local.gml")               # local → server (via scratch)
+```
+
+The equivalent engine commands (issued directly via `query`) are `S3 CONNECT "<key>" "<secret>" "<region>"`, `S3 PULL "<s3-url>" "<dst>"`, and `S3 PUSH "<src>" "<s3-url>"`.
+
 ## Response Format
 
 All queries return a `pandas.DataFrame`, typed according to schema:
 
-| Cypher Type | Python (NumPy) |
+| Cypher Type | pandas dtype   |
 | ----------- | -------------- |
-| `String`    | `str`          |
-| `Int64`     | `int64`        |
-| `UInt64`    | `uint64`       |
+| `String`    | `string`       |
+| `Int64`     | `Int64`        |
+| `UInt64`    | `UInt64`       |
 | `Double`    | `float64`      |
-| `Boolean`   | `bool`         |
+| `Bool`      | `boolean`      |
 
 ## Error Handling
 
@@ -196,10 +287,9 @@ print(df)
 
 ## Notes
 
-- The SDK uses httpx for async-compatible HTTP requests
-- Responses are parsed using `orjson` and converted into `pandas.DataFrame` for easy usage
-- Only graph name, change ID, and commit hash are sent with requests
-- SDK supports full TuringDB **Cypher dialect**, including `@` node injection, `~=` matching, and versioned queries
+- The JSON backend (`type="json"`) uses `httpx`; the `native` and `embedded` backends use a compiled extension
+- Only the graph name, change ID, and commit hash are sent with HTTP requests
+- The SDK supports the full TuringDB **Cypher dialect**, including matching by internal node ID (`WHERE n = 1234`) and versioned queries against past commits
 
 Need help writing queries? → See the [TuringDB Query Cheatsheet](/query/cheatsheet)
 

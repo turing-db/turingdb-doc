@@ -89,13 +89,6 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 print(df)
 ```
 
-### Approximate string search
-
-```python
-# Find nodes with name similar to 'alice'
-df = client.query("MATCH (n{name~='alice'}) RETURN n")
-```
-
 ## 5. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
@@ -133,15 +126,11 @@ client.checkout()
 from turingdb import TuringDB
 
 # Create TuringDB client
-## if TuringDB is running locally
-client = TuringDB(
-	host=<local_URL>,  # URL on which local TuringDB is running, e.g. "http://localhost:6666"
-)
-### if TuringDB is running on a cloud instance
-#client = TuringDB(
-#	instance_id=<your_instance_ID>,  # found on the Database Instances management page
-#    auth_token=<your_auth_token>  # your authentification token
-#)
+# Connect to a locally running TuringDB server (default host shown):
+client = TuringDB(host="http://localhost:6666")
+
+# Or run the engine in-process, with no server:
+# client = TuringDB(type="embedded", data_dir="~/.turing")
 
 # Create and set working graph
 client.create_graph("people")
@@ -167,7 +156,7 @@ print(df)
 ## 🛠 What’s Next?
 
 - 📘 Learn the [Query Language](/query/cypher_subset)
-- 🔀 Explore [Versioning & Changes](/concepts/commits)
-- 🤖 Try [AI Workflows](/workflows/workflow_concepts)
+- 🔀 Explore [Versioning & Changes](/concepts/versioning_system)
+- 🔎 Try [Vector Search](/vector-search)
 
 Questions or feedback? → Join the [Discord](https://discord.gg/dMM48ns5VY) or [open an issue](https://github.com/turingdb)
