@@ -4,6 +4,42 @@ sidebarTitle: "Parquet"
 description: "Build a TuringDB graph from node and edge Parquet files with the turing-parquet CLI"
 ---
 
+To load Parquet files containing columns for node IDs, node properties, edge source and target IDs, and edge properties, see: `LOAD PARQUET`.
+
+
+To load Parquet files containing a JSON string column, which is then converted into a graph structure, see: `turing-parquet`.
+
+# `LOAD PARQUET`
+
+`LOAD PARQUET` queries may be used to load a graph into TuringDB. The command is of the following format:
+```
+LOAD PARQUET "<directory name> {AS <graph name>}"
+```
+where `{AS <graph name>}` may be omitted, in which case the name of the graph will be that of the directory.
+
+The directory specified need contain `nodes.parquet` and `edges.parquet`.
+
+Each row in `nodes.parquet` defines a node, and the file has a required format of:
+- a column of name `__id` of type `INT64` - defines the relative node ID for the row;
+- a column of name `__labels` of type `BYTE_ARRAY` with exactly 1 level of nesting, forming a byte array of byte arrays - each inner byte array is treated as a string (the name of that label), the path of each element *must* be `__labels.list.element`.
+
+Each row in `edges.parquet` defines an edge, and the file has a required format of:
+- a column of name `__source` of type `INT64` - defines the node ID (present in `nodes.parquet`) of the source node of this edge;
+- a column of name `__target` of type `INT64` - defines the node ID (present in `nodes.parquet`) of the target node of this edge;
+- a column of name `__type` of type `BYTE_ARRAY` with exactly 0 levels of nesting  - interpreted as a string (the name of this edge type).
+
+As well as the above required columns, `nodes.parquet` and `edges.parquet` may contain any number of extra columns, all of which are interpreted as a property value for the node/edge of that row. These columns may have any name (other than the names of the columns explicitly required above).
+
+The supported types for property columns are:
+- `BOOLEAN`
+- `INT64`
+- `DOUBLE`
+- `BYTE_ARRAY` with exactly 0 levels of nesting
+
+Note: all property columns of `BYTE_ARRAY` are treated as strings
+
+# `turing-parquet`
+
 `turing-parquet` is a CLI tool that reads node and edge Parquet files and writes a TuringDB graph to disk. Copy the resulting graph directory into your TuringDB working directory and open it with `turingdb`.
 
 ## When to use it
