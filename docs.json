@@ -3,9 +3,31 @@
   "theme": "mint",
   "name": "TuringDB",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#4DFF88",
+    "light": "#7DFFA8",
+    "dark": "#21CC5E"
+  },
+  "appearance": {
+    "default": "dark",
+    "strict": true
+  },
+  "background": {
+    "color": {
+      "dark": "#0B0B0C"
+    }
+  },
+  "fonts": {
+    "heading": {
+      "family": "Ark Pixel",
+      "source": "/fonts/ArkPixel16px-Latin.woff2",
+      "format": "woff2"
+    },
+    "body": {
+      "family": "IBM Plex Sans",
+      "weight": 300,
+      "source": "/fonts/IBMPlexSans-Light.woff2",
+      "format": "woff2"
+    }
   },
   "favicon": "/favicon.png",
   "navigation": {
