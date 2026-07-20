@@ -1,22 +1,96 @@
 ---
-title: "TuringDB: Blazingly Fast Graph Database Engine for Analytical Workloads"
+title: "Introduction"
 sidebarTitle: "Introduction"
 description: "TuringDB is the fastest graph database engine for analytical, AI-driven, and read-intensive workloads"
 ---
 
-Built with a cutting-edge column-oriented architecture, version-controlled storage, and zero-locking execution, TuringDB gives you **blazing-fast queries**, **snapshot isolation**, and **seamless integration** with modern AI pipelines.
+## What is TuringDB?
+
+TuringDB is an in-memory column oriented graph database engine built in C++ for analytical, AI-driven, and read-intensive workloads. With version-controlled storage and zero-locking execution, it gives you **blazing-fast queries**, **snapshot isolation**, and **seamless integration** with modern AI pipelines.
+
+The platform has three main components: the [TuringDB engine](/concepts/overview) (a columnar, version-controlled graph store), the [Python SDK](/pythonsdk/reference) for building applications and pipelines, and a [built-in visualizer](/quickstart) for exploring graphs in the browser.
+
+## Guides
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" href="/quickstart" img="images/rocket.png">
+  <Card title="Setup" icon="/images/icons/pixel-bricks.png?v=6" img="/images/cards/setup.png" href="/quickstart">
     Get up and running in minutes with our step-by-step guide
   </Card>
-  <Card title="TuringDB Concepts & Architecture" href="/concepts/overview" img="images/tree.png">
+  <Card title="Concepts and Architecture" icon="/images/icons/pixel-book.png?v=6" img="/images/cards/concepts.png" href="/concepts/overview">
     Learn about the core concepts and architecture of TuringDB
   </Card>
-  <Card title="Query & Search Language" href="/query/cypher_subset" img="images/query.png">
+  <Card title="Query Language" icon="/images/icons/pixel-magnifier.png?v=6" img="/images/cards/query.png?v=2" href="/query/cypher_subset">
     TuringDB query language based on OpenCypher
   </Card>
-  <Card title="Examples" href="/tutorials/example_notebooks"  img="images/infra.png">
-    Explore real-world examples and advanced use cases
+  <Card title="Benchmarks" icon="/images/icons/pixel-chart.png?v=6" img="/images/cards/benchmarks.png?v=2" href="/benchmarks/results-summary">
+    See how TuringDB performs against other graph databases
   </Card>
 </CardGroup>
+
+## Quickstart
+
+You need a terminal, and optionally Python with `uv` or `pip` if you want to use the SDK.
+
+Install and launch TuringDB using whichever method fits your setup:
+
+<CodeGroup>
+
+```bash curl
+# Quick install into your home directory
+curl https://install.turingdb.ai | bash
+
+# Launch the server (default port 6666)
+turingdb
+```
+
+```bash uv add
+# Add the TuringDB SDK to a uv project
+uv add turingdb
+
+# Launch the server
+turingdb
+```
+
+```bash pip install
+# Install the TuringDB SDK with pip
+pip install turingdb
+
+# Launch the server
+turingdb
+```
+
+```python Python SDK
+from turingdb import TuringDB
+
+# Connect to a running TuringDB server
+client = TuringDB(host="http://localhost:6666")
+
+# Create a graph and a versioned change
+client.create_graph("mygraph")
+client.set_graph("mygraph")
+change = client.new_change()
+client.checkout(change=change)
+
+# Write, commit, and submit
+client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+client.query("COMMIT")
+client.query("CHANGE SUBMIT")
+
+# Back to main, query the graph
+client.checkout()
+client.query("MATCH (n) RETURN n")
+```
+
+```bash Docker
+# Run TuringDB in a container
+# (other install methods are preferred — Docker adds some performance loss)
+docker run -it turingdbai/turingdb:nightly turingdb
+```
+
+</CodeGroup>
+
+Once the server is running, open the built-in visualizer with `turingdb -ui` and head to [http://localhost:8080](http://localhost:8080). For the full walkthrough, see the [Get Started guide](/quickstart).
+
+## SDKs
+
+TuringDB ships a [Python SDK](/pythonsdk/reference) for creating graphs, managing changes, and running Cypher queries from your applications and notebooks. Using Claude Code? Install the [TuringDB skill](/claude-skill) and let Claude drive the database for you.
