@@ -1,6 +1,4 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
   "name": "TuringDB",
   "colors": {
     "primary": "#4DFF88",
@@ -134,7 +132,8 @@
     "dark": "/logo/logo_turingdb_thick.png"
   },
   "navbar": {
-    "links": [{
+    "links": [
+      {
         "label": "Discord",
         "href": "https://discord.gg/dMM48ns5VY"
       },
@@ -146,7 +145,8 @@
         "label": "Website",
         "href": "https://turingdb.ai"
       }
-    ]},
+    ]
+  },
   "footer": {
     "socials": {
       "github": "https://github.com/turing-db",

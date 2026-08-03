@@ -1,5 +1,6 @@
-// Typed view of the repo's docs.json, so the app is driven by the same config Mintlify was.
-import raw from "../../docs.json";
+// Typed view of docs.json — the site's navigation and chrome config. It kept the shape
+// Mintlify used so the migration was a no-op for editors; the Mintlify-only keys are gone.
+import raw from "../docs.json";
 
 export type DocsConfig = {
   name: string;

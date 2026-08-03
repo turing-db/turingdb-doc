@@ -20,13 +20,13 @@ import {
 import { Slugger } from "./src/lib/slugify";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const contentRoot = path.resolve(root, "..");
+// The app now lives at the repository root, so the content root is the project root.
+const contentRoot = root;
 const SSR = Boolean(process.env.SSR_BUILD);
 
 /**
  * In the SSR build, keep the React runtime as bare external imports. Vite's alias rewrites
- * them to absolute paths (needed so the out-of-tree .mdx files can resolve React at all),
- * which makes rollup bundle a second copy — and two React instances mean
+ * them to absolute paths, which makes rollup bundle a second copy — and two React instances mean
  * "Cannot read properties of null (reading 'useContext')" during prerender.
  */
 const EXTERNAL_RUNTIME = /^(react|react-dom|react-router|@mdx-js\/react|mermaid|minisearch)(\/|$)/;
@@ -81,9 +81,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(root, "src"),
       "@content": contentRoot,
-      // The .mdx sources live at the repo root, outside this project, so their compiled
-      // output cannot resolve React from site/node_modules on its own. Not applied in the
-      // SSR build — see keepReactExternal above.
+      // The .mdx sources sit alongside src/ but are resolved through the @content alias;
+      // these aliases keep a single React copy for everything. Not applied in the SSR
+      // build — see keepReactExternal above.
       ...(SSR
         ? {}
         : {
@@ -97,7 +97,7 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   server: {
-    fs: { allow: [root, contentRoot] },
+    fs: { allow: [root] },
   },
   build: {
     outDir: SSR ? "dist-ssr" : "dist",

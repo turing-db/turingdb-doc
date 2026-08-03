@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "gen": "node scripts/copy-assets.mjs && node scripts/gen-slug-overrides.mjs && node scripts/gen-routes.mjs",
+    "gen": "node scripts/gen-slug-overrides.mjs && node scripts/gen-routes.mjs",
     "dev": "npm run gen && vite",
     "build": "npm run gen && vite build && SSR_BUILD=1 vite build --ssr src/entry-server.tsx && node scripts/prerender.mjs",
     "preview": "vite preview --port 4173",

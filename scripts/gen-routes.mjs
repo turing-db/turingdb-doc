@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const contentRoot = path.resolve(root, '..');
+// The app lives at the repository root, so content and app share one root.
+const contentRoot = root;
 const docsJson = JSON.parse(fs.readFileSync(path.join(contentRoot, 'docs.json'), 'utf8'));
 
 const groups = [];

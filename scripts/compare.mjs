@@ -85,6 +85,14 @@ const INTENTIONAL = {
   pagination: ['__rect'],
   pagSvg: 'ALL',
   html: ['fontFamily', 'height'],  // reference html carries the Inter stack we do not ship
+  // The Guides card grid has 16px spacing restored (the old CSS forced gap: 0). That changes
+  // the grid gap, the column width, and each card's x — and adds ~7px to the index page's
+  // .mdx-content height, which stays visible below as a documented residual.
+  cardGroup: ['gap', 'rowGap', 'columnGap', 'gridTemplateColumns', 'height', '__rect'],
+  card: ['width', 'height', '__rect'],
+  cardImage: ['width', 'height', '__rect'],
+  cardTitle: ['width', '__rect'],
+  cardContent: ['width', 'height', '__rect'],
   // Removing the 86px sticky assistant bar shortens every page by exactly that much
   // (PLAN §7.2), so page-level container heights are expected to differ.
   body: ['height'],

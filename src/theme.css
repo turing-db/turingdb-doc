@@ -5,10 +5,10 @@
    prefers-color-scheme, which would render this site light. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Content lives at the repo root, outside this Vite project, and some of it carries
-   className (the YouTube iframe in concepts/overview.mdx). Without this those
-   utilities are never generated and the embed renders as an unstyled 300x150 box. */
-@source "../../**/*.mdx";
+/* The .mdx content carries className in one place (the YouTube iframe in
+   concepts/overview.mdx). Without scanning it, those utilities are never generated and the
+   embed renders as an unstyled 300x150 box. */
+@source "../**/*.mdx";
 @source "../src/**/*.{ts,tsx}";
 
 @theme {
