@@ -515,6 +515,7 @@ These queries follow the `CALL` syntax, and the following variants are supported
 5. `CALL db.describeCommit('<hash>')` - node/edge/part counts for a single commit
 6. `CALL db.procedures()` - list the available procedures and their signatures
 7. `CALL db.showIndexes()` - list property indexes and their sizes
+8. `CALL gnn.neighbourhoodSample(input_nodes, sample_size, seed=rng())` - for each node, `n`, in `input_nodes`, produce a uniformly distributed random samples of the outgoing edges of `n`
 
 These procedures are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
 
