@@ -71,6 +71,12 @@
   --font-weight-bodyWeight: 300;
 
   --container-8xl: 92rem; /* 1472px — measured, not 1440 */
+
+  /* Readable body copy. The original render used gray-400 (#A0A6A2, 7.9:1 on the page
+     background); this sits at gray-200 (15.5:1), level with the headings. Every place that
+     paints prose text reads this one token — change it here to dial the whole site.
+     Chrome (sidebar, TOC, navbar) is deliberately left dimmer for hierarchy. */
+  --color-prose-text: var(--color-gray-200);
 }
 
 /* ============================================================ fonts */
@@ -158,6 +164,10 @@
   *:not(h1, h2, h3, h4, h5, h6, h1 *, h2 *, h3 *, h4 *, h5 *, h6 *) {
   font-weight: var(--font-weight-bodyWeight);
 }
+/* …except emphasis, which needs real weight now that the body copy is near-white. */
+.mint-root :is(strong, b) {
+  font-weight: 500;
+}
 
 /* ============================================================ prose
    NOT wrapped in @layer: @tailwindcss/typography emits into @layer utilities, which beats
@@ -166,15 +176,15 @@
 .prose-overrides-marker { --x: 0 }
 .prose {
   max-width: none; /* plugin default 65ch ~= 585px; measured column is 688.81px */
-  --tw-prose-invert-body: var(--color-gray-400);
+  --tw-prose-invert-body: var(--color-prose-text);
   --tw-prose-invert-headings: #fff;
-  --tw-prose-invert-lead: var(--color-gray-400);
+  --tw-prose-invert-lead: var(--color-prose-text);
   --tw-prose-invert-links: var(--color-gray-50);
-  --tw-prose-invert-bold: var(--color-gray-50);
+  --tw-prose-invert-bold: #fff;
   --tw-prose-invert-counters: #99a1af;
   --tw-prose-invert-bullets: var(--color-gray-600);
   --tw-prose-invert-hr: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
-  --tw-prose-invert-quotes: var(--color-gray-400);
+  --tw-prose-invert-quotes: var(--color-prose-text);
   --tw-prose-invert-quote-borders: var(--color-gray-800);
   --tw-prose-invert-captions: var(--color-gray-500);
   --tw-prose-invert-code: var(--color-gray-200);
@@ -185,7 +195,7 @@
 }
 .mdx-content,
 .card-group {
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
 }
 .mdx-content {
   font-size: 16px;
@@ -233,7 +243,7 @@
   font-size: 16px;
   line-height: 28px;
   margin: 0;
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
 }
 
 /* --- paragraphs --- */
@@ -241,17 +251,20 @@
   line-height: inherit;
   margin-top: 1.25em;
   margin-bottom: 1.25em;
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
 }
 
 /* --- inline emphasis --- */
 .prose strong:not(.not-prose, .not-prose *){
-  font-weight: 300;
-  color: var(--color-gray-50);
+  /* Emphasis is carried by weight, not colour. The original render signalled bold purely by
+     brightening it against a dim body; with the body now at gray-200 that gap is 1.27:1 and
+     invisible, so <strong> gets its weight back. */
+  font-weight: 500;
+  color: #fff;
 }
 .prose em:not(.not-prose, .not-prose *){
   font-style: italic;
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
 }
 
 /* --- links: gray-50 text with a primary-light 1px rule; 2px on hover --- */
@@ -336,7 +349,7 @@
   font-style: normal;
   font-weight: 300;
   quotes: none;
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
 }
 .prose blockquote p:not(.not-prose, .not-prose *)::before,
 .prose blockquote p:not(.not-prose, .not-prose *)::after,
@@ -436,7 +449,7 @@
 }
 .prose td:not(.not-prose, .not-prose *){
   vertical-align: baseline;
-  color: var(--color-gray-400);
+  color: var(--color-prose-text);
   min-width: 150px;
   padding: 8px 8px 8px 0;
 }

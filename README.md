@@ -77,9 +77,13 @@ the comments say why. The two things most likely to surprise you:
 
 - The rules are deliberately **unlayered**. `@tailwindcss/typography` emits into
   `@layer utilities`, so anything in `@layer components` loses to it.
-- A global "everything that isn't a heading uses the body weight" rule means every
-  `font-semibold` in the markup is inert, and **bold is signalled by colour, not weight**.
-  Three places opt out: the TOC header, card titles, and code inside headings.
+- A global "everything that isn't a heading uses the body weight" rule means most
+  `font-semibold` in the markup is inert. Four things opt out: the TOC header, card titles,
+  code inside headings, and `<strong>`.
+
+Body-copy brightness is one token, `--color-prose-text` (currently `gray-200`, 15.5:1 against
+the page background). Every rule that paints prose text reads it, so that one line dials the
+whole site. Sidebar, TOC and navbar stay dimmer on purpose, for hierarchy.
 
 ## CI
 
@@ -129,6 +133,9 @@ Last measured: **99.75%** of 134,416 geometry assertions pass; mean per-slice pi
    locally the rule applies — which is what it always asked for.
 6. **The Guides card grid has 16px spacing.** The previous CSS forced `gap: 0`, so the cards
    butted into a single slab.
+7. **Body copy is brighter** — `gray-200` rather than `gray-400`, 15.5:1 against the background
+   instead of 7.9:1. `<strong>` consequently carries weight 500 and pure white: at that body
+   brightness, the original's colour-only emphasis separates by 1.27:1, which is invisible.
 
 ## Known residuals
 
