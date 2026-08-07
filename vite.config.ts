@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type PreviewServer } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import mdx from "@mdx-js/rollup";
@@ -9,6 +9,7 @@ import remarkSmartypants from "remark-smartypants";
 import rehypeShiki from "@shikijs/rehype";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 // plain-JS plugin module
 // @ts-ignore
 import {
@@ -30,6 +31,38 @@ const SSR = Boolean(process.env.SSR_BUILD);
  * "Cannot read properties of null (reading 'useContext')" during prerender.
  */
 const EXTERNAL_RUNTIME = /^(react|react-dom|react-router|@mdx-js\/react|mermaid|minisearch)(\/|$)/;
+
+/**
+ * Make `vite preview` resolve clean URLs the way the production nginx does
+ * (`try_files $uri $uri/index.html`).
+ *
+ * Without this, preview serves dist/index.html for every path, so /quickstart gets the home
+ * page's prerendered HTML and React then throws #418 (server text did not match) and discards
+ * the whole tree. Production was always correct; only the local preview was misleading.
+ * Scoped to preview so the dev server keeps its SPA fallback, which it needs — nothing is
+ * prerendered in dev.
+ */
+const previewDirectoryIndex = (): Plugin => ({
+  name: "preview-directory-index",
+  configurePreviewServer(server: PreviewServer) {
+    server.middlewares.use((req, _res, next) => {
+      const url = req.url ?? "/";
+      const [pathname, query = ""] = url.split("?");
+      if (pathname !== "/" && !path.extname(pathname)) {
+        const candidate = path.join(
+          root,
+          "dist",
+          pathname.replace(/\/$/, ""),
+          "index.html"
+        );
+        if (fs.existsSync(candidate)) {
+          req.url = pathname.replace(/\/$/, "") + "/index.html" + (query ? "?" + query : "");
+        }
+      }
+      next();
+    });
+  },
+});
 const keepReactExternal = () => ({
   name: "keep-react-external-ssr",
   enforce: "pre" as const,
@@ -76,6 +109,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     ...(SSR ? [keepReactExternal()] : []),
+    previewDirectoryIndex(),
   ],
   resolve: {
     alias: {

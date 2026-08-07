@@ -85,6 +85,12 @@ Body-copy brightness is one token, `--color-prose-text` (currently `gray-200`, 1
 the page background). Every rule that paints prose text reads it, so that one line dials the
 whole site. Sidebar, TOC and navbar stay dimmer on purpose, for hierarchy.
 
+Typography is one family, IBM Plex Sans, in real weights (300/400/600 plus a true italic) —
+`--font-heading` and `--font-nav` both point at it. The original set headings, nav titles and
+the TOC in Ark Pixel, a 16px bitmap face; it reads well at display sizes but poorly at the
+14-16px the TOC and sidebar run at. The font file is still shipped, so pointing
+`--font-heading` back at `"Ark Pixel"` restores the old look.
+
 ## CI
 
 `.github/workflows/deploy.yml`:
@@ -134,8 +140,12 @@ Last measured: **99.75%** of 134,416 geometry assertions pass; mean per-slice pi
 6. **The Guides card grid has 16px spacing.** The previous CSS forced `gap: 0`, so the cards
    butted into a single slab.
 7. **Body copy is brighter** — `gray-200` rather than `gray-400`, 15.5:1 against the background
-   instead of 7.9:1. `<strong>` consequently carries weight 500 and pure white: at that body
+   instead of 7.9:1. `<strong>` consequently carries weight 600 and pure white: at that body
    brightness, the original's colour-only emphasis separates by 1.27:1, which is invisible.
+8. **One typeface for all text, in real weights.** Ark Pixel is no longer applied to headings,
+   nav titles or the TOC; body copy is Regular (400) rather than Light (300); emphasis uses a
+   true italic instead of a synthesised oblique. Headings are 600 at -0.01em rather than 400 at
+   +0.06em — the wide tracking existed to stop bitmap glyphs looking cramped.
 
 ## Known residuals
 

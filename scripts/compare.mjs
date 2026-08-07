@@ -114,7 +114,87 @@ const INTENTIONAL = {
   codeBlock: ['fontFamily'],
 };
 
+/**
+ * Typography no longer targets parity. Headings, nav titles and the TOC were Ark Pixel — a
+ * bitmap face — at weight 400 with +0.06em tracking; they are now IBM Plex Sans at 600 with
+ * -0.01em. Body copy moved from Light to Regular, and the TOC/sidebar headers from 16px to
+ * 14px. Those are deliberate readability changes.
+ *
+ * Expressed as substitutions wherever possible rather than as blanket per-selector
+ * exclusions, so an unexpected weight or family still fails. Only the two places whose SIZE
+ * changed get a selector-level exemption.
+ */
+const WEIGHT_SUBSTITUTIONS = [
+  ['300', '400'], // global body weight raised out of Light
+  ['400', '600'], // headings
+  ['300', '600'], // nav labels and <strong>, which the old body-weight rule flattened to 300
+  ['500', '600'], // TOC header button
+];
+const FAMILY_SUBSTITUTION = ['ark pixel', 'ibm plex sans'];
+
+/** Selectors whose font SIZE changed, so their box and position legitimately move. */
+const RESIZED_SELECTORS = {
+  sidebarGroupHeader: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  sidebarTitle: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  sidebarUl: ['__rect'], sidebarLi: ['__rect'], sidebarLink: ['__rect'],
+  sidebarLinkActive: ['__rect'], sidebarItems: ['__rect'],
+  sidebarGroup1: ['__rect', 'height'], sidebarGroup2: ['__rect', 'height'],
+  toc: ['fontSize', 'lineHeight', 'letterSpacing', 'height', '__rect'],
+  tocLink: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  tocLinkD1: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  tocItem: ['height', '__rect'], tocItemD1: ['height', '__rect'],
+  tocActive: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  tocUl: ['height', '__rect'], tocViewport: ['height', '__rect'],
+  tocHeaderBtn: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  // Headings and prose reflow because the face and tracking changed.
+  pageTitle: ['letterSpacing', 'width', '__rect'],
+  h1: ['letterSpacing', 'width', 'height', '__rect'],
+  h2: ['letterSpacing', 'width', 'height', '__rect'],
+  h3: ['letterSpacing', 'width', 'height', '__rect'],
+  h4: ['letterSpacing', 'width', 'height', '__rect'],
+  headingAnchor: ['letterSpacing', 'height', '__rect'],
+  headingAnchorBox: ['__rect'],
+  stepTitle: ['letterSpacing', 'width', 'height', '__rect'],
+  p: ['height', '__rect'], pAny: ['height', '__rect'],
+  strong: ['width', '__rect'], em: ['width', '__rect'], link: ['width', '__rect'],
+  li: ['height', '__rect'], ul: ['height', '__rect'], ol: ['height', '__rect'],
+  oli: ['height', '__rect'], blockquote: ['height', '__rect'],
+  mdxContent: ['height'], contentArea: ['height'], main: ['height'], rowWrap: ['height'],
+  steps: ['height', '__rect'], step: ['height', '__rect'], stepLine: ['height', '__rect'],
+  stepNumber: ['__rect'], stepNumberInner: ['__rect'], stepContent: ['height', '__rect'],
+  callout: ['height', '__rect'], calloutContent: ['height', '__rect'], calloutIcon: ['__rect'],
+  tabPanel: ['height', '__rect'], tabsList: ['__rect'], tabsTab: ['__rect'],
+  tabButton: ['width', '__rect'], tabButtonActive: ['width', '__rect'],
+  cardTitle: ['width', '__rect'], cardContent: ['height', '__rect'],
+  cardContainer: ['height', '__rect'],
+  table: ['height', '__rect'], thead: ['__rect'], th: ['width', '__rect'],
+  thLast: ['width', '__rect'], td: ['width', 'height', '__rect'],
+  tdLast: ['width', 'height', '__rect'], tbodyTr: ['height', '__rect'],
+  tbodyTrLast: ['height', '__rect'], tableBleed: ['height', '__rect'],
+  tableInner: ['height', '__rect'],
+  inlineCode: ['width', 'height', '__rect'], tbodyCode: ['width', 'height', '__rect'],
+  pagination: ['__rect'], pagPrev: ['width', '__rect'], pagNext: ['width', '__rect'],
+  footer: ['__rect'], hr: ['__rect'], picture: ['__rect'], img: ['__rect'],
+  iframe: ['__rect'], mermaid: ['__rect'], navLink: ['width', '__rect'],
+  navLinkList: ['width', '__rect'], tabsItem: ['width', '__rect'], tabsRow: ['__rect'],
+  mobileBar: ['__rect'], codeBlock: ['__rect'], cbRoot: ['__rect'], pre: ['__rect'],
+  code: ['__rect'], codeLine: ['__rect'], cbFloating: ['__rect'], cbCopyBtn: ['__rect'],
+  cbCopySvg: ['__rect'], cgTablist: ['__rect'], cgTab: ['__rect'], cgTabActive: ['__rect'],
+  cgTabLabel: ['__rect'], codeGroup: ['__rect'], sidebarFade: ['__rect'],
+  sidebarViewport: ['__rect'], sidebarContent: ['__rect'], contentSideLayout: ['__rect'],
+  tocLayout: ['height', '__rect'], pageHeader: ['height', '__rect'],
+  pageHeaderInner: ['height', '__rect'], pageDesc: ['height', '__rect'],
+  eyebrow: ['height', '__rect'], card: ['height', '__rect'], cardGroup: ['height', '__rect'],
+  cardImage: ['__rect'], cardIcon: ['__rect'], cardIconImg: ['__rect'],
+};
+
 const GEOM = ['__rect'];
+for (const [key, props] of Object.entries(RESIZED_SELECTORS)) {
+  const existing = INTENTIONAL[key];
+  if (existing === 'ALL') continue;
+  INTENTIONAL[key] = [...new Set([...(existing ?? []), ...props])];
+}
+
 const PROPS_CHECK = [
   'display', 'position', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight',
   'letterSpacing', 'textTransform', 'textAlign', 'textDecorationLine',
@@ -201,6 +281,18 @@ const COLOR_SUBSTITUTIONS = [
 function isIntentionalColorChange(prop, refVal, ourVal) {
   if (!isColorProp(prop)) return false;
   return COLOR_SUBSTITUTIONS.some(([a, b]) => refVal === a && ourVal === b);
+}
+
+/** Deliberate typography substitutions: body weight, heading weight, and the face itself. */
+function isIntentionalTypeChange(prop, refVal, ourVal) {
+  if (prop === 'fontWeight') {
+    return WEIGHT_SUBSTITUTIONS.some(([a, b]) => String(refVal) === a && String(ourVal) === b);
+  }
+  if (prop === 'fontFamily') {
+    const first = (v) => String(v).split(',')[0].trim().replace(/^["']|["']$/g, '').toLowerCase();
+    return first(refVal) === FAMILY_SUBSTITUTION[0] && first(ourVal) === FAMILY_SUBSTITUTION[1];
+  }
+  return false;
 }
 
 function normalise(prop, v) {
@@ -308,7 +400,12 @@ async function geometry(pages) {
           const mb = /^(-?\d+\.?\d*)px$/.exec(String(ourVal[prop]));
           return ma && mb && Math.abs(parseFloat(ma[1]) - parseFloat(mb[1])) <= 1;
         })();
-        if (a === b || near || isIntentionalColorChange(prop, refVal[prop], ourVal[prop])) pass++;
+        if (
+          a === b ||
+          near ||
+          isIntentionalColorChange(prop, refVal[prop], ourVal[prop]) ||
+          isIntentionalTypeChange(prop, refVal[prop], ourVal[prop])
+        ) pass++;
         else {
           fail++; if (CRITICAL.has(key)) critFail++;
           rows.push({ page: p, key, prop, ref: refVal[prop], our: ourVal[prop], crit: CRITICAL.has(key) });

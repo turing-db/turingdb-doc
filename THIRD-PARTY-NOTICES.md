@@ -8,12 +8,15 @@ which permits redistribution and bundling.
 | file | family | licence | source |
 |---|---|---|---|
 | `IBMPlexMono-Light.woff2`, `IBMPlexMono-Regular.woff2` | IBM Plex Mono | OFL-1.1 — © 2017 IBM Corp., Reserved Font Name "Plex" | <https://github.com/IBM/plex> |
-| `IBMPlexSans-Light.woff2` | IBM Plex Sans | OFL-1.1 — © 2017 IBM Corp., Reserved Font Name "Plex" | <https://github.com/IBM/plex> |
+| `IBMPlexSans-{Light,Regular,Italic,SemiBold}.woff2` | IBM Plex Sans | OFL-1.1 — © 2017 IBM Corp., Reserved Font Name "Plex" | <https://github.com/IBM/plex> |
 | `ArkPixel16px-Latin.woff2` | Ark Pixel | OFL-1.1 | <https://github.com/TakWolf/ark-pixel-font> |
 
-IBM Plex Sans and Ark Pixel come from this repository's own `fonts/` directory and are copied
-into `public/` at build time by `scripts/copy-assets.mjs`. IBM Plex Mono was added by this app
-and is tracked in git.
+Ark Pixel is still shipped but no longer applied — see the `--font-heading` comment in
+`src/theme.css` to switch back to it.
+
+All font files live in `public/fonts/` and are tracked in git. Ark Pixel and IBM Plex Sans Light
+came with the original design; IBM Plex Mono and the Regular / Italic / SemiBold cuts of IBM
+Plex Sans were added by this app.
 
 Full licence text: <https://openfontlicense.org/open-font-license-official-text/>
 
