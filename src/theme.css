@@ -60,14 +60,19 @@
 
   /* ---- typography ---- */
   --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  /* Readability over novelty: headings, nav and the TOC used Ark Pixel, a 16px bitmap face.
-     It is legible at display sizes but hard to scan at the 14-16px the TOC and sidebar
-     headers run at. One proportional family now covers all text. Set this back to
-     "Ark Pixel", … to restore the pixel look — the font file is still shipped. */
-  --font-heading: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* Ark Pixel 16px is a bitmap face: its glyphs are drawn on a 16px grid, so it is crisp at
+     16px and its multiples and mushy anywhere below. It carries display type only — page
+     titles, h1-h6, the sidebar group labels and the TOC header. Anything that is scanned
+     rather than read once (body copy, sidebar page links, TOC entries) stays on IBM Plex
+     Sans; an earlier revision put the whole nav and TOC on the pixel face at 14px, which is
+     where it stopped being legible. */
+  --font-heading: "Ark Pixel", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+  /* Nav *items*: sidebar page links, TOC entries. */
   --font-nav: "IBM Plex Sans", system-ui, sans-serif;
+  /* Nav *labels*: the sidebar group titles and "On this page", on the pixel face. */
+  --font-nav-label: "Ark Pixel", "IBM Plex Sans", system-ui, sans-serif;
 
   /* The global "everything that isn't a heading uses the body weight" rule resolves through
      this. It must live in the font-weight namespace — putting it in --font-* makes
@@ -195,10 +200,9 @@
 .mint-root :is(strong, b) {
   font-weight: 600;
 }
-/* Nav chrome that should read as a label rather than body copy. */
-.mint-root :is(.sidebar-group-header, .sidebar-title, #table-of-contents h2 button) {
-  font-weight: 600;
-}
+/* Nav chrome (group titles, "On this page") is deliberately NOT re-asserted here. It reads as
+   a label by way of the pixel typeface, and Ark Pixel has no bold to reach for — asking for
+   one gets a synthesised smear. See the .sidebar-group-header rule in the chrome section. */
 
 /* ============================================================ prose
    NOT wrapped in @layer: @tailwindcss/typography emits into @layer utilities, which beats
@@ -237,10 +241,11 @@
        margin-collapse rules and the step-title override below can tie and win on order. --- */
 .prose :where(h1, h2, h3, h4, h5, h6):not(.not-prose) {
   font-family: var(--font-heading);
-  /* 600 with slightly tight tracking. The old 400 + 0.06em existed to stop bitmap glyphs
-     reading cramped; on a proportional face that same tracking looks loose and weak. */
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  /* 400, not 600: Ark Pixel ships a single weight, and a synthesised bold smears a bitmap
+     face. The +0.06em is what keeps the glyphs from reading cramped — a pixel font has no
+     sidebearings to speak of. */
+  font-weight: 400;
+  letter-spacing: 0.06em;
   scroll-margin-top: var(--scroll-mt);
 }
 .prose :where(h1):not(.not-prose) {
@@ -312,8 +317,10 @@
 .prose a.link:not(.not-prose, .not-prose *):hover{
   border-bottom-width: 2px;
 }
+/* A link inside a heading is heading text: it follows the heading's own weight rather than
+   asking the pixel face for a bold it does not have. */
 .prose :is(h1:not(.not-prose, .not-prose *), h2, h3, h4, h5, h6) a {
-  font-weight: 600;
+  font-weight: inherit;
   color: inherit;
 }
 .prose a.link:not(.not-prose, .not-prose *):focus-visible{
@@ -612,10 +619,9 @@
 
 /* ============================================================ chrome */
 
-/* Nav group titles and the TOC. The original bumped these to 1rem with wide tracking so the
-   16px bitmap font rendered crisply; a proportional face wants neither. */
-.sidebar-group-header,
-.sidebar-title,
+/* The TOC entries: a list you scan, so they stay proportional at 14px rather than following
+   the header above them onto the pixel face. (The sidebar page links do the same, via rule 6
+   below.) */
 #table-of-contents,
 #table-of-contents a,
 .toc-item {
@@ -623,14 +629,34 @@
   letter-spacing: 0;
   line-height: 1.45;
 }
-.sidebar-group-header,
-.sidebar-title {
-  font-size: 0.875rem !important;
-  font-weight: 600 !important;
-}
 #table-of-contents a,
 .toc-item {
   font-size: 0.875rem !important;
+}
+
+/* The two nav labels — the sidebar group titles and "On this page" — carry the pixel face.
+   16px is not a size choice but the font's design size: at 14px every stem falls on 7/8ths
+   of a device pixel and the glyphs grey out. No font-weight here on purpose. Ark Pixel has one
+   weight, and Chromium starts synthesising bold at 600 — measured, 500 renders pixel-for-pixel
+   identical to 400 while 600 smears every stem. So the sidebar labels sit at the inherited 400
+   and the TOC header keeps the 500 its font-medium class gives it (the body-weight rule exempts
+   heading descendants); both paint the same. A label reads as a label here through the typeface
+   and the tracking, not through weight.
+   Beats the #table-of-contents rule above on specificity, so order here is not load-bearing. */
+.sidebar-group-header,
+.sidebar-title,
+#table-of-contents h2 button {
+  font-size: 1rem !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.3;
+}
+.sidebar-group-header,
+.sidebar-title {
+  font-family: var(--font-nav-label) !important;
+}
+/* "On this page" is a real <h2>, so it takes the heading stack rather than the nav one. */
+#table-of-contents h2 button {
+  font-family: var(--font-heading) !important;
 }
 /* rule 6 */
 .sidebar-group a {
@@ -679,12 +705,14 @@
   margin: 0;
 }
 
-/* repo style.css rule 10 */
+/* repo style.css rule 10 — the page title and every heading outside .prose.
+   The `!important` is what beats the `font-semibold` on #page-title and on the MDX heading
+   component; :not(.not-prose) keeps card titles (also <h2>) out of it. */
 #page-title,
 #content-area :is(h1, h2, h3, h4, h5, h6):not(.not-prose) {
   font-family: var(--font-heading);
-  font-weight: 600 !important;
-  letter-spacing: -0.01em;
+  font-weight: 400 !important;
+  letter-spacing: 0.06em;
 }
 
 /* No mono metric compensation is needed: measured side by side, paperMono and IBM Plex Mono
@@ -719,11 +747,6 @@
 }
 #table-of-contents a:focus-visible {
   outline-offset: 1px;
-}
-
-#table-of-contents h2 button {
-  font-family: var(--font-nav) !important;
-  font-weight: 600 !important;
 }
 
 .link,

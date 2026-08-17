@@ -115,46 +115,43 @@ const INTENTIONAL = {
 };
 
 /**
- * Typography no longer targets parity. Headings, nav titles and the TOC were Ark Pixel — a
- * bitmap face — at weight 400 with +0.06em tracking; they are now IBM Plex Sans at 600 with
- * -0.01em. Body copy moved from Light to Regular, and the TOC/sidebar headers from 16px to
- * 14px. Those are deliberate readability changes.
+ * Where typography deliberately leaves parity.
+ *
+ * Display type is back on Ark Pixel, the 16px bitmap face the reference used: page titles,
+ * h1-h6, the sidebar group labels and the TOC header, all at weight 400 with the tracking
+ * the face needs. Those are in parity again and are checked, not exempted.
+ *
+ * What still differs, on purpose:
+ *   - body copy moved from Light to Regular, so every text run is a little wider and the
+ *     prose column reflows;
+ *   - the TOC entries move to IBM Plex Sans at 14px, from the reference's Ark Pixel at 16px:
+ *     it is a list you scan, and that is where the bitmap face stops paying for itself;
+ *   - "On this page" runs at Ark Pixel's own 16px rather than the reference's 14px, so it
+ *     lands on whole device pixels.
  *
  * Expressed as substitutions wherever possible rather than as blanket per-selector
- * exclusions, so an unexpected weight or family still fails. Only the two places whose SIZE
- * changed get a selector-level exemption.
+ * exclusions, so an unexpected weight or family still fails.
  */
 const WEIGHT_SUBSTITUTIONS = [
   ['300', '400'], // global body weight raised out of Light
-  ['400', '600'], // headings
-  ['300', '600'], // nav labels and <strong>, which the old body-weight rule flattened to 300
-  ['500', '600'], // TOC header button
+  ['300', '600'], // <strong>, which the old body-weight rule flattened to 300
 ];
 const FAMILY_SUBSTITUTION = ['ark pixel', 'ibm plex sans'];
 
-/** Selectors whose font SIZE changed, so their box and position legitimately move. */
+/** Selectors whose font SIZE or weight changed, so their box and position legitimately move. */
 const RESIZED_SELECTORS = {
-  sidebarGroupHeader: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
-  sidebarTitle: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
-  sidebarUl: ['__rect'], sidebarLi: ['__rect'], sidebarLink: ['__rect'],
-  sidebarLinkActive: ['__rect'], sidebarItems: ['__rect'],
-  sidebarGroup1: ['__rect', 'height'], sidebarGroup2: ['__rect', 'height'],
   toc: ['fontSize', 'lineHeight', 'letterSpacing', 'height', '__rect'],
   tocLink: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
   tocLinkD1: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
   tocItem: ['height', '__rect'], tocItemD1: ['height', '__rect'],
   tocActive: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
   tocUl: ['height', '__rect'], tocViewport: ['height', '__rect'],
-  tocHeaderBtn: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
-  // Headings and prose reflow because the face and tracking changed.
-  pageTitle: ['letterSpacing', 'width', '__rect'],
-  h1: ['letterSpacing', 'width', 'height', '__rect'],
-  h2: ['letterSpacing', 'width', 'height', '__rect'],
-  h3: ['letterSpacing', 'width', 'height', '__rect'],
-  h4: ['letterSpacing', 'width', 'height', '__rect'],
-  headingAnchor: ['letterSpacing', 'height', '__rect'],
-  headingAnchorBox: ['__rect'],
-  stepTitle: ['letterSpacing', 'width', 'height', '__rect'],
+  tocHeaderBtn: ['fontSize', 'lineHeight', 'width', 'height', '__rect'],
+  // Prose reflows because the body weight changed: a paragraph that wraps one line further
+  // pushes everything under it down by a line, so block positions move even where the
+  // element's own type is in parity. Sizes, families and tracking are still checked.
+  h1: ['__rect'], h2: ['__rect'], h3: ['__rect'], h4: ['__rect'],
+  headingAnchor: ['__rect'], headingAnchorBox: ['__rect'], stepTitle: ['__rect'],
   p: ['height', '__rect'], pAny: ['height', '__rect'],
   strong: ['width', '__rect'], em: ['width', '__rect'], link: ['width', '__rect'],
   li: ['height', '__rect'], ul: ['height', '__rect'], ol: ['height', '__rect'],

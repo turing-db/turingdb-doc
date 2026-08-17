@@ -71,7 +71,7 @@ Assets under `/assets/` and `/fonts/` are content-hashed or never edited in plac
 ## Where the design lives
 
 `src/theme.css` is the whole design system: the colour ramp, the fonts, the prose rhythm, and
-the site-specific touches (pixel cursor, Ark Pixel nav/TOC, card treatment) that used to live in
+the site-specific touches (pixel cursor, Ark Pixel display type, card treatment) that used to live in
 a separate `style.css`. Every non-obvious value in it was measured off the previous render, and
 the comments say why. The two things most likely to surprise you:
 
@@ -85,11 +85,24 @@ Body-copy brightness is one token, `--color-prose-text` (currently `gray-200`, 1
 the page background). Every rule that paints prose text reads it, so that one line dials the
 whole site. Sidebar, TOC and navbar stay dimmer on purpose, for hierarchy.
 
-Typography is one family, IBM Plex Sans, in real weights (300/400/600 plus a true italic) —
-`--font-heading` and `--font-nav` both point at it. The original set headings, nav titles and
-the TOC in Ark Pixel, a 16px bitmap face; it reads well at display sizes but poorly at the
-14-16px the TOC and sidebar run at. The font file is still shipped, so pointing
-`--font-heading` back at `"Ark Pixel"` restores the old look.
+Typography is split by job, across four `--font-*` tokens:
+
+| token | face | carries |
+|---|---|---|
+| `--font-heading` | Ark Pixel 16px | page titles, `h1`–`h6`, step titles, "On this page" |
+| `--font-nav-label` | Ark Pixel 16px | sidebar group titles |
+| `--font-body` / `--font-nav` | IBM Plex Sans | body copy, sidebar page links, TOC entries |
+| `--font-mono` | IBM Plex Mono | code |
+
+Ark Pixel is a bitmap face drawn on a 16px grid, so it is crisp at 16px and its multiples and
+mushy below. That is the whole reason for the split: it carries display type, where it is
+striking and legible, and nothing you have to scan. The two nav labels are pinned to `1rem`
+for the same reason — at 14px each stem falls on 7/8ths of a device pixel and greys out.
+
+It also has exactly one weight, so nothing on it may ask for bold: measured in Chromium, 500
+is pixel-for-pixel identical to 400 and 600 smears every stem. Headings are 400 with +0.06em
+tracking; emphasis in that type comes from the face, not from weight. IBM Plex Sans carries
+real weights (300/400/600) and a true italic.
 
 ## CI
 
@@ -120,8 +133,10 @@ this repo, so the geometry and pixel modes only run where it exists.
 a committed record of all 293 heading ids the old site published. Regenerate it with
 `node scripts/test-slug.mjs --update` (needs the snapshot) if the content's headings change.
 
-Last measured: **99.75%** of 134,416 geometry assertions pass; mean per-slice pixel difference
-**1.10%**.
+Last measured: **99.67%** of 127,945 geometry assertions pass, with 6 critical failures; mean
+per-slice pixel difference **3.76%**. The pixel figure is dominated by the body-weight change
+below — every paragraph on the site renders in Regular against the original's Light, so almost
+every slice differs a little everywhere.
 
 ## Deliberate differences from the previously hosted site
 
@@ -142,16 +157,18 @@ Last measured: **99.75%** of 134,416 geometry assertions pass; mean per-slice pi
 7. **Body copy is brighter** — `gray-200` rather than `gray-400`, 15.5:1 against the background
    instead of 7.9:1. `<strong>` consequently carries weight 600 and pure white: at that body
    brightness, the original's colour-only emphasis separates by 1.27:1, which is invisible.
-8. **One typeface for all text, in real weights.** Ark Pixel is no longer applied to headings,
-   nav titles or the TOC; body copy is Regular (400) rather than Light (300); emphasis uses a
-   true italic instead of a synthesised oblique. Headings are 600 at -0.01em rather than 400 at
-   +0.06em — the wide tracking existed to stop bitmap glyphs looking cramped.
+8. **Ark Pixel carries display type only.** The original also set the TOC entries in it; they
+   are IBM Plex Sans at 14px now, since a list you scan is the one place a bitmap face costs
+   more than it gives. Page titles, headings and the sidebar group titles are unchanged from
+   the original, and "On this page" runs at Ark Pixel's own 16px rather than 14px.
+9. **Body copy is Regular (400), not Light (300)**, and emphasis uses a true italic instead of
+   a synthesised oblique — the original loaded only the Light cut of IBM Plex Sans, so every
+   bold and italic on the page was synthesised. This is the one change that reflows prose.
 
 ## Known residuals
 
-- Sidebar auto-scroll lands within ~3px of the original on 4 of 35 pages (exact on the rest).
-  The rule was fitted to measured per-page offsets; no simple `scrollIntoView` mode reproduces
-  them.
+- Sidebar auto-scroll is within 2px of the original on all 35 pages, exact on 23. The rule was
+  fitted to the measured per-page offsets; no simple `scrollIntoView` mode reproduces them.
 - Cumulative vertical drift up to ~35px on the longest pages (`quickstart`,
   `concepts/versioning_system`), from small residual spacing differences inside `Steps`.
 - Wide tables clip their last column rather than scrolling visibly. This is faithful to the

@@ -28,7 +28,9 @@ export function Sidebar({ inDrawer = false }: { inDrawer?: boolean }) {
     // left alone, otherwise the list scrolls so the item lands ~0.44 of the way down.
     // Plain scrollIntoView (nearest or center) does not reproduce these offsets.
     const SLACK = 64;
-    const REST_RATIO = 0.44;
+    // 0.437, not 0.44: re-solved against all 35 reference offsets. 0.44 landed 31/35 within
+    // 2px and missed the four graph_dev pages by 3-4px; 0.437 is 35/35, worst case 2px.
+    const REST_RATIO = 0.437;
     const max = Math.max(0, vp.scrollHeight - vp.clientHeight);
     const comfortablyVisible = li.offsetTop + li.offsetHeight <= vp.clientHeight - SLACK;
     vp.scrollTop = comfortablyVisible
