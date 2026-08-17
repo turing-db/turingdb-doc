@@ -66,7 +66,7 @@
      rather than read once (body copy, sidebar page links, TOC entries) stays on IBM Plex
      Sans; an earlier revision put the whole nav and TOC on the pixel face at 14px, which is
      where it stopped being legible. */
-  --font-heading: "Ark Pixel", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-heading: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   /* Nav *items*: sidebar page links, TOC entries. */
@@ -241,12 +241,19 @@
        margin-collapse rules and the step-title override below can tie and win on order. --- */
 .prose :where(h1, h2, h3, h4, h5, h6):not(.not-prose) {
   font-family: var(--font-heading);
-  /* 400, not 600: Ark Pixel ships a single weight, and a synthesised bold smears a bitmap
-     face. The +0.06em is what keeps the glyphs from reading cramped — a pixel font has no
-     sidebearings to speak of. */
-  font-weight: 400;
-  letter-spacing: 0.06em;
+  /* Light (300), with slightly tight tracking — the +0.06em that went with Ark Pixel exists to
+     give bitmap glyphs air; on a proportional face it just reads loose. */
+  font-weight: 300;
+  letter-spacing: -0.01em;
   scroll-margin-top: var(--scroll-mt);
+}
+/* …but Light is a DISPLAY weight, and it only earns its keep where the type is large enough to
+   carry thin stems: the page title (36px), h1 (30px) and h2 (24px). From h3 (20px) down the
+   size step over 16px body copy is small, and a 300-weight heading ends up physically thinner
+   than the paragraph it introduces — hierarchy running backwards. Those hold at 400.
+   Same specificity as the rule above (`:where()` adds none), so source order decides. */
+.prose :where(h3, h4, h5, h6):not(.not-prose) {
+  font-weight: 400;
 }
 .prose :where(h1):not(.not-prose) {
   font-size: 30px;
@@ -650,13 +657,12 @@
   letter-spacing: 0.08em !important;
   line-height: 1.3;
 }
+/* Both nav labels read from --font-nav-label, so the heading stack can change independently
+   of them — "On this page" is an <h2> in the DOM but a nav label on the page. */
 .sidebar-group-header,
-.sidebar-title {
-  font-family: var(--font-nav-label) !important;
-}
-/* "On this page" is a real <h2>, so it takes the heading stack rather than the nav one. */
+.sidebar-title,
 #table-of-contents h2 button {
-  font-family: var(--font-heading) !important;
+  font-family: var(--font-nav-label) !important;
 }
 /* rule 6 */
 .sidebar-group a {
@@ -711,8 +717,16 @@
 #page-title,
 #content-area :is(h1, h2, h3, h4, h5, h6):not(.not-prose) {
   font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+/* The display sizes take Light; h3 and below hold at 400. Split because the `!important` that
+   beats `font-semibold` would otherwise flatten the h3-and-below rule in the prose block. */
+#page-title,
+#content-area :is(h1, h2):not(.not-prose) {
+  font-weight: 300 !important;
+}
+#content-area :is(h3, h4, h5, h6):not(.not-prose) {
   font-weight: 400 !important;
-  letter-spacing: 0.06em;
 }
 
 /* No mono metric compensation is needed: measured side by side, paperMono and IBM Plex Mono

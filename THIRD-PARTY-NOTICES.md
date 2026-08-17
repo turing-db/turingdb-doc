@@ -11,8 +11,8 @@ which permits redistribution and bundling.
 | `IBMPlexSans-{Light,Regular,Italic,SemiBold}.woff2` | IBM Plex Sans | OFL-1.1 — © 2017 IBM Corp., Reserved Font Name "Plex" | <https://github.com/IBM/plex> |
 | `ArkPixel16px-Latin.woff2` | Ark Pixel | OFL-1.1 | <https://github.com/TakWolf/ark-pixel-font> |
 
-Ark Pixel carries display type only — page titles, headings, the sidebar group titles and the
-TOC header. See the `--font-heading` comment in `src/theme.css`.
+Ark Pixel carries the two nav labels only — the sidebar group titles and the TOC header. See
+the `--font-nav-label` comment in `src/theme.css`.
 
 All font files live in `public/fonts/` and are tracked in git. Ark Pixel and IBM Plex Sans Light
 came with the original design; IBM Plex Mono and the Regular / Italic / SemiBold cuts of IBM

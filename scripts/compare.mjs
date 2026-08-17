@@ -117,17 +117,22 @@ const INTENTIONAL = {
 /**
  * Where typography deliberately leaves parity.
  *
- * Display type is back on Ark Pixel, the 16px bitmap face the reference used: page titles,
- * h1-h6, the sidebar group labels and the TOC header, all at weight 400 with the tracking
- * the face needs. Those are in parity again and are checked, not exempted.
+ * Ark Pixel — the 16px bitmap face the reference used — now carries the nav labels only: the
+ * sidebar group titles and "On this page". Those match the reference's size, weight and
+ * tracking and are checked, not exempted.
  *
- * What still differs, on purpose:
+ * What differs, on purpose:
+ *   - the titles are IBM Plex Sans, Light at the display sizes (page title 36px, h1 30px,
+ *     h2 24px) and Regular from h3 down, with -0.01em rather than the +0.06em a bitmap face
+ *     needs. Family, weight and tracking all move, so heading boxes move with them;
  *   - body copy moved from Light to Regular, so every text run is a little wider and the
  *     prose column reflows;
  *   - the TOC entries move to IBM Plex Sans at 14px, from the reference's Ark Pixel at 16px:
  *     it is a list you scan, and that is where the bitmap face stops paying for itself;
  *   - "On this page" runs at Ark Pixel's own 16px rather than the reference's 14px, so it
- *     lands on whole device pixels.
+ *     lands on whole device pixels, and reads --font-nav-label rather than the heading stack
+ *     so the title face can change without dragging it along. Same first family, different
+ *     fallbacks, hence the fontFamily exemption.
  *
  * Expressed as substitutions wherever possible rather than as blanket per-selector
  * exclusions, so an unexpected weight or family still fails.
@@ -135,6 +140,7 @@ const INTENTIONAL = {
 const WEIGHT_SUBSTITUTIONS = [
   ['300', '400'], // global body weight raised out of Light
   ['300', '600'], // <strong>, which the old body-weight rule flattened to 300
+  ['400', '300'], // the display-size titles, which take Light
 ];
 const FAMILY_SUBSTITUTION = ['ark pixel', 'ibm plex sans'];
 
@@ -146,12 +152,17 @@ const RESIZED_SELECTORS = {
   tocItem: ['height', '__rect'], tocItemD1: ['height', '__rect'],
   tocActive: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
   tocUl: ['height', '__rect'], tocViewport: ['height', '__rect'],
-  tocHeaderBtn: ['fontSize', 'lineHeight', 'width', 'height', '__rect'],
-  // Prose reflows because the body weight changed: a paragraph that wraps one line further
-  // pushes everything under it down by a line, so block positions move even where the
-  // element's own type is in parity. Sizes, families and tracking are still checked.
-  h1: ['__rect'], h2: ['__rect'], h3: ['__rect'], h4: ['__rect'],
-  headingAnchor: ['__rect'], headingAnchorBox: ['__rect'], stepTitle: ['__rect'],
+  tocHeaderBtn: ['fontFamily', 'fontSize', 'lineHeight', 'width', 'height', '__rect'],
+  // The titles changed face and tracking, so their own boxes move. Prose reflows on top of
+  // that: a paragraph that wraps one line further pushes everything under it down by a line.
+  pageTitle: ['letterSpacing', 'width', '__rect'],
+  h1: ['letterSpacing', 'width', 'height', '__rect'],
+  h2: ['letterSpacing', 'width', 'height', '__rect'],
+  h3: ['letterSpacing', 'width', 'height', '__rect'],
+  h4: ['letterSpacing', 'width', 'height', '__rect'],
+  headingAnchor: ['letterSpacing', 'height', '__rect'],
+  headingAnchorBox: ['__rect'],
+  stepTitle: ['letterSpacing', 'width', 'height', '__rect'],
   p: ['height', '__rect'], pAny: ['height', '__rect'],
   strong: ['width', '__rect'], em: ['width', '__rect'], link: ['width', '__rect'],
   li: ['height', '__rect'], ul: ['height', '__rect'], ol: ['height', '__rect'],
