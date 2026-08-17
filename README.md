@@ -71,15 +71,15 @@ Assets under `/assets/` and `/fonts/` are content-hashed or never edited in plac
 ## Where the design lives
 
 `src/theme.css` is the whole design system: the colour ramp, the fonts, the prose rhythm, and
-the site-specific touches (pixel cursor, Ark Pixel nav labels, card treatment) that used to live in
+the site-specific touches (pixel cursor, type scale, card treatment) that used to live in
 a separate `style.css`. Every non-obvious value in it was measured off the previous render, and
 the comments say why. The two things most likely to surprise you:
 
 - The rules are deliberately **unlayered**. `@tailwindcss/typography` emits into
   `@layer utilities`, so anything in `@layer components` loses to it.
 - A global "everything that isn't a heading uses the body weight" rule means most
-  `font-semibold` in the markup is inert. Four things opt out: the TOC header, card titles,
-  code inside headings, and `<strong>`.
+  `font-semibold` in the markup is inert. Five things opt out: the two nav labels (downwards,
+  to 300), card titles, code inside headings, and `<strong>`.
 
 Body-copy brightness is one token, `--color-prose-text` (currently `gray-200`, 15.5:1 against
 the page background). Every rule that paints prose text reads it, so that one line dials the
@@ -90,23 +90,34 @@ Typography is split by job, across four `--font-*` tokens:
 | token | face | carries |
 |---|---|---|
 | `--font-heading` | IBM Plex Sans | page titles, `h1`–`h6`, step titles |
-| `--font-nav-label` | Ark Pixel 16px | sidebar group titles, "On this page" |
+| `--font-nav-label` | IBM Plex Sans | sidebar group titles, "On this page" |
 | `--font-body` / `--font-nav` | IBM Plex Sans | body copy, sidebar page links, TOC entries |
 | `--font-mono` | IBM Plex Mono | code |
 
-Titles are Light (300) at the display sizes and Regular (400) from `h3` down. Light is a
-display weight: it gives the page title and `h2` real composure, but at 20px against 16px body
-copy a 300-weight heading is physically thinner than the paragraph it introduces, so the
-hierarchy runs backwards. The cut-off is 24px, and it is asserted in two places — the prose
-block and the `#content-area` rule — because the `!important` that beats `font-semibold` would
-otherwise flatten it.
+One family, in three registers of weight:
 
-Ark Pixel is a bitmap face drawn on a 16px grid: crisp at 16px and its multiples, mushy below.
-It keeps the two nav labels, pinned to `1rem` — at 14px each stem falls on 7/8ths of a device
-pixel and greys out. It has exactly one weight, so nothing on it may ask for bold: measured in
-Chromium, 500 is pixel-for-pixel identical to 400 and 600 smears every stem. Note that "On
-this page" is an `<h2>` in the DOM but reads `--font-nav-label`, not the heading stack — that
-is deliberate, and it is what lets the title face change without dragging the label with it.
+| | size | weight |
+|---|---|---|
+| page title / `h1` / `h2` | 36 / 30 / 24px | 300 |
+| nav labels | 16px | 300 |
+| `h3`–`h6`, body copy, nav items | 20px and below | 400 |
+
+Light is a display weight, so the rule is that it applies where something other than weight
+carries the hierarchy. On the titles that is size: at 36px and 24px Light has composure, but at
+20px against 16px body copy a 300-weight heading is physically thinner than the paragraph it
+introduces and the hierarchy runs backwards. The cut-off is 24px, asserted in two places — the
+prose block and the `#content-area` rule — because the `!important` that beats `font-semibold`
+would otherwise flatten it. On the two nav labels it is colour: they sit at `gray-200`/`gray-300`
+over `gray-400` items, and hold `1rem` against 14px items, so a lighter weight still reads as a
+label. Note that "On this page" is an `<h2>` in the DOM but reads `--font-nav-label` rather than
+the heading stack, which is what lets the titles and the labels move independently.
+
+Ark Pixel — the 16px bitmap face the original used for the titles, the nav labels and the TOC —
+is **still shipped and applied nowhere**. Point `--font-heading` or `--font-nav-label` at
+`"Ark Pixel"` to bring it back. If you do: it is crisp at 16px and its multiples and mushy
+below, so pin whatever takes it to a multiple of 16; and it has exactly one weight, so nothing
+on it may ask for bold — measured in Chromium, 500 is pixel-for-pixel identical to 400 and 600
+smears every stem.
 
 ## CI
 
@@ -137,12 +148,11 @@ this repo, so the geometry and pixel modes only run where it exists.
 a committed record of all 293 heading ids the old site published. Regenerate it with
 `node scripts/test-slug.mjs --update` (needs the snapshot) if the content's headings change.
 
-Last measured: **99.65%** of 127,521 geometry assertions pass, with 6 critical failures; mean
-per-slice pixel difference **3.94%**. The pixel figure is dominated by the two type changes
-below — every paragraph renders in Regular against the original's Light, and every title in
-Plex rather than the original's bitmap face — so almost every slice differs a little
-everywhere. For scale: with the titles on Ark Pixel it was 3.76%, and with them in SemiBold
-4.20%.
+Last measured: **99.62%** of 127,354 geometry assertions pass, with 6 critical failures; mean
+per-slice pixel difference **4.09%**. The pixel figure is dominated by the type changes below:
+no text on the page is set the way the original set it, so almost every slice differs a little
+everywhere. For scale, as the titles moved: Ark Pixel 3.76%, Plex Light 3.94%, and 4.09% once
+the nav labels followed.
 
 ## Deliberate differences from the previously hosted site
 
@@ -163,11 +173,11 @@ everywhere. For scale: with the titles on Ark Pixel it was 3.76%, and with them 
 7. **Body copy is brighter** — `gray-200` rather than `gray-400`, 15.5:1 against the background
    instead of 7.9:1. `<strong>` consequently carries weight 600 and pure white: at that body
    brightness, the original's colour-only emphasis separates by 1.27:1, which is invisible.
-8. **Ark Pixel carries the nav labels only.** The original set the titles, the TOC entries and
-   the sidebar group titles in it. The group titles keep it, at its own 16px; the TOC entries
-   are IBM Plex Sans at 14px, since a list you scan is where a bitmap face costs more than it
-   gives; and the titles are IBM Plex Sans Light, tracked at -0.01em rather than +0.06em.
-   "On this page" keeps the face at 16px rather than the original's 14px.
+8. **Ark Pixel is not applied.** The original set the titles, the nav labels and the TOC entries
+   in a 16px bitmap face; all of them are IBM Plex Sans now — the titles Light at -0.01em rather
+   than 400 at +0.06em, the nav labels Light with no tracking, the TOC entries at 14px. The two
+   nav labels keep the original's 16px, which was a pixel-grid accommodation and is now what
+   separates a label from the 14px list beneath it. The font file is still shipped.
 9. **Body copy is Regular (400), not Light (300)**, and emphasis uses a true italic instead of
    a synthesised oblique — the original loaded only the Light cut of IBM Plex Sans, so every
    bold and italic on the page was synthesised. This is the one change that reflows prose.

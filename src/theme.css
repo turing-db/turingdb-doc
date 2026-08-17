@@ -60,19 +60,18 @@
 
   /* ---- typography ---- */
   --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  /* Ark Pixel 16px is a bitmap face: its glyphs are drawn on a 16px grid, so it is crisp at
-     16px and its multiples and mushy anywhere below. It carries display type only — page
-     titles, h1-h6, the sidebar group labels and the TOC header. Anything that is scanned
-     rather than read once (body copy, sidebar page links, TOC entries) stays on IBM Plex
-     Sans; an earlier revision put the whole nav and TOC on the pixel face at 14px, which is
-     where it stopped being legible. */
+  /* One family across the site. Ark Pixel — the 16px bitmap face the original used for the
+     titles, the nav labels and the TOC — is still shipped in public/fonts and is now applied
+     nowhere: point either token below at "Ark Pixel", … to bring it back. Kept as two tokens
+     rather than one because the seam is what lets the titles and the nav labels move
+     independently, which is how each of them got changed on its own. */
   --font-heading: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
   /* Nav *items*: sidebar page links, TOC entries. */
   --font-nav: "IBM Plex Sans", system-ui, sans-serif;
-  /* Nav *labels*: the sidebar group titles and "On this page", on the pixel face. */
-  --font-nav-label: "Ark Pixel", "IBM Plex Sans", system-ui, sans-serif;
+  /* Nav *labels*: the sidebar group titles and "On this page". */
+  --font-nav-label: "IBM Plex Sans", system-ui, sans-serif;
 
   /* The global "everything that isn't a heading uses the body weight" rule resolves through
      this. It must live in the font-weight namespace — putting it in --font-* makes
@@ -200,9 +199,8 @@
 .mint-root :is(strong, b) {
   font-weight: 600;
 }
-/* Nav chrome (group titles, "On this page") is deliberately NOT re-asserted here. It reads as
-   a label by way of the pixel typeface, and Ark Pixel has no bold to reach for — asking for
-   one gets a synthesised smear. See the .sidebar-group-header rule in the chrome section. */
+/* Nav chrome (group titles, "On this page") sets its own weight — below the body's, not above
+   it. See the .sidebar-group-header rule in the chrome section. */
 
 /* ============================================================ prose
    NOT wrapped in @layer: @tailwindcss/typography emits into @layer utilities, which beats
@@ -641,20 +639,23 @@
   font-size: 0.875rem !important;
 }
 
-/* The two nav labels — the sidebar group titles and "On this page" — carry the pixel face.
-   16px is not a size choice but the font's design size: at 14px every stem falls on 7/8ths
-   of a device pixel and the glyphs grey out. No font-weight here on purpose. Ark Pixel has one
-   weight, and Chromium starts synthesising bold at 600 — measured, 500 renders pixel-for-pixel
-   identical to 400 while 600 smears every stem. So the sidebar labels sit at the inherited 400
-   and the TOC header keeps the 500 its font-medium class gives it (the body-weight rule exempts
-   heading descendants); both paint the same. A label reads as a label here through the typeface
-   and the tracking, not through weight.
+/* The two nav labels — the sidebar group titles and "On this page" — follow the titles onto
+   IBM Plex Sans Light.
+   The 1rem is held over from the pixel face, where 16px was the design size rather than a
+   choice. Keep it: the items under a label run 14.4px/400, so at 300 the label is the lighter
+   of the two and size plus colour (gray-200 over gray-400) are what still make it read as a
+   heading. Drop this to 0.875rem and it goes smaller, lighter AND barely brighter than its list.
+   The +0.08em goes with the bitmap glyphs it was spacing out; a proportional label wants 0.
+   Weight is asserted rather than inherited because the TOC header is an `h2 *`, which the
+   global body-weight rule exempts — left alone it would keep the 500 from its font-medium
+   class and out-weigh the sidebar label beside it.
    Beats the #table-of-contents rule above on specificity, so order here is not load-bearing. */
 .sidebar-group-header,
 .sidebar-title,
 #table-of-contents h2 button {
   font-size: 1rem !important;
-  letter-spacing: 0.08em !important;
+  font-weight: 300 !important;
+  letter-spacing: 0 !important;
   line-height: 1.3;
 }
 /* Both nav labels read from --font-nav-label, so the heading stack can change independently

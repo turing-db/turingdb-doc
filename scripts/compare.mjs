@@ -141,6 +141,7 @@ const WEIGHT_SUBSTITUTIONS = [
   ['300', '400'], // global body weight raised out of Light
   ['300', '600'], // <strong>, which the old body-weight rule flattened to 300
   ['400', '300'], // the display-size titles, which take Light
+  ['500', '300'], // the TOC header, which follows the other nav label down to Light
 ];
 const FAMILY_SUBSTITUTION = ['ark pixel', 'ibm plex sans'];
 
@@ -152,7 +153,11 @@ const RESIZED_SELECTORS = {
   tocItem: ['height', '__rect'], tocItemD1: ['height', '__rect'],
   tocActive: ['fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
   tocUl: ['height', '__rect'], tocViewport: ['height', '__rect'],
-  tocHeaderBtn: ['fontFamily', 'fontSize', 'lineHeight', 'width', 'height', '__rect'],
+  tocHeaderBtn: ['fontFamily', 'fontSize', 'lineHeight', 'letterSpacing', 'width', 'height', '__rect'],
+  // The nav labels lost the bitmap face's +0.08em, so their text is narrower than the
+  // reference's. Their font SIZE is unchanged, so the boxes below them do not move.
+  sidebarGroupHeader: ['letterSpacing', 'width'],
+  sidebarTitle: ['letterSpacing', 'width'],
   // The titles changed face and tracking, so their own boxes move. Prose reflows on top of
   // that: a paragraph that wraps one line further pushes everything under it down by a line.
   pageTitle: ['letterSpacing', 'width', '__rect'],
