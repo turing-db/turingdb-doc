@@ -1,0 +1,5 @@
+# Keep the upload small; the image builds these from source.
+node_modules
+dist
+dist-ssr
+*.log

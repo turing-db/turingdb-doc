@@ -1,0 +1,133 @@
+name: Deploy
+
+# Pushes to main are deployed to Railway. Pull requests get the build check only, so a
+# broken branch cannot reach production.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time. A newer push supersedes an in-flight PR check, but never an
+# in-flight deploy — cancelling mid-deploy could leave a half-rolled revision.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Fails fast on a broken build before anything is uploaded. Railway rebuilds from the
+  # Dockerfile anyway, but a red check here points at the actual error rather than at a
+  # remote build log.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The route table and search index are generated and gitignored, so they must exist
+      # before tsc runs — a fresh checkout has neither.
+      - name: Generate routes and search index
+        run: npm run gen
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Heading anchors match the previously published site
+        run: node scripts/test-slug.mjs
+
+      - name: Build
+        run: npm run build
+
+      - name: Every page prerendered
+        run: |
+          count=$(find dist -name index.html | wc -l)
+          echo "prerendered $count pages"
+          test "$count" -ge 35
+
+      # Handed to the deploy job so the smoke test can prove the new revision is the
+      # one actually being served.
+      - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        with:
+          name: index-html
+          path: dist/index.html
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Railway
+    # Never from a pull request, including forks — secrets are not exposed there anyway.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://turingdb-docs-production.up.railway.app
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      SITE_URL: https://turingdb-docs-production.up.railway.app
+    steps:
+      - uses: actions/checkout@v7
+
+      # `secrets` is not available in an `if:` expression, so this is checked in the shell.
+      - name: Require the deploy token
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::RAILWAY_TOKEN is not set. Create a project token in the Railway"
+            echo "::error::dashboard (project -> Settings -> Tokens, environment: production)"
+            echo "::error::and add it as a repository secret named RAILWAY_TOKEN."
+            exit 1
+          fi
+
+      - name: Install the Railway CLI
+        run: npm i -g @railway/cli@5 --foreground-scripts
+
+      # railway up uploads this directory and builds the Dockerfile remotely. The
+      # Dockerfile's own page-count guard means a broken prerender fails the build rather
+      # than shipping an empty site.
+      - name: Deploy
+        run: railway up --ci --service turingdb-docs
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: index-html
+          path: expected
+
+      - name: Wait for the new revision to serve
+        run: |
+          want=$(md5sum < expected/index.html | cut -d' ' -f1)
+          echo "expecting index.html md5 $want"
+          for i in $(seq 1 20); do
+            got=$(curl -fsS --max-time 20 "$SITE_URL/?cb=$GITHUB_SHA-$i" 2>/dev/null | md5sum | cut -d' ' -f1)
+            if [ "$got" = "$want" ]; then
+              echo "new revision is live"
+              exit 0
+            fi
+            echo "  attempt $i: serving $got"
+            sleep 15
+          done
+          echo "::error::live index.html still does not match this build after ~5 minutes"
+          exit 1
+
+      - name: Smoke-test routes
+        run: |
+          fail=0
+          for p in / /quickstart /concepts/overview /pythonsdk/reference; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$SITE_URL$p")
+            echo "  $p -> $code"
+            [ "$code" = "200" ] || fail=1
+          done
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$SITE_URL/does-not-exist")
+          echo "  /does-not-exist -> $code (want 404)"
+          [ "$code" = "404" ] || fail=1
+          exit $fail

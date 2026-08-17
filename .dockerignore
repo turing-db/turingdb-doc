@@ -1,0 +1,7 @@
+# Mirrors .railwayignore so a local `docker build` reproduces the remote build.
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+**/*.log

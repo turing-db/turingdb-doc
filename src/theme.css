@@ -1,0 +1,805 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Dark is class-driven, not a media query. Tailwind v4 defaults `dark:` to
+   prefers-color-scheme, which would render this site light. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The .mdx content carries className in one place (the YouTube iframe in
+   concepts/overview.mdx). Without scanning it, those utilities are never generated and the
+   embed renders as an unstyled 300x150 box. */
+@source "../**/*.mdx";
+@source "../src/**/*.{ts,tsx}";
+
+@theme {
+  /* ---- brand, from docs.json ---- */
+  --color-primary: rgb(77 255 136);
+  --color-primary-light: rgb(125 255 168);
+  --color-primary-dark: rgb(33 204 94);
+  --color-background-dark: rgb(11 11 12);
+  --color-background-light: rgb(255 255 255);
+  --color-codeblock: #0b0c0e;
+
+  /* ---- green-tinted gray ramp Mintlify derives from the primary colour ---- */
+  --color-gray-50: rgb(245 250 247);
+  --color-gray-100: rgb(240 245 242);
+  --color-gray-200: rgb(224 230 226);
+  --color-gray-300: rgb(208 213 210);
+  --color-gray-400: rgb(160 166 162);
+  --color-gray-500: rgb(114 119 116);
+  --color-gray-600: rgb(82 87 84);
+  --color-gray-700: rgb(64 70 66);
+  --color-gray-800: rgb(39 45 41);
+  --color-gray-900: rgb(25 30 26);
+  --color-gray-950: rgb(12 17 14);
+
+  /* ---- accent steps pinned to the values the live site actually computes.
+     Tailwind v4 ships OKLCH versions of these that differ visibly
+     (e.g. v4 green-600 = #00A63E vs the measured #16A34A). ---- */
+  --color-blue-50: #eff6ff;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-600: #2563eb;
+  --color-blue-900: #1e3a8a;
+  --color-green-50: #f0fdf4;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-600: #16a34a;
+  --color-green-900: #14532d;
+  --color-yellow-50: #fefce8;
+  --color-yellow-200: #fef08a;
+  --color-yellow-300: #fde047;
+  --color-yellow-600: #ca8a04;
+  --color-yellow-900: #713f12;
+  --color-neutral-50: #fafafa;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-300: #d4d4d4;
+  --color-neutral-600: #525252;
+  --color-neutral-700: #404040;
+  --color-neutral-800: #262626;
+
+  /* ---- typography ---- */
+  --font-body: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* One family across the site. Ark Pixel — the 16px bitmap face the original used for the
+     titles, the nav labels and the TOC — is still shipped in public/fonts and is now applied
+     nowhere: point either token below at "Ark Pixel", … to bring it back. Kept as two tokens
+     rather than one because the seam is what lets the titles and the nav labels move
+     independently, which is how each of them got changed on its own. */
+  --font-heading: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  /* Nav *items*: sidebar page links, TOC entries. */
+  --font-nav: "IBM Plex Sans", system-ui, sans-serif;
+  /* Nav *labels*: the sidebar group titles and "On this page". */
+  --font-nav-label: "IBM Plex Sans", system-ui, sans-serif;
+
+  /* The global "everything that isn't a heading uses the body weight" rule resolves through
+     this. It must live in the font-weight namespace — putting it in --font-* makes
+     `font-bodyWeight` compile to font-family and silently do nothing.
+     400 rather than the original 300: Light stems are thin at 16px on a dark background. */
+  --font-weight-bodyWeight: 400;
+
+  --container-8xl: 92rem; /* 1472px — measured, not 1440 */
+
+  /* Readable body copy. The original render used gray-400 (#A0A6A2, 7.9:1 on the page
+     background); this sits at gray-200 (15.5:1), level with the headings. Every place that
+     paints prose text reads this one token — change it here to dial the whole site.
+     Chrome (sidebar, TOC, navbar) is deliberately left dimmer for hierarchy. */
+  --color-prose-text: var(--color-gray-200);
+}
+
+/* ============================================================ fonts */
+@font-face {
+  font-family: "Ark Pixel";
+  src: url("/fonts/ArkPixel16px-Latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block; /* block, not swap: a pixel-font swap is a violent reflow */
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+/* A real italic: the content uses emphasis, which was previously a synthesised oblique. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: block;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ============================================================ base */
+@layer base {
+  /* Mintlify's preflight resets every border-color to gray-800 rather than Tailwind v4's
+     currentColor. Invisible while border-width is 0, but it is what the reference computes
+     on essentially every element. */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--color-gray-800);
+  }
+  html {
+    height: 100%;
+    overflow: auto;
+    color-scheme: dark;
+    tab-size: 4;
+    font-size: 16px;
+    --scroll-mt: 152px;
+    scroll-behavior: auto;
+  }
+  body {
+    position: relative;
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: #fff;
+    background-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-osx-font-smoothing: grayscale;
+  }
+  /* The page background is a fixed -z-10 span (see <BackgroundLayer/>), matching the
+     reference; html/body stay transparent. */
+
+  ::selection {
+    /* reference has no custom selection colour — leave the UA default */
+  }
+}
+
+/* Global pixelated cursor — repo style.css rule 1 */
+*,
+*::before,
+*::after {
+  cursor: url("/images/cursor.png?v=3") 0 0, auto !important;
+}
+
+/* ============================================================
+   Mintlify's global body-weight rule.
+   Every font-semibold / font-medium in the ported class strings is inert because of
+   this; bold is signalled by colour. Exceptions are re-asserted individually below.
+   ============================================================ */
+.mint-root
+  *:not(h1, h2, h3, h4, h5, h6, h1 *, h2 *, h3 *, h4 *, h5 *, h6 *) {
+  font-weight: var(--font-weight-bodyWeight);
+}
+/* …except emphasis, which needs real weight now that the body copy is near-white. */
+.mint-root :is(strong, b) {
+  font-weight: 600;
+}
+/* Nav chrome (group titles, "On this page") sets its own weight — below the body's, not above
+   it. See the .sidebar-group-header rule in the chrome section. */
+
+/* ============================================================ prose
+   NOT wrapped in @layer: @tailwindcss/typography emits into @layer utilities, which beats
+   @layer components. Unlayered rules beat every layer, which is what we need here.
+   ============================================================ */
+.prose-overrides-marker { --x: 0 }
+.prose {
+  max-width: none; /* plugin default 65ch ~= 585px; measured column is 688.81px */
+  --tw-prose-invert-body: var(--color-prose-text);
+  --tw-prose-invert-headings: #fff;
+  --tw-prose-invert-lead: var(--color-prose-text);
+  --tw-prose-invert-links: var(--color-gray-50);
+  --tw-prose-invert-bold: #fff;
+  --tw-prose-invert-counters: #99a1af;
+  --tw-prose-invert-bullets: var(--color-gray-600);
+  --tw-prose-invert-hr: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+  --tw-prose-invert-quotes: var(--color-prose-text);
+  --tw-prose-invert-quote-borders: var(--color-gray-800);
+  --tw-prose-invert-captions: var(--color-gray-500);
+  --tw-prose-invert-code: var(--color-gray-200);
+  --tw-prose-invert-pre-code: #d4d4d4;
+  --tw-prose-invert-pre-bg: var(--color-codeblock);
+  --tw-prose-invert-th-borders: color-mix(in srgb, var(--color-gray-700) 50%, transparent);
+  --tw-prose-invert-td-borders: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+}
+.mdx-content,
+.card-group {
+  color: var(--color-prose-text);
+}
+.mdx-content {
+  font-size: 16px;
+  line-height: 28px;
+}
+
+/* --- headings. Guard is `:not(.not-prose)` only — a single class-level guard, so the
+       margin-collapse rules and the step-title override below can tie and win on order. --- */
+.prose :where(h1, h2, h3, h4, h5, h6):not(.not-prose) {
+  font-family: var(--font-heading);
+  /* Light (300), with slightly tight tracking — the +0.06em that went with Ark Pixel exists to
+     give bitmap glyphs air; on a proportional face it just reads loose. */
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  scroll-margin-top: var(--scroll-mt);
+}
+/* …but Light is a DISPLAY weight, and it only earns its keep where the type is large enough to
+   carry thin stems: the page title (36px), h1 (30px) and h2 (24px). From h3 (20px) down the
+   size step over 16px body copy is small, and a 300-weight heading ends up physically thinner
+   than the paragraph it introduces — hierarchy running backwards. Those hold at 400.
+   Same specificity as the rule above (`:where()` adds none), so source order decides. */
+.prose :where(h3, h4, h5, h6):not(.not-prose) {
+  font-weight: 400;
+}
+.prose :where(h1):not(.not-prose) {
+  font-size: 30px;
+  line-height: 36px;
+  margin-top: 32px;
+  margin-bottom: 26.6667px;
+  color: #fff;
+}
+.prose :where(h2):not(.not-prose) {
+  font-size: 24px;
+  line-height: 32px;
+  margin-top: 48px;
+  margin-bottom: 16px;
+  color: #fff;
+}
+.prose :where(h3):not(.not-prose) {
+  font-size: 20px;
+  line-height: 28px;
+  margin-top: 48px;
+  margin-bottom: 12px;
+  color: var(--color-gray-50);
+}
+/* h4 does not occur in this content; values follow the plugin scale + repo overrides */
+.prose :where(h4):not(.not-prose) {
+  font-size: 18px;
+  line-height: 27px;
+  margin-top: 36px;
+  margin-bottom: 9px;
+  color: #fff;
+}
+.prose :where(h5, h6):not(.not-prose) {
+  font-size: 16px;
+  line-height: 28px;
+  margin: 0;
+  color: var(--color-prose-text);
+}
+
+/* --- paragraphs --- */
+.prose p:not(.not-prose, .not-prose *) {
+  line-height: inherit;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  color: var(--color-prose-text);
+}
+
+/* --- inline emphasis --- */
+.prose strong:not(.not-prose, .not-prose *){
+  /* Emphasis is carried by weight, not colour: against the brightened body, colour alone
+     separates by only 1.27:1. 600 against a 400 body, so it reads clearly. */
+  font-weight: 600;
+  color: #fff;
+}
+.prose em:not(.not-prose, .not-prose *){
+  font-style: italic;
+  color: var(--color-prose-text);
+}
+
+/* --- links: gray-50 text with a primary-light 1px rule; 2px on hover --- */
+.prose a.link:not(.not-prose, .not-prose *){
+  position: relative;
+  z-index: 10;
+  color: var(--color-gray-50);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-primary);
+  overflow-wrap: break-word;
+  font-weight: 300;
+}
+.prose a.link:not(.not-prose, .not-prose *):hover{
+  border-bottom-width: 2px;
+}
+/* A link inside a heading is heading text: it follows the heading's own weight rather than
+   asking the pixel face for a bold it does not have. */
+.prose :is(h1:not(.not-prose, .not-prose *), h2, h3, h4, h5, h6) a {
+  font-weight: inherit;
+  color: inherit;
+}
+.prose a.link:not(.not-prose, .not-prose *):focus-visible{
+  outline: 1px auto var(--color-primary-light);
+  outline-offset: 1px;
+}
+
+/* --- unordered lists: bullets are ::before circles, not list markers --- */
+.prose ul:not(.not-prose, .not-prose *){
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 0;
+  list-style-type: none;
+}
+.prose ul > li:not(.not-prose, .not-prose *){
+  position: relative;
+  padding-left: 2em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: inherit;
+}
+.prose ul > li:not(.not-prose, .not-prose *)::before{
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 11px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-gray-600);
+}
+.prose ul ul:not(.not-prose, .not-prose *),
+.prose ul ol:not(.not-prose, .not-prose *),
+.prose ol ul:not(.not-prose, .not-prose *),
+.prose ol ol:not(.not-prose, .not-prose *){
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* --- ordered lists use real decimal markers --- */
+.prose ol:not(.not-prose, .not-prose *){
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 34px;
+  list-style-type: decimal;
+}
+.prose ol > li:not(.not-prose, .not-prose *){
+  padding-left: 6px;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose ol > li:not(.not-prose, .not-prose *)::before{
+  content: none;
+}
+.prose ol > li:not(.not-prose, .not-prose *)::marker{
+  color: #99a1af;
+}
+
+/* --- blockquote: 4px rule, upright, no quote glyphs --- */
+.prose blockquote:not(.not-prose, .not-prose *){
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
+  padding-left: 1.5em;
+  border-left: 4px solid var(--color-gray-800);
+  font-style: normal;
+  font-weight: 300;
+  quotes: none;
+  color: var(--color-prose-text);
+}
+.prose blockquote p:not(.not-prose, .not-prose *)::before,
+.prose blockquote p:not(.not-prose, .not-prose *)::after,
+.prose blockquote:not(.not-prose, .not-prose *)::before,
+.prose blockquote:not(.not-prose, .not-prose *)::after{
+  content: none;
+}
+
+/* --- hr --- */
+.prose hr:not(.not-prose, .not-prose *){
+  margin-top: 48px;
+  margin-bottom: 48px;
+  border-width: 0;
+  border-color: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+  border-top-width: 1px;
+}
+
+/* --- inline code: relative size, so it shrinks inside callouts and table cells --- */
+.prose code:not(pre code):not(.not-prose, .not-prose *){
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  line-height: 1.5;
+  /* Matches the body weight and the code blocks; Light read noticeably thinner than the
+     surrounding prose once the body moved to 400. */
+  font-weight: 400;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--color-gray-200);
+  background-color: rgb(255 255 255 / 0.05);
+  word-break: break-word;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.prose code:not(.not-prose, .not-prose *)::before,
+.prose code:not(.not-prose, .not-prose *)::after{
+  content: none;
+}
+.prose :is(tbody:not(.not-prose, .not-prose *), thead) code:not(pre code) {
+  font-size: 0.75rem;
+  line-height: 18px;
+}
+
+/* --- neutralise the plugin's pre styling so Shiki's own background wins --- */
+.prose pre:not(.not-prose, .not-prose *){
+  background: none;
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  font-size: 14px;
+  line-height: 24px;
+  font-weight: 300;
+}
+
+/* --- images: <picture> is display:contents upstream, so margins live nowhere.
+       Neutralise the plugin's 2em and let surrounding block margins do the work. --- */
+.prose :is(img:not(.not-prose, .not-prose *), picture, video, figure) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.prose img:not(.not-prose, .not-prose *){
+  max-width: 100%;
+  height: auto;
+}
+
+/* --- tables --- */
+.prose table:not(.not-prose, .not-prose *){
+  margin: 0;
+  width: 100%;
+  min-width: 100%;
+  max-width: none;
+  font-size: 14px;
+  line-height: 20px;
+  border-collapse: collapse;
+}
+.prose thead:not(.not-prose, .not-prose *){
+  color: var(--color-gray-700);
+  border-color: color-mix(in srgb, var(--color-gray-700) 50%, transparent);
+  border-bottom-width: 1px;
+}
+.prose th:not(.not-prose, .not-prose *){
+  text-align: left;
+  vertical-align: bottom;
+  color: #fff;
+  font-weight: 300;
+  padding: 0 8px 8px 0;
+}
+.prose th:not(:first-child):not(.not-prose, .not-prose *){
+  padding-left: 8px;
+}
+.prose th:last-child:not(.not-prose, .not-prose *){
+  padding-right: 0;
+}
+.prose tbody tr:not(.not-prose, .not-prose *){
+  border-color: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+  border-bottom-width: 1px;
+  vertical-align: middle;
+}
+.prose td:not(.not-prose, .not-prose *){
+  vertical-align: baseline;
+  color: var(--color-prose-text);
+  min-width: 150px;
+  padding: 8px 8px 8px 0;
+}
+.prose td:not(:first-child):not(.not-prose, .not-prose *){
+  padding-left: 8px;
+}
+.prose td:last-child:not(.not-prose, .not-prose *){
+  padding-right: 0;
+}
+.prose td[data-numeric]:not(.not-prose, .not-prose *){
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- margin collapse. MUST come after the per-element rules above: `:is(...)` contributes
+       only element-level specificity, so these tie and source order decides. This is the
+       rule that puts a list, table or code block flush under its heading.
+       Two exclusions matter, both verified against the reference:
+         - h1 is NOT in the sibling list (a heading after `# Title` keeps its 48px)
+         - h1 is exempt from the first-child reset (a page opening with `# Title` keeps
+           its 32px, while one opening with `## Title` does not) --- */
+.prose > :first-child:not(h1):not(.steps):not(.not-prose, .not-prose *),
+.prose :is(h2, h3, h4):not(.not-prose) + *:not([data-table-wrapper]):not(.steps):not(.not-prose, .not-prose *),
+.prose hr + *:not(.not-prose, .not-prose *) {
+  margin-top: 0;
+}
+.prose > :is(p, ul, ol):last-child:not(.not-prose, .not-prose *) {
+  margin-bottom: 0;
+}
+
+/* Tailwind v4's rounded-full resolves to a huge length; the reference reports 9999px. */
+[data-component-part="step-number"] > div {
+  border-radius: 9999px;
+}
+
+/* The table wrapper's own 1em block margin, asserted unlayered: the typography plugin's
+   `h3 + * { margin-top: 0 }` otherwise wins over the `my-[1em]` utility. */
+[data-table-wrapper] {
+  margin-block: 1em;
+}
+.callout {
+  margin-block: 16px;
+}
+
+/* Step titles carry `mt-2`, which ties with the prose heading margin and loses on source
+   order. Assert the measured values (8px above, 16px below for the h2 variant). */
+.prose p[data-component-part="step-title"],
+.prose h2[data-component-part="step-title"] {
+  margin-top: 8px;
+}
+.prose p[data-component-part="step-title"] {
+  color: var(--color-gray-200);
+}
+.prose :where(h2)[data-component-part="step-title"] {
+  margin-bottom: 16px;
+}
+.prose p[data-component-part="step-title"] {
+  margin-bottom: 1.25em;
+}
+
+/* Inline code in a heading stays semibold — the body-weight rule exempts heading
+   descendants, so this must not be flattened to 300 like body code is. */
+.prose :is(h1, h2, h3, h4, h5, h6) code {
+  font-weight: 600;
+}
+
+/* Callout colours come from the type, not from prose. Upstream wraps callout paragraphs in
+   spans so nothing re-asserts the body grey; we use real <p>, so the colour is pushed down
+   explicitly at a specificity that beats prose-invert. */
+.callout[data-callout-type="note"],
+.callout[data-callout-type="info"] {
+  --callout-fg: var(--color-blue-300);
+}
+.callout[data-callout-type="info"] {
+  --callout-fg: var(--color-neutral-300);
+}
+.callout[data-callout-type="tip"],
+.callout[data-callout-type="check"] {
+  --callout-fg: var(--color-green-300);
+}
+.callout[data-callout-type="warning"] {
+  --callout-fg: var(--color-yellow-300);
+}
+.callout[data-callout-type] [data-component-part="callout-content"],
+.callout[data-callout-type] [data-component-part="callout-content"] :is(p, li, ul, ol, strong, em, a, code) {
+  color: var(--callout-fg);
+}
+.callout[data-callout-type] [data-component-part="callout-content"] a {
+  border-bottom-color: currentColor;
+}
+
+/* ============================================================ Shiki
+   Same library and themes as the reference. Shiki emits the light colour inline on each
+   token plus a --shiki-dark custom property; these four rules are what makes the dark
+   theme actually paint (Mintlify ships the equivalent).
+   ============================================================ */
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark, #d4d4d4) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+.shiki,
+.code-block pre.shiki,
+[data-component-part="code-block-root"] pre.shiki {
+  background-color: transparent !important;
+}
+
+/* Inside a code block, <pre>/<code> are positioned blocks that fill the scroll width —
+   this is what lets a long line's highlight background span the full row. */
+.code-block pre {
+  position: relative;
+}
+.code-block pre {
+  width: 100%;
+  color: #d4d4d4;
+}
+.code-block pre > code {
+  display: block;
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  min-width: 100%;
+  padding-right: var(--code-padding-right, 99px);
+}
+
+/* ============================================================ chrome */
+
+/* The TOC entries: a list you scan, so they stay proportional at 14px rather than following
+   the header above them onto the pixel face. (The sidebar page links do the same, via rule 6
+   below.) */
+#table-of-contents,
+#table-of-contents a,
+.toc-item {
+  font-family: var(--font-nav) !important;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+#table-of-contents a,
+.toc-item {
+  font-size: 0.875rem !important;
+}
+
+/* The two nav labels — the sidebar group titles and "On this page" — follow the titles onto
+   IBM Plex Sans Light.
+   The 1rem is held over from the pixel face, where 16px was the design size rather than a
+   choice. Keep it: the items under a label run 14.4px/400, so at 300 the label is the lighter
+   of the two and size plus colour (gray-200 over gray-400) are what still make it read as a
+   heading. Drop this to 0.875rem and it goes smaller, lighter AND barely brighter than its list.
+   The +0.08em goes with the bitmap glyphs it was spacing out; a proportional label wants 0.
+   Weight is asserted rather than inherited because the TOC header is an `h2 *`, which the
+   global body-weight rule exempts — left alone it would keep the 500 from its font-medium
+   class and out-weigh the sidebar label beside it.
+   Beats the #table-of-contents rule above on specificity, so order here is not load-bearing. */
+.sidebar-group-header,
+.sidebar-title,
+#table-of-contents h2 button {
+  font-size: 1rem !important;
+  font-weight: 300 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.3;
+}
+/* Both nav labels read from --font-nav-label, so the heading stack can change independently
+   of them — "On this page" is an <h2> in the DOM but a nav label on the page. */
+.sidebar-group-header,
+.sidebar-title,
+#table-of-contents h2 button {
+  font-family: var(--font-nav-label) !important;
+}
+/* rule 6 */
+.sidebar-group a {
+  font-family: "IBM Plex Sans", system-ui, sans-serif !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+/* repo style.css rules 7-9, with one deliberate change: the original forced `gap: 0` so the
+   cards butted together into a single slab. Spacing is restored here at Mintlify's own
+   pre-override value (gap-4 = 16px), on both axes — the markup carries `gap-y-0`, so the row
+   gap has to be re-asserted too. Square corners are kept. */
+.card-group {
+  gap: 1rem !important;
+  row-gap: 1rem !important;
+  column-gap: 1rem !important;
+}
+.card {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  border-color: var(--color-primary-light) !important;
+  box-shadow: 0 0 0 1px var(--color-primary-light);
+  z-index: 1;
+}
+.card img[src^="/images/icons/"] {
+  image-rendering: pixelated;
+}
+.card [data-component-part="card-title"] {
+  font-family: "IBM Plex Sans", system-ui, sans-serif !important;
+  font-size: 1.3rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.01em;
+  line-height: 24px;
+}
+.card [data-component-part="card-content"] {
+  font-size: 0.9rem !important;
+  line-height: 24px;
+}
+.card [data-component-part="card-content"] p {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+/* repo style.css rule 10 — the page title and every heading outside .prose.
+   The `!important` is what beats the `font-semibold` on #page-title and on the MDX heading
+   component; :not(.not-prose) keeps card titles (also <h2>) out of it. */
+#page-title,
+#content-area :is(h1, h2, h3, h4, h5, h6):not(.not-prose) {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+/* The display sizes take Light; h3 and below hold at 400. Split because the `!important` that
+   beats `font-semibold` would otherwise flatten the h3-and-below rule in the prose block. */
+#page-title,
+#content-area :is(h1, h2):not(.not-prose) {
+  font-weight: 300 !important;
+}
+#content-area :is(h3, h4, h5, h6):not(.not-prose) {
+  font-weight: 400 !important;
+}
+
+/* No mono metric compensation is needed: measured side by side, paperMono and IBM Plex Mono
+   render an identical 8.0px advance at 14px (0.57143em), so code lines up character for
+   character. (A compensation was added on the strength of a 605-vs-600 upm reading from the
+   font tables; measuring the rendered advance showed that figure does not apply.) */
+
+/* Code block: no native scrollbar; a Base-UI-style overlay bar appears on hover/scroll */
+.mint-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mint-scroll::-webkit-scrollbar {
+  display: none !important;
+}
+
+.mint-overlay-bar {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.mint-scroll-area:hover .mint-overlay-bar,
+.mint-scroll-area[data-scrolling="true"] .mint-overlay-bar {
+  opacity: 1;
+}
+
+/* focus rings, matching the measured outline */
+:focus-visible {
+  outline: 1px auto var(--color-primary-light);
+}
+#sidebar a:focus-visible {
+  outline-offset: -1px;
+}
+#table-of-contents a:focus-visible {
+  outline-offset: 1px;
+}
+
+.link,
+.mdx-content a {
+  border-bottom-color: var(--color-primary);
+}
+.dark .link,
+.dark .mdx-content a.link {
+  border-bottom-color: var(--color-primary-light);
+}
+/* …but inside a callout the link takes the callout's colour. Declared after the rule above
+   because the two tie on specificity. */
+.callout[data-callout-type] [data-component-part="callout-content"] a,
+.dark .callout[data-callout-type] [data-component-part="callout-content"] a {
+  color: var(--callout-fg);
+  border-bottom-color: currentColor;
+}
+.nav-tabs-item {
+  position: relative;
+  z-index: 10;
+}
+/* heading anchor chips are bare links: no underline, no rule, gray-50 */
+.prose :is(h1, h2, h3, h4, h5, h6) a:not(.link) {
+  color: var(--color-gray-50);
+  text-decoration: none;
+  border-bottom-width: 0;
+}
+
+/* faux-bold used on active nav / TOC / tab labels */
+.faux-bold {
+  text-shadow: -0.2px 0 0 currentColor, 0.2px 0 0 currentColor;
+}
+.faux-bold-sm {
+  text-shadow: -0.15px 0 0 currentColor, 0.15px 0 0 currentColor;
+}
+
+/* Mermaid: <b> inside flowchart labels must stay at body weight, as upstream */
+[data-component-name="mermaid-container"] b,
+[data-component-name="mermaid-container"] strong {
+  font-weight: 300;
+}

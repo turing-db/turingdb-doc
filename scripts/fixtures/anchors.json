@@ -1,0 +1,1228 @@
+{
+ "benchmarks__results-summary": [
+  [
+   "​TuringDB Benchmarks",
+   "turingdb-benchmarks"
+  ],
+  [
+   "​Results Overview",
+   "results-overview"
+  ],
+  [
+   "​Reactome",
+   "reactome"
+  ],
+  [
+   "​Poledb",
+   "poledb"
+  ]
+ ],
+ "benchmarks__technical-report": [
+  [
+   "​TuringDB Benchmark Report",
+   "turingdb-benchmark-report"
+  ],
+  [
+   "​Executive Summary",
+   "executive-summary"
+  ],
+  [
+   "​Results Overview",
+   "results-overview"
+  ],
+  [
+   "​Poledb",
+   "poledb"
+  ],
+  [
+   "​Reactome",
+   "reactome"
+  ],
+  [
+   "​Test Environment",
+   "test-environment"
+  ],
+  [
+   "​Hardware",
+   "hardware"
+  ],
+  [
+   "​Software Versions",
+   "software-versions"
+  ],
+  [
+   "​Client Protocol",
+   "client-protocol"
+  ],
+  [
+   "​Dataset",
+   "dataset"
+  ],
+  [
+   "​Poledb",
+   "poledb-2"
+  ],
+  [
+   "​Reactome",
+   "reactome-2"
+  ],
+  [
+   "​Methodology",
+   "methodology"
+  ],
+  [
+   "​Benchmark Design",
+   "benchmark-design"
+  ],
+  [
+   "​Why Cold Runs",
+   "why-cold-runs"
+  ],
+  [
+   "​Execution Pipeline",
+   "execution-pipeline"
+  ],
+  [
+   "​Results by Query Category",
+   "results-by-query-category"
+  ],
+  [
+   "​Label Scans",
+   "label-scans"
+  ],
+  [
+   "​Full Graph Scans",
+   "full-graph-scans"
+  ],
+  [
+   "​Property-Based Filtering",
+   "property-based-filtering"
+  ],
+  [
+   "​Relationship Type Traversal",
+   "relationship-type-traversal"
+  ],
+  [
+   "​Multi-Hop Traversals",
+   "multi-hop-traversals"
+  ],
+  [
+   "​Complex Patterns",
+   "complex-patterns"
+  ],
+  [
+   "​Aggregations",
+   "aggregations"
+  ],
+  [
+   "​Why TuringDB Is Faster: Architectural Deep Dive",
+   "why-turingdb-is-faster-architectural-deep-dive"
+  ],
+  [
+   "​Column-Oriented Storage vs. Row-Oriented",
+   "column-oriented-storage-vs-row-oriented"
+  ],
+  [
+   "​Streaming Execution vs. Volcano Model",
+   "streaming-execution-vs-volcano-model"
+  ],
+  [
+   "​Zero-Locking Snapshot Isolation",
+   "zero-locking-snapshot-isolation"
+  ],
+  [
+   "​No Index Dependency",
+   "no-index-dependency"
+  ],
+  [
+   "​Where Competitors Win",
+   "where-competitors-win"
+  ],
+  [
+   "​Limitations and Caveats",
+   "limitations-and-caveats"
+  ],
+  [
+   "​Reproducing the Benchmark",
+   "reproducing-the-benchmark"
+  ],
+  [
+   "​Appendix A: Full Query Listing",
+   "appendix-a-full-query-listing"
+  ],
+  [
+   "​Poledb",
+   "poledb-3"
+  ],
+  [
+   "​Full Graph Scans",
+   "full-graph-scans-2"
+  ],
+  [
+   "​Label Scans",
+   "label-scans-2"
+  ],
+  [
+   "​Property-Based Filtering",
+   "property-based-filtering-2"
+  ],
+  [
+   "​Aggregations",
+   "aggregations-2"
+  ],
+  [
+   "​Relationship Type Traversal",
+   "relationship-type-traversal-2"
+  ],
+  [
+   "​Reactome",
+   "reactome-3"
+  ],
+  [
+   "​Label Scans",
+   "label-scans-3"
+  ],
+  [
+   "​Property-Based Filtering",
+   "property-based-filtering-3"
+  ],
+  [
+   "​Multi-Hop Traversals",
+   "multi-hop-traversals-2"
+  ],
+  [
+   "​Relationship Type Traversal",
+   "relationship-type-traversal-3"
+  ],
+  [
+   "​Complex Patterns",
+   "complex-patterns-2"
+  ],
+  [
+   "​Appendix B: Raw Timing Data",
+   "appendix-b-raw-timing-data"
+  ]
+ ],
+ "claude-skill": [
+  [
+   "​Install",
+   "install"
+  ],
+  [
+   "​Use it",
+   "use-it"
+  ],
+  [
+   "​What the skill covers",
+   "what-the-skill-covers"
+  ],
+  [
+   "​Links",
+   "links"
+  ]
+ ],
+ "commands": [
+  [
+   "​Start",
+   "start"
+  ],
+  [
+   "​Options",
+   "options"
+  ],
+  [
+   "​Examples",
+   "examples"
+  ],
+  [
+   "​UI",
+   "ui"
+  ],
+  [
+   "​Options",
+   "options-2"
+  ],
+  [
+   "​Examples",
+   "examples-2"
+  ],
+  [
+   "​Stop",
+   "stop"
+  ],
+  [
+   "​Options",
+   "options-3"
+  ],
+  [
+   "​Examples",
+   "examples-3"
+  ]
+ ],
+ "concepts__columnar_storage": [
+  [
+   "​Columnar Database Concept in TuringDB",
+   "columnar-database-concept-in-turingdb"
+  ],
+  [
+   "​Overview",
+   "overview"
+  ],
+  [
+   "​Why the Volcano Model Is Limiting Modern Analytics",
+   "why-the-volcano-model-is-limiting-modern-analytics"
+  ],
+  [
+   "​Enter Columnar Storage and Execution",
+   "enter-columnar-storage-and-execution"
+  ],
+  [
+   "​Benefits of Columnar Layout",
+   "benefits-of-columnar-layout"
+  ],
+  [
+   "​Columnar Execution in our Graph Database",
+   "columnar-execution-in-our-graph-database"
+  ],
+  [
+   "​TuringDB: A Column-Oriented Graph Database Engine",
+   "turingdb-a-column-oriented-graph-database-engine"
+  ],
+  [
+   "​What This Enables",
+   "what-this-enables"
+  ],
+  [
+   "​References",
+   "references"
+  ],
+  [
+   "​Streaming Execution Engine",
+   "streaming-execution-engine"
+  ],
+  [
+   "​Traditional vs Streaming: A Quick Recap",
+   "traditional-vs-streaming-a-quick-recap"
+  ],
+  [
+   "​Traditional Volcano Model",
+   "traditional-volcano-model"
+  ],
+  [
+   "​TuringDB’s Columnar Streaming Model",
+   "turingdb’s-columnar-streaming-model"
+  ],
+  [
+   "​How It Works: DataParts + Column Flow",
+   "how-it-works-dataparts-+-column-flow"
+  ],
+  [
+   "​Example:",
+   "example"
+  ],
+  [
+   "​Why Hasn’t This Been Done in Graph DBs Before?",
+   "why-hasn’t-this-been-done-in-graph-dbs-before"
+  ],
+  [
+   "​The TuringDB Solution",
+   "the-turingdb-solution"
+  ],
+  [
+   "​The DataPart System",
+   "the-datapart-system"
+  ],
+  [
+   "​Summary",
+   "summary"
+  ]
+ ],
+ "concepts__dataparts": [
+  [
+   "​Merging DataParts",
+   "merging-dataparts"
+  ],
+  [
+   "​Summary",
+   "summary"
+  ],
+  [
+   "​Related Concepts",
+   "related-concepts"
+  ]
+ ],
+ "concepts__overview": [
+  [
+   "​Our Philosophy: Built for the Complexity",
+   "our-philosophy-built-for-the-complexity"
+  ],
+  [
+   "​Why Teams Choose TuringDB",
+   "why-teams-choose-turingdb"
+  ],
+  [
+   "​Under the Hood",
+   "under-the-hood"
+  ],
+  [
+   "​Try It Now!",
+   "try-it-now"
+  ]
+ ],
+ "concepts__snapshots": [
+  [
+   "​Snapshot Isolation in TuringDB",
+   "snapshot-isolation-in-turingdb"
+  ],
+  [
+   "​What Is Snapshot Isolation?",
+   "what-is-snapshot-isolation"
+  ],
+  [
+   "​Key Guarantees",
+   "key-guarantees"
+  ],
+  [
+   "​TuringDB is Fully ACID-Compliant",
+   "turingdb-is-fully-acid-compliant"
+  ],
+  [
+   "​Industry Comparisons: Neo4J and MemGraph",
+   "industry-comparisons-neo4j-and-memgraph"
+  ],
+  [
+   "​Neo4J",
+   "neo4j"
+  ],
+  [
+   "​MemGraph",
+   "memgraph"
+  ],
+  [
+   "​TuringDB’s Approach to Snapshot Isolation",
+   "turingdb’s-approach-to-snapshot-isolation"
+  ],
+  [
+   "​Versioned Graphs by Design",
+   "versioned-graphs-by-design"
+  ],
+  [
+   "​Why It Matters",
+   "why-it-matters"
+  ],
+  [
+   "​Further Reading",
+   "further-reading"
+  ],
+  [
+   "​Summary",
+   "summary"
+  ]
+ ],
+ "concepts__versioning_system": [
+  [
+   "​Core Concepts",
+   "core-concepts"
+  ],
+  [
+   "​Usage Guide",
+   "usage-guide"
+  ],
+  [
+   "​Practical Example: Protein Interaction Study",
+   "practical-example-protein-interaction-study"
+  ]
+ ],
+ "concepts__zero_locking": [
+  [
+   "​The Problem with Traditional Databases",
+   "the-problem-with-traditional-databases"
+  ],
+  [
+   "​TuringDB’s Zero-Lock Architecture",
+   "turingdb’s-zero-lock-architecture"
+  ],
+  [
+   "​How It Works",
+   "how-it-works"
+  ],
+  [
+   "​Architecture Comparison",
+   "architecture-comparison"
+  ],
+  [
+   "​Summary",
+   "summary"
+  ]
+ ],
+ "graph_dev__time_travelling": [
+  [
+   "​Lazy Commit Loading",
+   "lazy-commit-loading"
+  ],
+  [
+   "​Example: Querying a Past Commit via the REST API",
+   "example-querying-a-past-commit-via-the-rest-api"
+  ]
+ ],
+ "graph_dev__update_properties": [
+  [
+   "​Setting a single property",
+   "setting-a-single-property"
+  ],
+  [
+   "​Setting multiple properties",
+   "setting-multiple-properties"
+  ],
+  [
+   "​Setting a property from an expression",
+   "setting-a-property-from-an-expression"
+  ],
+  [
+   "​Setting a property from another variable",
+   "setting-a-property-from-another-variable"
+  ],
+  [
+   "​Updating edge properties",
+   "updating-edge-properties"
+  ],
+  [
+   "​Updating a specific node by internal ID",
+   "updating-a-specific-node-by-internal-id"
+  ],
+  [
+   "​Using SET with WHERE",
+   "using-set-with-where"
+  ],
+  [
+   "​Setting a single property",
+   "setting-a-single-property-2"
+  ],
+  [
+   "​Setting multiple properties",
+   "setting-multiple-properties-2"
+  ],
+  [
+   "​Setting a property from an expression",
+   "setting-a-property-from-an-expression-2"
+  ],
+  [
+   "​Setting a property from another variable",
+   "setting-a-property-from-another-variable-2"
+  ],
+  [
+   "​Updating edge properties",
+   "updating-edge-properties-2"
+  ],
+  [
+   "​Updating a specific node by internal ID",
+   "updating-a-specific-node-by-internal-id-2"
+  ],
+  [
+   "​Using SET with WHERE",
+   "using-set-with-where-2"
+  ]
+ ],
+ "import_data__csv": [
+  [
+   "​Syntax",
+   "syntax"
+  ],
+  [
+   "​With headers",
+   "with-headers"
+  ],
+  [
+   "​Without headers (index access)",
+   "without-headers-index-access"
+  ],
+  [
+   "​Building a graph from CSV",
+   "building-a-graph-from-csv"
+  ]
+ ],
+ "import_data__gml": [
+  [
+   "​Expected file format",
+   "expected-file-format"
+  ],
+  [
+   "​Import steps",
+   "import-steps"
+  ],
+  [
+   "​Verify the import",
+   "verify-the-import"
+  ]
+ ],
+ "import_data__jsonl": [
+  [
+   "​Expected file format",
+   "expected-file-format"
+  ],
+  [
+   "​Loading embedding properties",
+   "loading-embedding-properties"
+  ],
+  [
+   "​Import steps",
+   "import-steps"
+  ],
+  [
+   "​Verify the import",
+   "verify-the-import"
+  ]
+ ],
+ "import_data__neo4j": [
+  [
+   "​Prerequisites",
+   "prerequisites"
+  ],
+  [
+   "​Migrating from Neo4j 4.x",
+   "migrating-from-neo4j-4-x"
+  ],
+  [
+   "​Verify the import",
+   "verify-the-import"
+  ]
+ ],
+ "import_data__parquet": [
+  [
+   "​LOAD PARQUET",
+   "load-parquet"
+  ],
+  [
+   "​turing-parquet",
+   "turing-parquet"
+  ],
+  [
+   "​When to use it",
+   "when-to-use-it"
+  ],
+  [
+   "​Quick usage",
+   "quick-usage"
+  ],
+  [
+   "​Expected file format",
+   "expected-file-format"
+  ],
+  [
+   "​Import steps",
+   "import-steps"
+  ],
+  [
+   "​Sub-record expansion",
+   "sub-record-expansion"
+  ],
+  [
+   "​Mapping rules",
+   "mapping-rules"
+  ],
+  [
+   "​Example",
+   "example"
+  ],
+  [
+   "​Deduplication in action",
+   "deduplication-in-action"
+  ],
+  [
+   "​Verify the import",
+   "verify-the-import"
+  ]
+ ],
+ "index": [
+  [
+   "​What is TuringDB?",
+   "what-is-turingdb"
+  ],
+  [
+   "​Guides",
+   "guides"
+  ],
+  [
+   "​Quickstart",
+   "quickstart"
+  ],
+  [
+   "​SDKs",
+   "sdks"
+  ]
+ ],
+ "pythonsdk__get_started": [
+  [
+   "​QuickStart: TuringDB Python SDK",
+   "quickstart-turingdb-python-sdk"
+  ],
+  [
+   "​1. Install the SDK",
+   "1-install-the-sdk"
+  ],
+  [
+   "​Option A: Using uv (modern package manager)",
+   "option-a-using-uv-modern-package-manager"
+  ],
+  [
+   "​Option B: Using pip",
+   "option-b-using-pip"
+  ],
+  [
+   "​2. Create a Graph:",
+   "2-create-a-graph"
+  ],
+  [
+   "​3. Create Nodes & Edges",
+   "3-create-nodes-&-edges"
+  ],
+  [
+   "​4. Query the Graph",
+   "4-query-the-graph"
+  ],
+  [
+   "​5. Version Control & Snapshots",
+   "5-version-control-&-snapshots"
+  ],
+  [
+   "​Create a new change (branch):",
+   "create-a-new-change-branch-"
+  ],
+  [
+   "​Query a specific commit:",
+   "query-a-specific-commit"
+  ],
+  [
+   "​Go back to main branch:",
+   "go-back-to-main-branch"
+  ],
+  [
+   "​Example: Full Session",
+   "example-full-session"
+  ],
+  [
+   "​🛠 What’s Next?",
+   "-what’s-next"
+  ]
+ ],
+ "pythonsdk__reference": [
+  [
+   "​TuringDB Python SDK",
+   "turingdb-python-sdk"
+  ],
+  [
+   "​Getting Started",
+   "getting-started"
+  ],
+  [
+   "​Client backends",
+   "client-backends"
+  ],
+  [
+   "​Core Methods",
+   "core-methods"
+  ],
+  [
+   "​list_available_graphs() → list[str]",
+   "list_available_graphs-→-liststr"
+  ],
+  [
+   "​list_loaded_graphs() → list[str]",
+   "list_loaded_graphs-→-liststr"
+  ],
+  [
+   "​create_graph(graph_name: str)",
+   "create_graph-graph_name-str"
+  ],
+  [
+   "​load_graph(graph_name: str, raise_if_loaded: bool = True)",
+   "load_graph-graph_name-str-raise_if_loaded-bool-=-true"
+  ],
+  [
+   "​query(query: str) → pandas.DataFrame",
+   "query-query-str-→-pandas-dataframe"
+  ],
+  [
+   "​query_raw(query: str) → dict",
+   "query_raw-query-str-→-dict"
+  ],
+  [
+   "​get_graph() → str / set_graph(graph_name: str)",
+   "get_graph-→-str-/-set_graph-graph_name-str"
+  ],
+  [
+   "​is_graph_loaded() → bool",
+   "is_graph_loaded-→-bool"
+  ],
+  [
+   "​new_change() → int",
+   "new_change-→-int"
+  ],
+  [
+   "​Version Control Helpers",
+   "version-control-helpers"
+  ],
+  [
+   "​checkout(change: int | str = \"main\", commit: str = \"HEAD\")",
+   "checkout-change-int-|-str-=-main-commit-str-=-head"
+  ],
+  [
+   "​set_commit(commit: str)",
+   "set_commit-commit-str"
+  ],
+  [
+   "​set_change(change: int | str)",
+   "set_change-change-int-|-str"
+  ],
+  [
+   "​set_graph(graph_name: str)",
+   "set_graph-graph_name-str"
+  ],
+  [
+   "​Connection & Timing Helpers",
+   "connection-&-timing-helpers"
+  ],
+  [
+   "​reconnect()",
+   "reconnect"
+  ],
+  [
+   "​try_reach(timeout: int = 5) / warmup(timeout: int = 5)",
+   "try_reach-timeout-int-=-5-/-warmup-timeout-int-=-5"
+  ],
+  [
+   "​get_query_exec_time() → float | None / get_total_exec_time() → float | None",
+   "get_query_exec_time-→-float-|-none-/-get_total_exec_time-→-float-|-none"
+  ],
+  [
+   "​S3 / Data Transfer",
+   "s3-/-data-transfer"
+  ],
+  [
+   "​s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)",
+   "s3_connect-bucket_name-access_key=none-secret_key=none-region=none-use_scratch=true"
+  ],
+  [
+   "​transfer(src, dst)",
+   "transfer-src-dst"
+  ],
+  [
+   "​Response Format",
+   "response-format"
+  ],
+  [
+   "​Error Handling",
+   "error-handling"
+  ],
+  [
+   "​Example Workflow",
+   "example-workflow"
+  ],
+  [
+   "​Notes",
+   "notes"
+  ]
+ ],
+ "query__cheatsheet": [
+  [
+   "​MATCH: Pattern Matching",
+   "match-pattern-matching"
+  ],
+  [
+   "​CREATE: Add Nodes & Edges",
+   "create-add-nodes-&-edges"
+  ],
+  [
+   "​MATCH + CREATE and MATCH + CREATE + RETURN",
+   "match-+-create-and-match-+-create-+-return"
+  ],
+  [
+   "​SET: Update Properties",
+   "set-update-properties"
+  ],
+  [
+   "​WHERE: Filter nodes and edges by properties",
+   "where-filter-nodes-and-edges-by-properties"
+  ],
+  [
+   "​SKIP and LIMIT",
+   "skip-and-limit"
+  ],
+  [
+   "​ORDER BY",
+   "order-by"
+  ],
+  [
+   "​Joins and Cartesian Products",
+   "joins-and-cartesian-products"
+  ],
+  [
+   "​Property Match Operators",
+   "property-match-operators"
+  ],
+  [
+   "​Boolean operators",
+   "boolean-operators"
+  ],
+  [
+   "​Comparison operators",
+   "comparison-operators"
+  ],
+  [
+   "​Data Types",
+   "data-types"
+  ],
+  [
+   "​RETURN Clause",
+   "return-clause"
+  ],
+  [
+   "​Expression evaluation",
+   "expression-evaluation"
+  ],
+  [
+   "​LOAD graphs",
+   "load-graphs"
+  ],
+  [
+   "​Load TuringDB graph",
+   "load-turingdb-graph"
+  ],
+  [
+   "​Load external data into TuringDB graph",
+   "load-external-data-into-turingdb-graph"
+  ],
+  [
+   "​Procedures (CALL)",
+   "procedures-call"
+  ],
+  [
+   "​DELETE",
+   "delete"
+  ],
+  [
+   "​Variable-length paths",
+   "variable-length-paths"
+  ],
+  [
+   "​Graph algorithms",
+   "graph-algorithms"
+  ],
+  [
+   "​Functions",
+   "functions"
+  ],
+  [
+   "​Aggregate Functions",
+   "aggregate-functions"
+  ],
+  [
+   "​Engine Commands",
+   "engine-commands"
+  ],
+  [
+   "​UNWIND",
+   "unwind"
+  ],
+  [
+   "​Property indexes",
+   "property-indexes"
+  ],
+  [
+   "​Useful Patterns",
+   "useful-patterns"
+  ]
+ ],
+ "query__cypher_subset": [
+  [
+   "​Basics",
+   "basics"
+  ],
+  [
+   "​Summary:",
+   "summary"
+  ],
+  [
+   "​Queries",
+   "queries"
+  ],
+  [
+   "​MATCH queries",
+   "match-queries"
+  ],
+  [
+   "​CREATE queries",
+   "create-queries"
+  ],
+  [
+   "​MATCH ... CREATE ... and MATCH ... CREATE ... RETURN ... queries",
+   "match-create-and-match-create-return-queries"
+  ],
+  [
+   "​WHERE queries",
+   "where-queries"
+  ],
+  [
+   "​Multi-pattern queries (Joins and Cartesian Products)",
+   "multi-pattern-queries-joins-and-cartesian-products"
+  ],
+  [
+   "​Cartesian Product",
+   "cartesian-product"
+  ],
+  [
+   "​Pattern-based Joins",
+   "pattern-based-joins"
+  ],
+  [
+   "​Mixing Paths and Cartesian Products",
+   "mixing-paths-and-cartesian-products"
+  ],
+  [
+   "​LIMIT keyword",
+   "limit-keyword"
+  ],
+  [
+   "​SKIP keyword",
+   "skip-keyword"
+  ],
+  [
+   "​Sorting with ORDER BY",
+   "sorting-with-order-by"
+  ],
+  [
+   "​Data Types",
+   "data-types"
+  ],
+  [
+   "​Operators",
+   "operators"
+  ],
+  [
+   "​Boolean operators",
+   "boolean-operators"
+  ],
+  [
+   "​Comparison operators",
+   "comparison-operators"
+  ],
+  [
+   "​Expression Evaluation in RETURN",
+   "expression-evaluation-in-return"
+  ],
+  [
+   "​Built-in Functions",
+   "built-in-functions"
+  ],
+  [
+   "​Introspection: labels(), edgeType()",
+   "introspection-labels--edgetype"
+  ],
+  [
+   "​Type conversion: toInteger(), toFloat(), toBoolean()",
+   "type-conversion-tointeger--tofloat--toboolean"
+  ],
+  [
+   "​Embedding comparison: cosine_similarity(), euclidean_distance()",
+   "embedding-comparison-cosine_similarity--euclidean_distance"
+  ],
+  [
+   "​Aggregation: count(), avg()",
+   "aggregation-count--avg"
+  ],
+  [
+   "​Procedures",
+   "procedures"
+  ],
+  [
+   "​Commands",
+   "commands"
+  ],
+  [
+   "​UNWIND",
+   "unwind"
+  ],
+  [
+   "​Property Indexes",
+   "property-indexes"
+  ],
+  [
+   "​Extensions",
+   "extensions"
+  ],
+  [
+   "​Roadmap",
+   "roadmap"
+  ]
+ ],
+ "quickstart": [
+  [
+   "​Create a Python project with TuringDB",
+   "create-a-python-project-with-turingdb"
+  ],
+  [
+   "​Python SDK",
+   "python-sdk"
+  ],
+  [
+   "​Exploring your graph:",
+   "exploring-your-graph"
+  ]
+ ],
+ "shortest-path": [
+  [
+   "​Sample dataset",
+   "sample-dataset"
+  ],
+  [
+   "​Syntax",
+   "syntax"
+  ],
+  [
+   "​Basic usage",
+   "basic-usage"
+  ],
+  [
+   "​Returning only the distance or only the path",
+   "returning-only-the-distance-or-only-the-path"
+  ],
+  [
+   "​Multiple sources or targets",
+   "multiple-sources-or-targets"
+  ],
+  [
+   "​Limitations",
+   "limitations"
+  ]
+ ],
+ "troubles__troubles": [
+  [
+   "​“Graph outdated” or TuringDB fails to start",
+   "“graph-outdated”-or-turingdb-fails-to-start"
+  ],
+  [
+   "​Contact us",
+   "contact-us"
+  ]
+ ],
+ "tutorials__example_notebooks": [
+  [
+   "​TuringDB Example Notebooks",
+   "turingdb-example-notebooks"
+  ],
+  [
+   "​Domain: Finance & Fraud Detection",
+   "domain-finance-&-fraud-detection"
+  ],
+  [
+   "​Paysim Financial Fraud Detection",
+   "paysim-financial-fraud-detection"
+  ],
+  [
+   "​Crypto Orbitaal Fraud Detection",
+   "crypto-orbitaal-fraud-detection"
+  ],
+  [
+   "​Domain: Transport & Logistics",
+   "domain-transport-&-logistics"
+  ],
+  [
+   "​London Transport (TfL)",
+   "london-transport-tfl"
+  ],
+  [
+   "​Supply Chain — ETO Chip Explorer",
+   "supply-chain-—-eto-chip-explorer"
+  ],
+  [
+   "​Domain: Healthcare & Life Sciences",
+   "domain-healthcare-&-life-sciences"
+  ],
+  [
+   "​Reactome Biological Pathways",
+   "reactome-biological-pathways"
+  ],
+  [
+   "​Healthcare Knowledge Graph",
+   "healthcare-knowledge-graph"
+  ],
+  [
+   "​CiteAb Antibody Data",
+   "citeab-antibody-data"
+  ],
+  [
+   "​Domain: Corporate & Governance",
+   "domain-corporate-&-governance"
+  ],
+  [
+   "​French Corporate Network",
+   "french-corporate-network"
+  ],
+  [
+   "​Integrate RDF File",
+   "integrate-rdf-file"
+  ],
+  [
+   "​Running the Notebooks",
+   "running-the-notebooks"
+  ],
+  [
+   "​Quick Start",
+   "quick-start"
+  ],
+  [
+   "​Prerequisites",
+   "prerequisites"
+  ],
+  [
+   "​Installation",
+   "installation"
+  ]
+ ],
+ "vector-search": [
+  [
+   "​Create a vector index",
+   "create-a-vector-index"
+  ],
+  [
+   "​Load embeddings",
+   "load-embeddings"
+  ],
+  [
+   "​Search",
+   "search"
+  ],
+  [
+   "​Standalone search",
+   "standalone-search"
+  ],
+  [
+   "​Combining with MATCH",
+   "combining-with-match"
+  ],
+  [
+   "​Manage indexes",
+   "manage-indexes"
+  ],
+  [
+   "​List all vector indexes",
+   "list-all-vector-indexes"
+  ],
+  [
+   "​Delete a vector index",
+   "delete-a-vector-index"
+  ],
+  [
+   "​Complete workflow",
+   "complete-workflow"
+  ],
+  [
+   "​Embeddings as node properties",
+   "embeddings-as-node-properties"
+  ],
+  [
+   "​Bulk-loading embeddings from Parquet — LOAD EMBEDDING FROM",
+   "bulk-loading-embeddings-from-parquet-—-load-embedding-from"
+  ]
+ ]
+}
