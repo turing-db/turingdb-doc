@@ -16,7 +16,7 @@ For example, `(n)`  would denote a node named `n`, whilst `[e]` would denote an 
 
 Nodes and edges can have both **label** and **property** constraints. As in standard CYPHER, property constraints are specified using curly brackets `{}`, whilst labels are specified using colon `:` syntax.
 
-An example of a node with a label constraint would be `(n:Person)`.
+An example of a node with a label constraint would be `(n:Person)`. The edge equivalent is the **edge type**, written the same way: `[e:FRIENDS_WITH]`. An edge has exactly one edge type.
 
 An example of an edge with a property constraint would be `[e {duration: 10}]`.
 
@@ -40,6 +40,7 @@ Queries are built around **nodes** and **edges**:
 You can add:
 
 - **Labels** with a colon `:` - e.g. `(n:Person)`
+- **Edge types** with a colon `:` - e.g. `[e:FRIENDS_WITH]` or `[:FRIENDS_WITH]`
 - **Property constraints** with curly braces `{}` - e.g. `[e {duration: 10}]`
 - **Both** at once - e.g. `(n:Person {name: 'John'})`
 
@@ -198,6 +199,26 @@ WHERE n.name = 'Gabby'
 AND e.play_poker = true
 RETURN n.name, m.age
 ```
+
+## Filtering on edge types
+
+`MATCH` queries can be restricted to a given edge type with the `[:EDGE_TYPE]` syntax, the edge counterpart of a node label:
+
+```cypher
+// Only KNOWS edges
+MATCH (n:Person)-[:KNOWS]->(m:Person)
+RETURN n.name, m.name
+
+// Name the edge to also return its properties
+MATCH (n:Person)-[e:KNOWS]->(m:Person)
+RETURN n.name, e.since, m.name
+
+// Each hop can have its own edge type
+MATCH (a:Person)-[:KNOWS]->(b:Person)-[:WORKS_AT]->(c:Company)
+RETURN a.name, b.name, c.name
+```
+
+An edge carries exactly one edge type, so each edge pattern takes a single `[:EDGE_TYPE]` constraint. Use `CALL db.edgeTypes()` to list the edge types available in the graph.
 
 ## Multi-pattern queries (Joins and Cartesian Products)
 
