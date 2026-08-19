@@ -15,7 +15,8 @@ MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
 - `()` → Node
 - `[]` → Edge
 - `-` → Undirected edge
-- Labels: `:Label`
+- Node labels: `:Label` - e.g. `(n:Person)`
+- Edge types: `:EDGE_TYPE` - e.g. `-[:KNOWS]->` (one edge type per edge)
 - Properties: `{key: 'value', age: 30}`
 
 ## CREATE: Add Nodes & Edges
@@ -126,6 +127,24 @@ WHERE n.name = 'Gabby'
 AND e.play_poker_together = true
 RETURN n.name, m.age
 ```
+
+## Edge type filtering
+
+```jsx
+// Match only edges of a given type
+MATCH (n:Person)-[:KNOWS]->(m:Person) RETURN n.name, m.name
+
+// Name the edge to also return its properties
+MATCH (n:Person)-[e:KNOWS]->(m:Person) RETURN n.name, e.since, m.name
+
+// One edge type per hop
+MATCH (a:Person)-[:KNOWS]->(b:Person)-[:WORKS_AT]->(c:Company) RETURN a.name, b.name, c.name
+
+// List the edge types in the graph
+CALL db.edgeTypes()
+```
+
+- An edge has exactly one edge type, so a pattern takes a single `[:EDGE_TYPE]` constraint
 
 ## SKIP and LIMIT
 
