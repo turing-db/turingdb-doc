@@ -46,7 +46,7 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
 | `targetSet`         | Variable bound to the target node(s) via a preceding `MATCH` clause |
 | `edgePropName`      | Name of the numeric edge property to use as weight                  |
 | `distanceReturnVar` | Output variable name for the total shortest distance                |
-| `pathReturnVar`     | Output variable name for the path string                            |
+| `pathReturnVar`     | Output variable name for the path: a list of ids alternating node, edge, node, … |
 
 ## Basic usage
 
@@ -71,12 +71,11 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
 </Tabs>
 
 ```
-+-------+--------------+
-| dist  | path         |
-+-------+--------------+
-| 11.29 | (0)-[1]->(6) |
-+-------+--------------+
+    dist       path
+0  11.29  [0, 1, 6]
 ```
+
+`path` lists the ids along the route, alternating node and edge: here node 0 (Ashchurch), edge 1, node 6 (Worcestershire Parkway). The node ids sit at the even positions; to turn them into names, query them separately (`MATCH (n) WHERE n = 6 RETURN n.name`).
 
 ### Returning only the distance or only the path
 
@@ -103,11 +102,8 @@ Both output variables are always computed — you can choose to return one or bo
 </Tabs>
 
 ```
-+-------+
-| dist  |
-+-------+
-| 11.29 |
-+-------+
+    dist
+0  11.29
 ```
 
 ## Multiple sources or targets
@@ -137,11 +133,8 @@ You can pass multiple nodes to the source or target set — `shortestPath` will 
 </Tabs>
 
 ```
-+------+--------------+
-| dist | path         |
-+------+--------------+
-| 12.6 | (1)-[5]->(6) |
-+------+--------------+
+   dist       path
+0  12.6  [1, 5, 6]
 ```
 
 ## Limitations
@@ -156,24 +149,8 @@ You can pass multiple nodes to the source or target set — `shortestPath` will 
   ```
 
   ```
-  PLAN_ERROR: Unexpected exception: projection variable n not found in output column
+  ANALYZE_ERROR: Cannot return n after SHORTESTPATH.
   ```
+
+  The same holds for a variable from any other pattern in the query: only `dist` and `path` can be returned after `shortestPath`. To label the route, resolve the ids in `path` with a second query.
 </Warning>
-
-<Tip>
-  You can still `MATCH` additional nodes outside of the source and target sets and include them in `RETURN`. The result will be a cartesian product with the shortest path output:
-
-  ```jsx
-  MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"}), (p{name:"Cheltenham Spa"})
-  shortestPath(n, m, distance, dist, path)
-  RETURN dist, path, p.name
-  ```
-
-  ```
-  +-------+--------------+----------------+
-  | dist  | path         | p.name         |
-  +-------+--------------+----------------+
-  | 11.29 | (0)-[1]->(6) | Cheltenham Spa |
-  +-------+--------------+----------------+
-  ```
-</Tip>

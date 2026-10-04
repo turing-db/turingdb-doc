@@ -362,10 +362,13 @@ MATCH (n)-[e:KNOWS]->(m) DELETE e
 ## Variable-length paths
 
 ```jsx
-// Postfix quantifiers (not Neo4j's -[*1..3]-)
+// Postfix quantifiers
 MATCH (a:Person)-[e]->+(b:Person) RETURN a, b      // one or more hops
 MATCH (a:Person)-[e]->*(b:Person) RETURN a, b      // zero or more hops
 MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
+
+// Neo4j-style ranges also work
+MATCH (a:Person)-[:KNOWS*1..3]->(b:Person) RETURN a, b
 ```
 
 ## Graph algorithms
@@ -378,8 +381,8 @@ MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
 
 | Function          | Description                                                        |
 | ----------------- | ------------------------------------------------------------------ |
-| `labels(n)`       | Node label as a string                                             |
-| `edgeType(e)`     | Edge type as a string                                              |
+| `labels(n)`       | Node labels as a list of strings                                   |
+| `type(e)`         | Edge type as a string (`edgeType()` was removed in 3.0)            |
 | `toInteger(expr)` | Parses a string as an integer                                      |
 | `toFloat(expr)`   | Parses a string as a float                                         |
 | `toBoolean(expr)` | Parses a string as a boolean                                       |
@@ -395,7 +398,7 @@ MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
 
 ```jsx
 // Introspection
-MATCH (n)-[e]->(m) RETURN labels(n), edgeType(e)
+MATCH (n)-[e]->(m) RETURN labels(n), type(e)
 
 // Type conversion
 MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name
@@ -425,7 +428,7 @@ MATCH (n:Person) RETURN count(*)
 | `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor vector search                                                                        |
 | `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes                                                                            |
 | `CREATE INDEX <name> FOR (n) ON n.prop` / `FOR [e] ON e.prop` | Create a property index (write; commit to take effect)                                          |
-| `DROP INDEX <name>`                    | Drop a property or vector index                                                                                                      |
+| `DROP INDEX <name>`                    | Drop a property or vector index (write; run inside a change)                                                                         |
 | `MERGE_DATAPARTS`                      | Compact the current graph's DataParts into one                                                                                      |
 | `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures                                                     |
 | `LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP\|FAIL] AS row` | Stream CSV rows (see [CSV import](/import_data/csv))                                                       |
@@ -433,8 +436,11 @@ MATCH (n:Person) RETURN count(*)
 ## UNWIND
 
 ```jsx
-// Expand a literal list into rows (literal lists only)
+// Expand a list into rows
 UNWIND [1, 2, 3] AS x RETURN x
+
+// ...including one held in a variable
+MATCH (n:Person) WITH collect(n.name) AS names UNWIND names AS name RETURN name
 
 // Return a list literal directly
 RETURN [1, 2, 3] AS nums
@@ -449,7 +455,10 @@ CREATE INDEX age_index FOR (n) ON n.age
 CHANGE SUBMIT
 MATCH (n) WHERE n.age = 30 RETURN n   // optimizer uses the index
 
-DROP INDEX age_index                  // remove
+// Dropping an index is a write too
+CHANGE NEW
+DROP INDEX age_index
+CHANGE SUBMIT
 ```
 
 ## Useful Patterns
