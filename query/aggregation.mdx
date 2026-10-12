@@ -9,10 +9,18 @@ These examples use the [sample graph](/query/matching) from the matching page.
 ## RETURN, DISTINCT and expressions
 
 ```cypher
-MATCH (n:Person) RETURN n.name, n.age + 5 AS adjusted
-MATCH (n:Person) RETURN DISTINCT n.city
-MATCH (n:Person) RETURN n.name AS nm ORDER BY size(nm) DESC, nm
-MATCH (n:Person) RETURN *
+MATCH (n:Person)
+RETURN n.name, n.age + 5 AS adjusted
+
+MATCH (n:Person)
+RETURN DISTINCT n.city
+
+MATCH (n:Person)
+RETURN n.name AS nm
+ORDER BY size(nm) DESC, nm
+
+MATCH (n:Person)
+RETURN *
 ```
 
 `RETURN *` returns every variable in scope (nodes as IDs). A column without an alias is named after its expression, for example `n.name`.
@@ -20,10 +28,21 @@ MATCH (n:Person) RETURN *
 ## ORDER BY, SKIP and LIMIT
 
 ```cypher
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC
-MATCH (n:Person) RETURN n.name, n.city, n.age ORDER BY n.city, n.age DESC
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 1 LIMIT 2
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age
+
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC
+
+MATCH (n:Person)
+RETURN n.name, n.city, n.age
+ORDER BY n.city, n.age DESC
+
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC SKIP 1 LIMIT 2
 ```
 
 - You can sort by several keys, by aliases and by expressions. Ascending is the default.
@@ -37,21 +56,43 @@ MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 1 LIMIT 2
 `WITH` pipes the result of one part of a query into the next. It is how you filter on aggregates and chain several stages:
 
 ```cypher
-MATCH (n:Person) WITH n WHERE n.age > 28 RETURN n.name
-MATCH (n:Person) WITH n.name AS name, n.age AS age ORDER BY age DESC LIMIT 2 RETURN name, age
-MATCH (n:Person) WITH n WHERE n.age > 26 WITH n WHERE n.age < 36 RETURN n.name
-MATCH (n:Person) WITH n.city AS city, count(*) AS c WHERE c > 1 RETURN city, c
-```
+MATCH (n:Person)
+WITH n
+WHERE n.age > 28
+RETURN n.name
 
-<Note>
-  Expressions in a `WITH` must be aliased: `WITH n.name AS name`. `RETURN` does not need aliases.
-</Note>
+MATCH (n:Person)
+WITH n.name AS name, n.age AS age
+ORDER BY age DESC LIMIT 2
+RETURN name, age
+
+MATCH (n:Person)
+WITH n
+WHERE n.age > 26
+WITH n
+WHERE n.age < 36
+RETURN n.name
+
+MATCH (n:Person)
+WITH n.city AS city, count(*) AS c
+WHERE c > 1
+RETURN city, c
+```
 
 ## UNION
 
 ```cypher
-MATCH (p:Person) RETURN p.name AS name UNION MATCH (c:Company) RETURN c.name AS name
-MATCH (p:Person) RETURN p.name AS name UNION ALL MATCH (c:Company) RETURN c.name AS name
+MATCH (p:Person)
+RETURN p.name AS name
+UNION
+MATCH (c:Company)
+RETURN c.name AS name
+
+MATCH (p:Person)
+RETURN p.name AS name
+UNION ALL
+MATCH (c:Company)
+RETURN c.name AS name
 ```
 
 `UNION` removes duplicates and `UNION ALL` keeps them. All branches must return the same column names, and each column must keep one value type across the branches.
@@ -67,13 +108,28 @@ ORDER BY employees DESC
 ```
 
 ```cypher
-MATCH (n:Person) RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
-MATCH (a)-[w:WORKS_AT]->(c) RETURN w.role, count(DISTINCT c) AS companies
-MATCH (n:Person) RETURN n.city, max(n.age) - min(n.age) AS spread
-MATCH (n:Person) RETURN sum(CASE WHEN n.age > 30 THEN 1 ELSE 0 END) AS seniors
-MATCH (n:Person) RETURN collect(n.name)[0..3] AS firstThree
-MATCH ()-[r]->() RETURN type(r) AS t, count(*) AS c ORDER BY c DESC
-MATCH (n) RETURN labels(n) AS l, count(*) AS c ORDER BY c DESC
+MATCH (n:Person)
+RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
+
+MATCH (a)-[w:WORKS_AT]->(c)
+RETURN w.role, count(DISTINCT c) AS companies
+
+MATCH (n:Person)
+RETURN n.city, max(n.age) - min(n.age) AS spread
+
+MATCH (n:Person)
+RETURN sum(CASE WHEN n.age > 30 THEN 1 ELSE 0 END) AS seniors
+
+MATCH (n:Person)
+RETURN collect(n.name)[0..3] AS firstThree
+
+MATCH ()-[r]->()
+RETURN type(r) AS t, count(*) AS c
+ORDER BY c DESC
+
+MATCH (n)
+RETURN labels(n) AS l, count(*) AS c
+ORDER BY c DESC
 ```
 
 | Aggregate | Notes |
@@ -88,39 +144,65 @@ There are no statistical aggregates such as `stdev` or `percentileCont`. Compute
 
 **Rules:**
 
-- Aggregates are **not allowed in `WHERE`**. Filter after a `WITH` instead (see above).
+- `WHERE` runs before aggregation, so to filter on an aggregate, compute it in a `WITH` first and filter on its alias (see the example below).
 - Aggregates cannot be nested: `count(count(*))` is an error.
-- A non-aggregated expression next to an aggregate may only use the grouping keys.
+- Aggregates can be combined with each other and with constants in one expression (`max(n.age) - min(n.age)`, `count(*) * 10`). To use a property in the same expression, return it as its own item so it is a grouping key: `RETURN n.age, n.age + count(*)` works.
 - With no grouping keys, an empty input still returns one row: `count` is `0`, `sum` is `0`, `avg` is `null` and `collect` is `[]`. With grouping keys, an empty input returns no rows.
+
+### Filtering on an aggregate
+
+```cypher
+MATCH (n:Person)
+WITH n.city AS city, count(*) AS people
+WHERE people > 1
+RETURN city, people
+```
 
 ## UNWIND
 
 `UNWIND` expands a list into one row per element. It accepts any list expression, including lists you computed earlier in the query:
 
 ```cypher
-UNWIND [1, 2, 3] AS x RETURN x * 10
-UNWIND range(1, 10, 3) AS x RETURN x
-MATCH (n:Person) WITH collect(n.name) AS names UNWIND names AS nm RETURN nm
-MATCH (n:Person) WITH collect(n) AS ns UNWIND ns AS p RETURN p.name
-MATCH (n:Person) UNWIND n.tags AS t RETURN t, count(*)
+UNWIND [1, 2, 3] AS x
+RETURN x * 10
+
+UNWIND range(1, 10, 3) AS x
+RETURN x
+
+MATCH (n:Person)
+WITH collect(n.name) AS names
+UNWIND names AS nm
+RETURN nm
+
+MATCH (n:Person)
+WITH collect(n) AS ns
+UNWIND ns AS p
+RETURN p.name
+
+MATCH (n:Person)
+UNWIND n.tags AS t
+RETURN t, count(*)
 ```
 
 `range(start, end[, step])` includes both bounds. Unwound nodes stay nodes, so `p.name` works after `UNWIND ns AS p`. You can also `UNWIND` a list of maps and read their keys: `UNWIND [{a: 1}, {a: 2}] AS m RETURN m.a`.
 
 <Warning>
-  Query parameters (`UNWIND $list`) are not supported. Write the list into the query text instead, for example `f"UNWIND {ids} AS x ..."` in Python.
+  Query parameters (`UNWIND $list`) are not yet supported. Write the list into the query text instead, for example `f"UNWIND {ids} AS x ..."` in Python.
 </Warning>
 
 ## Lists
 
 ```cypher
 RETURN [1, 2, 3, 4, 5][0], [1, 2, 3, 4, 5][-1], [1, 2, 3, 4, 5][1..3], [1, 2, 3][10]
+
 RETURN size([1, 2]), head([1, 2]), last([1, 2]), tail([1, 2]), reverse([1, 2, 3])
-MATCH (n:Person {name: 'Alice'}) RETURN n.tags[0], size(n.tags)
+
+MATCH (n:Person {name: 'Alice'})
+RETURN n.tags[0], size(n.tags)
+
 RETURN [1, 2] + [3], 'a' || 'b'
 ```
 
-- List literals can contain expressions, mixed types, nested lists and maps.
 - Indexing and slicing work on literals, list properties and function results (`labels(n)[0]`). Negative indexes count from the end, and an out-of-range index returns `null`.
 - Lists and maps compare by value with `=`.
 - `size(null)` and `head([])` return `null`.
@@ -129,8 +211,14 @@ RETURN [1, 2] + [3], 'a' || 'b'
 
 ```cypher
 RETURN [x IN range(1, 6) WHERE x % 2 = 0 | x * x]
-MATCH (a:Person) RETURN a.name, [(a)-[:KNOWS]->(b) | b.name] AS friends
-MATCH (n:Person) WHERE any(t IN n.tags WHERE t = 'vip') RETURN n.name
+
+MATCH (a:Person)
+RETURN a.name, [(a)-[:KNOWS]->(b) | b.name] AS friends
+
+MATCH (n:Person)
+WHERE any(t IN n.tags WHERE t = 'vip')
+RETURN n.name
+
 RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
 ```
 

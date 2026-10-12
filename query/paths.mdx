@@ -19,12 +19,23 @@ TuringDB supports both its own postfix quantifiers and the Neo4j bracket form:
 | `-[:KNOWS*]->` | **1** or more (unlike the postfix `*`) |
 
 ```cypher
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b) RETURN DISTINCT b.name
-MATCH (a)-[:KNOWS|WORKS_AT]->{1,2}(b) RETURN a.name, b.name
-MATCH (a)-[e:KNOWS WHERE e.since > 2012]->+(b) RETURN a.name, b.name
-MATCH (a)-[:KNOWS*1..3 {since: 2010}]->(b) RETURN b.name
-MATCH (a {name: 'Alice'})-[e:KNOWS]->+(b) RETURN b.name, size(e)
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b)
+RETURN DISTINCT b.name
+
+MATCH (a)-[:KNOWS|WORKS_AT]->{1,2}(b)
+RETURN a.name, b.name
+
+MATCH (a)-[e:KNOWS WHERE e.since > 2012]->+(b)
+RETURN a.name, b.name
+
+MATCH (a)-[:KNOWS*1..3 {since: 2010}]->(b)
+RETURN b.name
+
+MATCH (a {name: 'Alice'})-[e:KNOWS]->+(b)
+RETURN b.name, size(e)
 ```
 
 - **Edge type alternatives** (`[:KNOWS|WORKS_AT]`) work on variable-length hops.
@@ -42,8 +53,11 @@ MATCH (a {name: 'Alice'})-[e:KNOWS]->+(b) RETURN b.name, size(e)
 A quantified path pattern repeats a one-hop sub-pattern, with its own `WHERE`, a number of times:
 
 ```cypher
-MATCH (a:Person {name: 'Alice'}) ((x)-[r:KNOWS]->(y) WHERE r.since > 2009){1,3} (b) RETURN b.name
-MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b) RETURN b.name
+MATCH (a:Person {name: 'Alice'}) ((x)-[r:KNOWS]->(y) WHERE r.since > 2009){1,3} (b)
+RETURN b.name
+
+MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
+RETURN b.name
 ```
 
 The second query follows `KNOWS` edges only while ages strictly increase. Inside the parentheses only a **single hop** of the form `(node)-[edge]->(node) [WHERE ...]` is allowed, and the inner variables (`x`, `r`) become lists.
@@ -77,8 +91,11 @@ RETURN [n IN nodes(p) | n.name] AS route, length(p) AS hops
 ORDER BY hops LIMIT 1
 
 // k-hop neighbourhood and reachability
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]-{1,3}(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b) RETURN count(DISTINCT b)
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]-{1,3}(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN count(DISTINCT b)
 ```
 
 To sum a property along a route, build a list with a comprehension and aggregate over its elements:
@@ -88,7 +105,8 @@ MATCH p = (a:Person {name: 'Alice'})-[:KNOWS*1..6]->(b:Person {name: 'Dave'})
 WITH [n IN nodes(p) | n.name] AS route, [r IN relationships(p) | r.since] AS years
 UNWIND years AS y
 WITH route, sum(y) AS total
-RETURN route, total ORDER BY total LIMIT 1
+RETURN route, total
+ORDER BY total LIMIT 1
 ```
 
 <Note>

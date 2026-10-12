@@ -1,10 +1,10 @@
 ---
 title: "Writing Data"
 sidebarTitle: "Writing Data"
-description: "CREATE, MERGE, SET, REMOVE, DELETE and property indexes in TuringDB, and the change workflow that every write goes through."
+description: "CREATE, MERGE, SET, REMOVE and DELETE in TuringDB, and the change workflow that every write goes through."
 ---
 
-All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`, `CREATE INDEX`, `DROP INDEX`) must run **inside a change**. A change is TuringDB's equivalent of a git branch: you write in an isolated copy and then submit it to the main graph. A write sent outside a change fails with an explicit error such as `Cannot perform CREATE outside of a write transaction.`
+All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run **inside a change**. A change is TuringDB's equivalent of a git branch: you write in an isolated copy and then submit it to the main graph. A write sent outside a change fails with an explicit error such as `Cannot perform CREATE outside of a write transaction.`
 
 ## The change workflow
 
@@ -59,13 +59,26 @@ client.checkout()
 
 ```cypher
 CREATE (:Person {name: 'Alice', age: 30})
-CREATE (a:Person:Employee {name: 'Bob'}) RETURN a.name, id(a)
+
+CREATE (a:Person:Employee {name: 'Bob'})
+RETURN a.name, id(a)
+
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+
 CREATE (a:T {x: 1}), (b:T {x: 2}), (a)-[:R]->(b)
-CREATE p = (:City {name: 'Paris'})-[:ROAD {km: 450}]->(:City {name: 'Lyon'}) RETURN p
+
+CREATE p = (:City {name: 'Paris'})-[:ROAD {km: 450}]->(:City {name: 'Lyon'})
+RETURN p
+
 CREATE (c:City {name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'], info: {zone: 1}, emb: (0.1, 0.2, 0.3)})
-CREATE (n:Item {sku: 'A1'}) SET n.price = 9.99 RETURN n.sku
-CREATE (a:W {k: 'a'}) WITH a CREATE (b:W {k: 'b'})-[:NEXT]->(a)
+
+CREATE (n:Item {sku: 'A1'})
+SET n.price = 9.99
+RETURN n.sku
+
+CREATE (a:W {k: 'a'})
+WITH a
+CREATE (b:W {k: 'b'})-[:NEXT]->(a)
 ```
 
 To connect nodes that already exist, match them first. They must be committed, or created earlier **in the same query**:
@@ -79,7 +92,11 @@ RETURN a.name, b.name
 If you know their [native node IDs](/query/matching#look-up-nodes-by-native-node-id), address them directly. That is the fastest option, but the IDs must be **constants** written in the query, one pair per query:
 
 ```cypher
-MATCH (a) WHERE a = 0 MATCH (b) WHERE b = 1 CREATE (a)-[:KNOWS {since: 2021}]->(b)
+MATCH (a)
+WHERE a = 0
+MATCH (b)
+WHERE b = 1
+CREATE (a)-[:KNOWS {since: 2021}]->(b)
 ```
 
 **Rules:**
@@ -107,10 +124,18 @@ RETURN n.name
 ```
 
 ```cypher
-MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Carol'}) MERGE (a)-[e:KNOWS]->(b) ON CREATE SET e.since = 2024
+MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Carol'})
+MERGE (a)-[e:KNOWS]->(b)
+  ON CREATE SET e.since = 2024
+
 MERGE (a:Tag {name: 'x'})-[:LINKS]->(b:Tag {name: 'y'})
-MATCH (p:Person {name: 'Bob'}) MERGE (p)-[:OWNS]->(c:Car {model: 'Z'})
-UNWIND ['a', 'b', 'a'] AS k MERGE (t:Key {k: k}) RETURN t.k
+
+MATCH (p:Person {name: 'Bob'})
+MERGE (p)-[:OWNS]->(c:Car {model: 'Z'})
+
+UNWIND ['a', 'b', 'a'] AS k
+MERGE (t:Key {k: k})
+RETURN t.k
 ```
 
 `MERGE` deduplicates within one query, so the last example creates two `Key` nodes, not three.
@@ -122,22 +147,59 @@ UNWIND ['a', 'b', 'a'] AS k MERGE (t:Key {k: k}) RETURN t.k
 ## SET and REMOVE
 
 ```cypher
-MATCH (n:Person {name: 'Alice'}) SET n.age = 31
-MATCH (n:Person {name: 'Alice'}) SET n.score = n.age * 1.1, n.updated = true
-MATCH (p:Product) SET p.discountPrice = p.price * (1 - 0.15)
-MATCH (a:Person) SET a.band = CASE WHEN a.age > 30 THEN 'senior' ELSE 'junior' END
-MATCH (a:Person) SET a.place = coalesce(a.city, 'unknown')
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'}) SET n.age = m.age
-MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m) SET e.weight = 0.5
-MATCH (n:Person) WHERE n.age < 18 SET n.isMinor = true
-MATCH (n:Person {name: 'Alice'}) SET n.tags = ['a', 'b'], n.meta = {level: 3}
-MATCH (n:Person {name: 'Alice'}) SET n.emb = (1.2, 2.0, 0.0, 12.0)
-MATCH (n:Person {name: 'Alice'}) SET n.joined = datetime('2024-03-15T10:30:00Z')
-MATCH (a:Person) WITH count(a) AS c MATCH (s:Stats {name: 'people'}) SET s.total = c
-MATCH (n) WHERE n = 0 SET n.flag = true
-UNWIND [0, 1, 2] AS x MATCH (n) WHERE n = x SET n.flag = true
-MATCH (n:Person {name: 'Alice'}) SET n.age = null
-MATCH (n:Person {name: 'Alice'}) REMOVE n.score, n.flag
+MATCH (n:Person {name: 'Alice'})
+SET n.age = 31
+
+MATCH (n:Person {name: 'Alice'})
+SET n.score = n.age * 1.1, n.updated = true
+
+MATCH (p:Product)
+SET p.discountPrice = p.price * (1 - 0.15)
+
+MATCH (a:Person)
+SET a.band = CASE WHEN a.age > 30 THEN 'senior' ELSE 'junior' END
+
+MATCH (a:Person)
+SET a.place = coalesce(a.city, 'unknown')
+
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
+SET n.age = m.age
+
+MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m)
+SET e.weight = 0.5
+
+MATCH (n:Person)
+WHERE n.age < 18
+SET n.isMinor = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.tags = ['a', 'b'], n.meta = {level: 3}
+
+MATCH (n:Person {name: 'Alice'})
+SET n.emb = (1.2, 2.0, 0.0, 12.0)
+
+MATCH (n:Person {name: 'Alice'})
+SET n.joined = datetime('2024-03-15T10:30:00Z')
+
+MATCH (a:Person)
+WITH count(a) AS c
+MATCH (s:Stats {name: 'people'})
+SET s.total = c
+
+MATCH (n)
+WHERE n = 0
+SET n.flag = true
+
+UNWIND [0, 1, 2] AS x
+MATCH (n)
+WHERE n = x
+SET n.flag = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.age = null
+
+MATCH (n:Person {name: 'Alice'})
+REMOVE n.score, n.flag
 ```
 
 - `SET` creates the property if it does not exist yet. Setting a property to `null` clears it, and `REMOVE n.prop` removes it.
@@ -152,10 +214,18 @@ MATCH (n:Person {name: 'Alice'}) REMOVE n.score, n.flag
 ## DELETE and DETACH DELETE
 
 ```cypher
-MATCH (n:Person {name: 'Alice'}) DETACH DELETE n
-MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m) DELETE e
-MATCH (n:Temp) WHERE n.v > 3 DELETE n
-MATCH (n:Person {name: 'Remy'})-[e]->(m:Person) DELETE e, n
+MATCH (n:Person {name: 'Alice'})
+DETACH DELETE n
+
+MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m)
+DELETE e
+
+MATCH (n:Temp)
+WHERE n.v > 3
+DELETE n
+
+MATCH (n:Person {name: 'Remy'})-[e]->(m:Person)
+DELETE e, n
 ```
 
 - `DETACH DELETE` removes a node together with all of its edges.
@@ -171,16 +241,22 @@ MATCH (n:Person {name: 'Remy'})-[e]->(m:Person) DELETE e, n
 For small volumes, inline the data with `UNWIND`:
 
 ```cypher
-UNWIND range(1, 1000) AS i CREATE (:Num {v: i})
-UNWIND ['Brest', 'Rennes', 'Nantes'] AS nm MERGE (:City {name: nm})
-UNWIND [['Brest', 'FR-29'], ['Rennes', 'FR-35']] AS row CREATE (:City {name: row[0], code: row[1]})
+UNWIND range(1, 1000) AS i
+CREATE (:Num {v: i})
+
+UNWIND ['Brest', 'Rennes', 'Nantes'] AS nm
+MERGE (:City {name: nm})
+
+UNWIND [['Brest', 'FR-29'], ['Rennes', 'FR-35']] AS row
+CREATE (:City {name: row[0], code: row[1]})
 ```
 
 A `CREATE` cannot read an element of a mixed-type list row such as `['Brest', 139000]`. Use parallel lists instead:
 
 ```cypher
 WITH ['Brest', 'Rennes'] AS names, [139000, 220000] AS pops
-UNWIND range(0, size(names) - 1) AS i CREATE (:City {name: names[i], pop: pops[i]})
+UNWIND range(0, size(names) - 1) AS i
+CREATE (:City {name: names[i], pop: pops[i]})
 ```
 
 `LOAD CSV` can drive writes too. Create the nodes, `COMMIT`, then create the edges (see [CSV import](/import_data/csv)). Alternatively `MERGE` both endpoints in a single pass, which deduplicates across the rows of one query so no `COMMIT` is needed:
@@ -209,28 +285,3 @@ client.query(f"UNWIND [{', '.join(lit(n) for n in names)}] AS nm MERGE (:Person 
 ```
 
 Keep each query to a few thousand rows at most.
-
-## Property indexes
-
-A property index speeds up equality lookups. The optimizer rewrites `WHERE n.prop = <value>` into an index lookup when a matching index exists. Creating and dropping an index are writes, so they run inside a change:
-
-```cypher
-CREATE INDEX age_index FOR (n) ON n.age
-CREATE INDEX since_index FOR [e] ON e.since
-DROP INDEX age_index
-```
-
-```python
-client.new_change()
-client.query("CREATE INDEX age_index FOR (n) ON n.age")
-client.query("CHANGE SUBMIT")
-client.checkout()
-```
-
-- Node indexes use `FOR (n) ON n.prop`, edge indexes use square brackets: `FOR [e] ON e.prop`.
-- The property must already exist in the graph, and the index name is required.
-- Indexes are **not scoped** to a label or edge type. `FOR (n:Person)` and `FOR [e:KNOWS]` fail as not yet supported, and so do the Neo4j forms `CREATE INDEX FOR (n:Person) ON (n.name)` and `IF NOT EXISTS`.
-- List indexes with `CALL db.showIndexes()`. A new index appears there after `COMMIT` or `CHANGE SUBMIT`.
-- `CREATE CONSTRAINT` is not implemented.
-
-For vector indexes, see [Vector search](/vector-search).

@@ -1,7 +1,7 @@
 ---
 title: "Procedures and Commands"
 sidebarTitle: "Procedures and Commands"
-description: "Explore a graph with CALL db.* procedures, and manage graphs, changes, indexes and extensions with TuringDB engine commands."
+description: "Explore a graph with CALL db.* procedures, and manage graphs, changes, vector indexes and extensions with TuringDB engine commands."
 ---
 
 Beyond queries over the data in a graph, TuringDB has **procedures**, which return information about the graph, and **commands**, which drive the engine itself.
@@ -14,7 +14,6 @@ Procedures use the `CALL` syntax. Use them to explore a graph before writing que
 CALL db.labels()
 CALL db.edgeTypes()
 CALL db.propertyTypes()
-CALL db.showIndexes()
 CALL db.history()
 CALL db.procedures()
 ```
@@ -24,7 +23,6 @@ CALL db.procedures()
 | `db.labels()` | `id`, `label` |
 | `db.edgeTypes()` | `id`, `edgeType` |
 | `db.propertyTypes()` | `id`, `propertyType`, `valueType` |
-| `db.showIndexes()` | `name`, `size` |
 | `db.history()` | `commit`, `nodeCount`, `edgeCount`, `partCount` |
 | `db.describeCommit(commit)` | `nodeCount`, `edgeCount`, `partCount` |
 | `db.procedures()` | `name`, `signature` (same as `SHOW PROCEDURES`) |
@@ -44,9 +42,19 @@ A procedure's output columns can be renamed, filtered and used by the rest of th
 
 ```cypher
 CALL db.propertyTypes() YIELD *
-CALL db.labels() YIELD label AS l WHERE l STARTS WITH 'P' RETURN l
-CALL db.labels() YIELD label MATCH (n) WHERE label IN labels(n) RETURN label, count(n)
-CALL db.history() YIELD `commit`, nodeCount RETURN `commit`, nodeCount
+
+CALL db.labels() YIELD label AS l
+WHERE l STARTS
+WITH 'P'
+RETURN l
+
+CALL db.labels() YIELD label
+MATCH (n)
+WHERE label IN labels(n)
+RETURN label, count(n)
+
+CALL db.history() YIELD `commit`, nodeCount
+RETURN `commit`, nodeCount
 ```
 
 - **Constant arguments only.** A procedure argument cannot read row values: `db.getNodes([id(n)])` fails with "must be constant".
@@ -59,7 +67,9 @@ CALL db.history() YIELD `commit`, nodeCount RETURN `commit`, nodeCount
 `RETURN n` gives only an internal ID, and there is no `properties(n)`. To see every property of a few nodes, use `db.getNodes`, which returns the properties as a JSON string:
 
 ```cypher
-CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties RETURN id, labels, properties
+CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties
+RETURN id, labels, properties
+
 CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
 ```
 
@@ -75,9 +85,16 @@ df["properties"] = df["properties"].map(json.loads)
 ### Profiling a graph with plain Cypher
 
 ```cypher
-MATCH (n) RETURN labels(n) AS labels, count(*) AS n ORDER BY n DESC
-MATCH (a)-[r]->(b) RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst, count(*) AS n ORDER BY n DESC
-MATCH (n:Person) RETURN count(n.age) AS withAge, count(*) AS total
+MATCH (n)
+RETURN labels(n) AS labels, count(*) AS n
+ORDER BY n DESC
+
+MATCH (a)-[r]->(b)
+RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst, count(*) AS n
+ORDER BY n DESC
+
+MATCH (n:Person)
+RETURN count(n.age) AS withAge, count(*) AS total
 ```
 
 ## Commands
@@ -114,13 +131,10 @@ There is no command to drop or unload a graph.
 
 `MERGE_DATAPARTS` **renumbers** all nodes. Re-fetch any cached node IDs afterwards, and rebuild vector indexes keyed by node IDs.
 
-### Indexes
+### Vector indexes
 
 | Command | Description |
 | ------- | ----------- |
-| `CREATE INDEX <name> FOR (n) ON n.prop` | Create a property index on a node property. A write, see [Property indexes](/query/writing#property-indexes) |
-| `CREATE INDEX <name> FOR [e] ON e.prop` | Create a property index on an edge property |
-| `DROP INDEX <name>` | Drop a property or vector index |
 | `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index, see [Vector search](/vector-search) |
 | `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbour search |
 | `SHOW VECTOR INDEXES` | List vector indexes |
@@ -134,7 +148,9 @@ Extensions are native libraries that register extra procedure namespaces. Instal
 INSTALL greeter
 SHOW EXTENSIONS
 SHOW PROCEDURES
-CALL greeter.hello() YIELD message RETURN message
+
+CALL greeter.hello() YIELD message
+RETURN message
 ```
 
 `SHOW PROCEDURES` lists every available procedure and its signature, including the ones from extensions. The `greeter` example ships with the Python wheel. Extensions are looked up in `<install>/lib/turingdb/extensions/<name>.so`, then in `<turing-dir>/extensions/<name>.so`.

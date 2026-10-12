@@ -11,14 +11,30 @@ Each section links to the page that explains it in full.
 [Matching patterns](/query/matching)
 
 ```cypher
-MATCH (n) RETURN n
-MATCH (n:Person {name: 'Alice'}) RETURN n.age
-MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
-MATCH (a:Person)-[e:KNOWS {since: 2010}]->(b:Person) RETURN a.name, e.since, b.name
-MATCH (a)-[r:KNOWS|WORKS_AT]->(b) RETURN a.name, type(r), b.name
-MATCH (a:Person)-[e]-(b) RETURN a.name, b.name
-MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b) RETURN b.name
-MATCH (n:Person) ORDER BY n.age LIMIT 2 RETURN n.name
+MATCH (n)
+RETURN n
+
+MATCH (n:Person {name: 'Alice'})
+RETURN n.age
+
+MATCH (a:Person)-->(b:Company)
+RETURN a.name, b.name
+
+MATCH (a:Person)-[e:KNOWS {since: 2010}]->(b:Person)
+RETURN a.name, e.since, b.name
+
+MATCH (a)-[r:KNOWS|WORKS_AT]->(b)
+RETURN a.name, type(r), b.name
+
+MATCH (a:Person)-[e]-(b)
+RETURN a.name, b.name
+
+MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+RETURN b.name
+
+MATCH (n:Person)
+ORDER BY n.age LIMIT 2
+RETURN n.name
 ```
 
 - `()` is a node, `[]` is an edge, `-` ignores direction.
@@ -30,21 +46,50 @@ MATCH (n:Person) ORDER BY n.age LIMIT 2 RETURN n.name
 ## OPTIONAL MATCH
 
 ```cypher
-MATCH (a:Person) OPTIONAL MATCH (a)-[:WORKS_AT]->(c:Company) RETURN a.name, c.name
-MATCH (a:Person) OPTIONAL MATCH (a)-[:KNOWS]->(b) RETURN a.name, count(b)
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:WORKS_AT]->(c:Company)
+RETURN a.name, c.name
+
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:KNOWS]->(b)
+RETURN a.name, count(b)
 ```
 
 ## WHERE: filter
 
 ```cypher
-MATCH (n) WHERE n:Person RETURN n.name
-MATCH (n:Person) WHERE n.age >= 18 AND n.city = 'London' RETURN n.name
-MATCH (n:Person) WHERE n.name STARTS WITH 'A' OR n.name CONTAINS 'ro' RETURN n.name
-MATCH (n:Person) WHERE n.name IN ['Alice', 'Bob'] RETURN n.name
-MATCH (n:Person) WHERE 'admin' IN n.tags RETURN n.name
-MATCH (n:Person) WHERE n.tags IS NOT NULL RETURN n.name
-MATCH (n)-[e]->(m) WHERE e:KNOWS AND e.since > 2012 RETURN n.name, m.name
-MATCH (p:Person) WHERE NOT (p)-[:KNOWS]->() RETURN p.name
+MATCH (n)
+WHERE n:Person
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.age >= 18 AND n.city = 'London'
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.name STARTS
+WITH 'A' OR n.name CONTAINS 'ro'
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.name IN ['Alice', 'Bob']
+RETURN n.name
+
+MATCH (n:Person)
+WHERE 'admin' IN n.tags
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.tags IS NOT NULL
+RETURN n.name
+
+MATCH (n)-[e]->(m)
+WHERE e:KNOWS AND e.since > 2012
+RETURN n.name, m.name
+
+MATCH (p:Person)
+WHERE NOT (p)-[:KNOWS]->()
+RETURN p.name
 ```
 
 - Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, boolean `AND OR XOR NOT`.
@@ -57,10 +102,22 @@ MATCH (p:Person) WHERE NOT (p)-[:KNOWS]->() RETURN p.name
 [Details](/query/matching#look-up-nodes-by-native-node-id)
 
 ```cypher
-MATCH (n) WHERE n = 0 RETURN n.name
-MATCH (n)-[:KNOWS]->(m) WHERE n = 0 RETURN m.name
-UNWIND [0, 1, 2] AS x MATCH (n) WHERE n = x RETURN id(n), n.name
-EXPLAIN MATCH (n) WHERE n = 0 RETURN n.name
+MATCH (n)
+WHERE n = 0
+RETURN n.name
+
+MATCH (n)-[:KNOWS]->(m)
+WHERE n = 0
+RETURN m.name
+
+UNWIND [0, 1, 2] AS x
+MATCH (n)
+WHERE n = x
+RETURN id(n), n.name
+
+EXPLAIN MATCH (n)
+WHERE n = 0
+RETURN n.name
 ```
 
 - Compare the **variable** (`n = 0`), not `id(n) = 0`. The first is a direct seek and the second scans every node.
@@ -69,10 +126,19 @@ EXPLAIN MATCH (n) WHERE n = 0 RETURN n.name
 ## Joins and Cartesian products
 
 ```cypher
-MATCH (p:Person), (c:Company) RETURN p.name, c.name
-MATCH (a:Person)-[:KNOWS]->(b), (b)-[:WORKS_AT]->(c) RETURN a.name, b.name, c.name
-MATCH (a:Person)-->(i:Interest)<--(b:Person) WHERE a <> b RETURN a.name, b.name, i.name
-MATCH (a:Person), (b:Person) WHERE a.city = b.city AND a <> b RETURN a.name, b.name
+MATCH (p:Person), (c:Company)
+RETURN p.name, c.name
+
+MATCH (a:Person)-[:KNOWS]->(b), (b)-[:WORKS_AT]->(c)
+RETURN a.name, b.name, c.name
+
+MATCH (a:Person)-->(i:Interest)<--(b:Person)
+WHERE a <> b
+RETURN a.name, b.name, i.name
+
+MATCH (a:Person), (b:Person)
+WHERE a.city = b.city AND a <> b
+RETURN a.name, b.name
 ```
 
 - A comma separates independent patterns. Shared variables create joins, unrelated patterns create Cartesian products (N × M rows).
@@ -82,12 +148,23 @@ MATCH (a:Person), (b:Person) WHERE a.city = b.city AND a <> b RETURN a.name, b.n
 [Paths](/query/paths)
 
 ```cypher
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]->*(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'})-[:KNOWS]->{1,2}(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b) RETURN DISTINCT b.name
-MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b) RETURN b.name
-MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b) RETURN [n IN nodes(p) | n.name], length(p)
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->*(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->{1,2}(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
+RETURN b.name
+
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN [n IN nodes(p) | n.name], length(p)
 ```
 
 - Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
@@ -98,10 +175,23 @@ MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b) RETURN [n IN nodes(p) | n.na
 [Results and aggregation](/query/aggregation)
 
 ```cypher
-MATCH (n:Person) WITH n.city AS city, count(*) AS c WHERE c > 1 RETURN city, c
-MATCH (n:Person) RETURN DISTINCT n.city
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 1 LIMIT 2
-MATCH (p:Person) RETURN p.name AS name UNION MATCH (c:Company) RETURN c.name AS name
+MATCH (n:Person)
+WITH n.city AS city, count(*) AS c
+WHERE c > 1
+RETURN city, c
+
+MATCH (n:Person)
+RETURN DISTINCT n.city
+
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC SKIP 1 LIMIT 2
+
+MATCH (p:Person)
+RETURN p.name AS name
+UNION
+MATCH (c:Company)
+RETURN c.name AS name
 ```
 
 - Expressions in `WITH` must be aliased.
@@ -110,10 +200,18 @@ MATCH (p:Person) RETURN p.name AS name UNION MATCH (c:Company) RETURN c.name AS 
 ## Aggregation
 
 ```cypher
-MATCH (n:Person) RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
-MATCH (a:Person)-[:WORKS_AT]->(c:Company) RETURN c.name, count(a) AS employees, collect(a.name) AS who
-MATCH (n:Person) RETURN count(DISTINCT n.city)
-MATCH ()-[r]->() RETURN type(r) AS t, count(*) AS c ORDER BY c DESC
+MATCH (n:Person)
+RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
+
+MATCH (a:Person)-[:WORKS_AT]->(c:Company)
+RETURN c.name, count(a) AS employees, collect(a.name) AS who
+
+MATCH (n:Person)
+RETURN count(DISTINCT n.city)
+
+MATCH ()-[r]->()
+RETURN type(r) AS t, count(*) AS c
+ORDER BY c DESC
 ```
 
 - Grouping is implicit. Aggregates are not allowed in `WHERE`: filter after a `WITH`.
@@ -122,14 +220,31 @@ MATCH ()-[r]->() RETURN type(r) AS t, count(*) AS c ORDER BY c DESC
 ## UNWIND, lists, CASE
 
 ```cypher
-UNWIND [1, 2, 3] AS x RETURN x * 10
-MATCH (n:Person) WITH collect(n.name) AS names UNWIND names AS nm RETURN nm
-MATCH (n:Person) UNWIND n.tags AS t RETURN t, count(*)
+UNWIND [1, 2, 3] AS x
+RETURN x * 10
+
+MATCH (n:Person)
+WITH collect(n.name) AS names
+UNWIND names AS nm
+RETURN nm
+
+MATCH (n:Person)
+UNWIND n.tags AS t
+RETURN t, count(*)
+
 RETURN [x IN range(1, 6) WHERE x % 2 = 0 | x * x]
-MATCH (a:Person) RETURN a.name, [(a)-[:KNOWS]->(b) | b.name] AS friends
-MATCH (n:Person) WHERE any(t IN n.tags WHERE t = 'vip') RETURN n.name
+
+MATCH (a:Person)
+RETURN a.name, [(a)-[:KNOWS]->(b) | b.name] AS friends
+
+MATCH (n:Person)
+WHERE any(t IN n.tags WHERE t = 'vip')
+RETURN n.name
+
 RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
-MATCH (n:Person) RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
+
+MATCH (n:Person)
+RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
 ```
 
 ## Subqueries
@@ -137,10 +252,26 @@ MATCH (n:Person) RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior
 [Subqueries](/query/subqueries)
 
 ```cypher
-MATCH (p:Person) WHERE EXISTS { (p)-[:WORKS_AT]->(:Company {name: 'Acme'}) } RETURN p.name
-MATCH (p:Person) RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
-MATCH (p:Person) CALL (p) { MATCH (p)-[:KNOWS]->(f) RETURN f.name AS friend LIMIT 1 } RETURN p.name, friend
-MATCH (p:Person) OPTIONAL CALL (p) { MATCH (p)-[:WORKS_AT]->(c) RETURN c.name AS co } RETURN p.name, co
+MATCH (p:Person)
+WHERE EXISTS { (p)-[:WORKS_AT]->(:Company {name: 'Acme'}) }
+RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
+
+MATCH (p:Person)
+CALL (p) {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN f.name AS friend LIMIT 1
+}
+RETURN p.name, friend
+
+MATCH (p:Person)
+OPTIONAL CALL (p) {
+  MATCH (p)-[:WORKS_AT]->(c)
+  RETURN c.name AS co
+}
+RETURN p.name, co
 ```
 
 ## Functions
@@ -159,9 +290,13 @@ MATCH (p:Person) OPTIONAL CALL (p) { MATCH (p)-[:WORKS_AT]->(c) RETURN c.name AS
 | Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max` |
 
 ```cypher
-MATCH (n)-[e]->(m) RETURN labels(n), type(e), labels(m)
+MATCH (n)-[e]->(m)
+RETURN labels(n), type(e), labels(m)
+
 RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1})
-MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
+
+MATCH (n:Document)
+RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
 - Function names are case-sensitive, except `count` and `collect`.
@@ -187,15 +322,32 @@ MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)
 
 ```cypher
 CHANGE NEW
+
 CREATE (:Person {name: 'Alice', age: 30})
+
 CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+
 COMMIT
-MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Mick'}) CREATE (a)-[:KNOWS]->(b)
-MERGE (n:Person {name: 'Alice'}) ON CREATE SET n.created = true ON MATCH SET n.seen = true
-MATCH (n:Person {name: 'Alice'}) SET n.age = 31, n.position = 'Developer'
-MATCH (n:Person {name: 'Alice'}) REMOVE n.position
-MATCH (n:Person {name: 'Alice'}) DETACH DELETE n
-MATCH (n:Person)-[e:KNOWS]->(m) DELETE e
+
+MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Mick'})
+CREATE (a)-[:KNOWS]->(b)
+
+MERGE (n:Person {name: 'Alice'})
+  ON CREATE SET n.created = true
+  ON MATCH SET n.seen = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.age = 31, n.position = 'Developer'
+
+MATCH (n:Person {name: 'Alice'})
+REMOVE n.position
+
+MATCH (n:Person {name: 'Alice'})
+DETACH DELETE n
+
+MATCH (n:Person)-[e:KNOWS]->(m)
+DELETE e
+
 CHANGE SUBMIT
 ```
 
@@ -215,7 +367,6 @@ CHANGE SUBMIT
 | `CALL db.propertyTypes()` | All property keys and their types |
 | `CALL db.history()` | Commit history |
 | `CALL db.describeCommit('<hash>')` | Counts for a single commit |
-| `CALL db.showIndexes()` | Property indexes |
 | `CALL db.getNodes([0, 1])` | Labels and all properties of specific nodes |
 | `CALL db.procedures()` | All procedures and signatures |
 
@@ -224,22 +375,15 @@ Outputs can be chained: `CALL db.labels() YIELD label MATCH (n) WHERE label IN l
 ## Graph algorithms and search
 
 ```cypher
-MATCH (a:Station {name: 'Ashchurch'}), (b:Station {name: 'Pershore'}) shortestPath(a, b, distance, dist, path) RETURN dist, path
-VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1) YIELD ids, score RETURN ids, score
+MATCH (a:Station {name: 'Ashchurch'}), (b:Station {name: 'Pershore'})
+shortestPath(a, b, distance, dist, path)
+RETURN dist, path
+
+VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1) YIELD ids, score
+RETURN ids, score
 ```
 
 See [Shortest path](/shortest-path) and [Vector search](/vector-search).
-
-## Property indexes
-
-```cypher
-CHANGE NEW
-CREATE INDEX age_index FOR (n) ON n.age
-CREATE INDEX since_index FOR [e] ON e.since
-CHANGE SUBMIT
-```
-
-`DROP INDEX <name>` is also a write, so run it inside a change too.
 
 ## Engine commands
 

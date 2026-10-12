@@ -149,7 +149,7 @@ graph [
 
 ## Key Points
 
-1. **Single CREATE Query**: This tutorial builds the whole graph in one `CREATE` statement, which lets the edges refer to the nodes by variable. You can also create the nodes first, `COMMIT`, and then `MATCH` them to create the edges, see [Writing data](/query/writing). To import a GML file as-is, use [`LOAD GML`](/import_data/gml).
+1. **Single CREATE Query**: This tutorial builds the whole graph in one `CREATE` statement, which lets the edges refer to the nodes by variable. You can also create the nodes first, `COMMIT`, and then `MATCH` them to create the edges, see [Writing data](/query/writing). To import data in bulk, use [`LOAD PARQUET`](/import_data/parquet) or [`LOAD JSONL`](/import_data/jsonl).
 2. **Change Management**: Always use the change system when modifying data:
    - Create a new change with `CHANGE NEW`
    - Checkout into the change
@@ -160,7 +160,7 @@ graph [
 
 ## Troubleshooting
 
-- **Large Graphs**: For very large GML files, you might hit query size limits. Consider [`LOAD GML`](/import_data/gml), or convert the graph to Parquet and use [`LOAD PARQUET`](/import_data/parquet), which loads hundreds of thousands of nodes and edges in well under a second.
+- **Large Graphs**: For very large GML files, you might hit query size limits. Convert the graph to Parquet and use [`LOAD PARQUET`](/import_data/parquet), which loads hundreds of thousands of nodes and edges in well under a second, or use [`LOAD JSONL`](/import_data/jsonl).
 - **Invalid Characters**: The sanitization function handles common invalid characters, but you may need to extend it for specific use cases.
 - **Memory Usage**: Large graphs are loaded entirely into memory before conversion, so ensure you have sufficient RAM.
 

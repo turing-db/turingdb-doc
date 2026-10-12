@@ -30,16 +30,36 @@ CREATE
 ## MATCH
 
 ```cypher
-MATCH (n) RETURN count(n)
-MATCH (n:Person) RETURN n.name, n.age
-MATCH (n:Person {name: 'Alice', age: 30}) RETURN n.name
-MATCH (n:Person:Employee) RETURN n.name
-MATCH (a:Person)-[:KNOWS]->(b:Person) RETURN a.name, b.name
-MATCH (a)-[e:KNOWS {since: 2010}]->(b) RETURN a.name, e.since, b.name
-MATCH (a)<-[e]-(b) RETURN a.name, b.name
-MATCH (a)-[e]-(b) RETURN a.name, b.name
-MATCH (a)-[r:KNOWS|WORKS_AT]->(b) RETURN a.name, type(r), b.name
-MATCH (a {name: 'Alice'}) MATCH (a)-[:KNOWS]->(b) RETURN b.name
+MATCH (n)
+RETURN count(n)
+
+MATCH (n:Person)
+RETURN n.name, n.age
+
+MATCH (n:Person {name: 'Alice', age: 30})
+RETURN n.name
+
+MATCH (n:Person:Employee)
+RETURN n.name
+
+MATCH (a:Person)-[:KNOWS]->(b:Person)
+RETURN a.name, b.name
+
+MATCH (a)-[e:KNOWS {since: 2010}]->(b)
+RETURN a.name, e.since, b.name
+
+MATCH (a)<-[e]-(b)
+RETURN a.name, b.name
+
+MATCH (a)-[e]-(b)
+RETURN a.name, b.name
+
+MATCH (a)-[r:KNOWS|WORKS_AT]->(b)
+RETURN a.name, type(r), b.name
+
+MATCH (a {name: 'Alice'})
+MATCH (a)-[:KNOWS]->(b)
+RETURN b.name
 ```
 
 - `(n:Person:Employee)` matches nodes that have **both** labels.
@@ -58,7 +78,8 @@ MATCH (a {name: 'Alice'}) MATCH (a)-[:KNOWS]->(b) RETURN b.name
 A `WHERE` can sit inside a node or edge pattern. The variable must be named:
 
 ```cypher
-MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b) RETURN b.name
+MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+RETURN b.name
 ```
 
 ### Ordering and limiting in `MATCH`
@@ -66,7 +87,9 @@ MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b) RETURN b.n
 As a TuringDB extension, `ORDER BY`, `SKIP` and `LIMIT` can also appear right after the pattern, before `RETURN`:
 
 ```cypher
-MATCH (n:Person) ORDER BY n.age LIMIT 2 RETURN n.name
+MATCH (n:Person)
+ORDER BY n.age LIMIT 2
+RETURN n.name
 ```
 
 <Note>
@@ -78,29 +101,64 @@ MATCH (n:Person) ORDER BY n.age LIMIT 2 RETURN n.name
 `OPTIONAL MATCH` keeps the row when the pattern has no match and returns `null` for its variables:
 
 ```cypher
-MATCH (a:Person) OPTIONAL MATCH (a)-[:WORKS_AT]->(c:Company) RETURN a.name, c.name
-MATCH (a:Person) OPTIONAL MATCH (a)-[:KNOWS]->(b) RETURN a.name, count(b)
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:WORKS_AT]->(c:Company)
+RETURN a.name, c.name
+
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:KNOWS]->(b)
+RETURN a.name, count(b)
 ```
 
 The second query returns `0` for people who know nobody. A `WHERE` attached to an `OPTIONAL MATCH` belongs to the optional part, so rows are kept, as in Neo4j.
 
-<Warning>
-  An unmatched optional **node** returned bare (`RETURN c`) shows `18446744073709551615` (the largest unsigned 64-bit integer) instead of `null`. Properties (`c.name`) and `id(c)` are correctly `null`, so return a property or `id(c)`.
-</Warning>
+Return a property (`c.name`) or `id(c)` from an optional node, rather than the bare variable.
+
 
 ## WHERE and operators
 
 ```cypher
-MATCH (n) WHERE n:Person RETURN n.name
-MATCH (n:Person) WHERE n.age >= 18 AND n.city = 'London' RETURN n.name
-MATCH (n:Person) WHERE n.name STARTS WITH 'A' OR n.name ENDS WITH 'e' OR n.name CONTAINS 'ro' RETURN n.name
-MATCH (n:Person) WHERE n.name IN ['Alice', 'Bob'] RETURN n.name
-MATCH (n:Person) WHERE 'admin' IN n.tags RETURN n.name
-MATCH (n:Person) WHERE n.tags IS NOT NULL RETURN n.name
-MATCH (n:Person) WHERE n.active RETURN n.name
-MATCH (n)-[e]->(m) WHERE e:KNOWS AND e.since > 2012 RETURN n.name, m.name
-MATCH (p:Person) WHERE (p)-[:LIKES]->() RETURN p.name
-MATCH (p:Person) WHERE NOT (p)-[:KNOWS]->() RETURN p.name
+MATCH (n)
+WHERE n:Person
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.age >= 18 AND n.city = 'London'
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.name STARTS
+WITH 'A' OR n.name ENDS
+WITH 'e' OR n.name CONTAINS 'ro'
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.name IN ['Alice', 'Bob']
+RETURN n.name
+
+MATCH (n:Person)
+WHERE 'admin' IN n.tags
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.tags IS NOT NULL
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.active
+RETURN n.name
+
+MATCH (n)-[e]->(m)
+WHERE e:KNOWS AND e.since > 2012
+RETURN n.name, m.name
+
+MATCH (p:Person)
+WHERE (p)-[:LIKES]->()
+RETURN p.name
+
+MATCH (p:Person)
+WHERE NOT (p)-[:KNOWS]->()
+RETURN p.name
 ```
 
 - **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type. Combine them with `AND`, `OR` and `NOT`.
@@ -118,7 +176,7 @@ MATCH (p:Person) WHERE NOT (p)-[:KNOWS]->() RETURN p.name
 Property constraints in a pattern, `MATCH (n {name: 'Matt', age: 20})`, are exactly equivalent to the same equality tests in `WHERE`.
 
 <Warning>
-  Regular expressions (`=~`) and the `exists(n.prop)` function are not supported. Use `n.prop IS NOT NULL` to test for a property.
+  Regular expressions (`=~`) and the `exists(n.prop)` function are not yet supported. Use `n.prop IS NOT NULL` to test for a property.
 </Warning>
 
 ### Numeric equality is strict
@@ -133,8 +191,13 @@ ANALYZE_ERROR: Operands are not valid or compatible types
 Use range comparisons for Doubles, or convert the value:
 
 ```cypher
-MATCH (n:Person) WHERE n.age > 29.5 AND n.age < 30.5 RETURN n.name
-MATCH (n:Person) WHERE n.age = toInteger(30.0) RETURN n.name
+MATCH (n:Person)
+WHERE n.age > 29.5 AND n.age < 30.5
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.age = toInteger(30.0)
+RETURN n.name
 ```
 
 Mixed-type `<`, `>` and arithmetic are fine. Integer division by zero raises an error, and Int64 overflow wraps silently.
@@ -145,16 +208,22 @@ Comma-separated patterns in a `MATCH` produce either a **join** or a **Cartesian
 
 ```cypher
 // Cartesian product: every Person with every Company (N x M rows)
-MATCH (p:Person), (c:Company) RETURN p.name, c.name
+MATCH (p:Person), (c:Company)
+RETURN p.name, c.name
 
 // Join: a shared variable links the patterns
-MATCH (a:Person)-[:KNOWS]->(b), (b)-[:WORKS_AT]->(c) RETURN a.name, b.name, c.name
+MATCH (a:Person)-[:KNOWS]->(b), (b)-[:WORKS_AT]->(c)
+RETURN a.name, b.name, c.name
 
 // Join on a shared node: people who like the same thing
-MATCH (a:Person)-->(i:Interest)<--(b:Person) WHERE a <> b RETURN a.name, b.name, i.name
+MATCH (a:Person)-->(i:Interest)<--(b:Person)
+WHERE a <> b
+RETURN a.name, b.name, i.name
 
 // Join on a value through WHERE (hash join)
-MATCH (a:Person), (b:Person) WHERE a.city = b.city AND a <> b RETURN a.name, b.name
+MATCH (a:Person), (b:Person)
+WHERE a.city = b.city AND a <> b
+RETURN a.name, b.name
 ```
 
 <Warning>
@@ -164,7 +233,9 @@ MATCH (a:Person), (b:Person) WHERE a.city = b.city AND a <> b RETURN a.name, b.n
 Connected paths and independent patterns can be mixed in one query. Shared variables create joins and unrelated patterns create Cartesian products:
 
 ```cypher
-MATCH (a:Person)-->(i:Interest), (c:Company) WHERE c.name = 'Acme' RETURN a.name, i.name, c.name
+MATCH (a:Person)-->(i:Interest), (c:Company)
+WHERE c.name = 'Acme'
+RETURN a.name, i.name, c.name
 ```
 
 ## Look up nodes by native node ID
@@ -172,15 +243,26 @@ MATCH (a:Person)-->(i:Interest), (c:Company) WHERE c.name = 'Acme' RETURN a.name
 Every node has a **native node ID**, the integer you get from `RETURN n` or `id(n)`. When you already know which nodes you want, **compare the node variable itself with the ID**, written as a literal. The planner turns this into a constant scan of exactly those nodes:
 
 ```cypher
-MATCH (n) WHERE n = 0 RETURN n.name
-MATCH (n)-[:KNOWS]->(m) WHERE n = 0 RETURN m.name
-UNWIND [0, 1, 2] AS x MATCH (n) WHERE n = x RETURN id(n), n.name
+MATCH (n)
+WHERE n = 0
+RETURN n.name
+
+MATCH (n)-[:KNOWS]->(m)
+WHERE n = 0
+RETURN m.name
+
+UNWIND [0, 1, 2] AS x
+MATCH (n)
+WHERE n = x
+RETURN id(n), n.name
 ```
 
 `EXPLAIN` shows whether it worked. The plan should contain `const_scan_nodes` rather than `scan_nodes`:
 
 ```cypher
-EXPLAIN MATCH (n) WHERE n = 0 RETURN n.name
+EXPLAIN MATCH (n)
+WHERE n = 0
+RETURN n.name
 ```
 
 On large graphs this is orders of magnitude faster than looking nodes up again through a key property such as `n.uuid`. The rules that keep it fast:

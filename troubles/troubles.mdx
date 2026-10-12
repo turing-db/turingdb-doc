@@ -54,7 +54,7 @@ After `CHANGE SUBMIT` the Python client still points at the submitted change. Ca
 
 ## `Cannot perform CREATE outside of a write transaction`
 
-All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`, `CREATE INDEX`) must run inside a change. Call `client.new_change()` first, and submit with `CHANGE SUBMIT`. See [Writing data](/query/writing).
+All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run inside a change. Call `client.new_change()` first, and submit with `CHANGE SUBMIT`. See [Writing data](/query/writing).
 
 ---
 

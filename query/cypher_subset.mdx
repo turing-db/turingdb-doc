@@ -17,7 +17,7 @@ If you know Cypher from Neo4j, you can write the queries you are used to. This p
 | Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps |
 | Aggregation | `count`, `sum`, `avg`, `min`, `max`, `collect`, `DISTINCT`, implicit grouping, aggregates inside expressions |
 | Subqueries | `EXISTS { }`, `COUNT { }`, `CALL { }` and `OPTIONAL CALL { }` |
-| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE`, property indexes |
+| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE` |
 | Types | String, Integer, Double, Boolean, List, Map, `DateTime`, `Duration`, Embedding |
 | TuringDB extras | Changes, commits and time travel, `shortestPath`, `VECTOR SEARCH`, `gnn.graphSAGE`, lookup by native node ID |
 
@@ -61,7 +61,7 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFram
 ```
 
 <Tip>
-  `EXPLAIN <query>` returns the compiled query plan without running the query. It is the easiest way to check that a lookup uses an index or a constant node scan.
+  `EXPLAIN <query>` returns the compiled query plan without running the query. It is the easiest way to check that a lookup uses a constant node scan.
 </Tip>
 
 ## What to know if you come from Neo4j
