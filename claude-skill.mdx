@@ -41,11 +41,12 @@ The skill is structured so Claude only loads the reference it needs:
 
 | Module | Covers |
 | --- | --- |
-| `startup` | Installation, starting the server, connecting, loading a graph |
-| `querying` | `MATCH`, `WHERE`, joins, built-in functions |
-| `writing` | `CREATE`, `SET`, the change and commit workflow |
-| `algorithms` | Shortest path, vector search |
-| `introspection` | Schema exploration, Python SDK reference |
+| `startup` | Installation, starting the server, connecting (HTTP, authentication, embedded), loading a graph |
+| `querying` | `MATCH`, `OPTIONAL MATCH`, paths, `WITH`, aggregation, `UNWIND`, subqueries, built-in functions, `LOAD CSV` |
+| `writing` | `CREATE`, `MERGE`, `SET`, `DELETE`, the change and commit workflow, indexes |
+| `importing` | CSV, Parquet, JSONL, GML and Neo4j imports |
+| `algorithms` | Shortest path, vector search, embeddings, GNN sampling |
+| `introspection` | Schema exploration, versioning and time travel, Python SDK reference |
 
 ## Links
 

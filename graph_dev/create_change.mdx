@@ -18,10 +18,11 @@ description: "Creating a change on a TuringDB graph is similar to creating a new
   </Tab>
   <Tab title="Python SDK">
     ```python
-    # Create a new change on the graph
+    # Create a new change on the graph.
+    # The client is switched onto the new change automatically.
     change = client.new_change()
     
-    # Checkout into the change
+    # Optional: checkout into a change that already exists
     client.checkout(change=change)
     ```
 

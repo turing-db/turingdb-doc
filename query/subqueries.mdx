@@ -1,0 +1,46 @@
+---
+title: "Subqueries"
+sidebarTitle: "Subqueries"
+description: "Use EXISTS, COUNT and CALL subqueries to filter, count and compute per-row results in TuringDB."
+---
+
+These examples use the [sample graph](/query/matching) from the matching page.
+
+## EXISTS
+
+`EXISTS { ... }` tests whether a pattern, or a full `MATCH` with its own `WHERE`, has at least one match for the current row. It works in `WHERE` and as a returned value:
+
+```cypher
+MATCH (p:Person) WHERE EXISTS { (p)-[:WORKS_AT]->(:Company {name: 'Acme'}) } RETURN p.name
+MATCH (p:Person) WHERE EXISTS { MATCH (p)-[:KNOWS]->(f) WHERE f.age > p.age } RETURN p.name
+MATCH (p:Person) WHERE NOT EXISTS { (p)-[:KNOWS]->() } RETURN p.name
+MATCH (p:Person) RETURN p.name, EXISTS { (p)-[:LIKES]->() } AS likesSomething
+```
+
+## COUNT
+
+`COUNT { ... }` returns the number of matches for each row:
+
+```cypher
+MATCH (p:Person) RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree ORDER BY outDegree DESC
+MATCH (p:Person) WHERE COUNT { MATCH (p)-[:KNOWS]-(x) RETURN x } >= 2 RETURN p.name
+```
+
+## CALL subqueries
+
+A `CALL { ... }` subquery runs once per incoming row. It is the way to compute a per-row top-k or a per-row aggregate. Import the outer variables either in the `CALL (p)` header or with a `WITH p` as the first clause of the body:
+
+```cypher
+MATCH (p:Person) CALL (p) { MATCH (p)-[:KNOWS]->(f) RETURN f.name AS friend ORDER BY f.name LIMIT 1 } RETURN p.name, friend
+MATCH (p:Person) CALL { WITH p MATCH (p)-[:KNOWS]->(f) RETURN count(f) AS deg } RETURN p.name, deg
+MATCH (p:Person) OPTIONAL CALL (p) { MATCH (p)-[:WORKS_AT]->(c) RETURN c.name AS co } RETURN p.name, co
+CALL { MATCH (p:Person) RETURN p.name AS nm UNION MATCH (c:Company) RETURN c.name AS nm } RETURN nm ORDER BY nm
+```
+
+- **Dropped rows.** A non-optional `CALL` drops the outer rows for which its body returns nothing. Use `OPTIONAL CALL` to keep them with `null` values.
+- **Imported variables.** A `CALL` body cannot return an imported variable under its own name. Alias it: `RETURN p AS me`.
+- A `CALL` body can contain `UNION`, aggregation, `ORDER BY` and `LIMIT`. Write-only subqueries also work inside a [change](/query/writing).
+
+<Warning>
+  Not supported: `COLLECT { ... }` (use `collect()` in a `CALL` body or a [pattern comprehension](/query/aggregation#list-comprehensions) instead), `CALL (*) { }`, `CALL { } IN TRANSACTIONS`, and `OPTIONAL CALL` on a *procedure*.
+</Warning>

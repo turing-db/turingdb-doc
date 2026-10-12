@@ -27,7 +27,7 @@ Each line is a self-contained JSON object representing either a node or a relati
 | Field        | Requirement                                                                                            |
 | ------------ | ------------------------------------------------------------------------------------------------------ |
 | `type`       | Must be the string `"node"`                                                                            |
-| `id`         | Required. Integer or string parseable as integer. Must start at `0` and increment by `1` with no gaps. |
+| `id`         | Required. Integer or string parseable as integer. Ids do not need to be contiguous. |
 | `labels`     | Required. Array with at least one label.                                                               |
 | `properties` | Optional. Dictionary with property keys and values.                                                    |
 
@@ -36,20 +36,48 @@ Each line is a self-contained JSON object representing either a node or a relati
 | Field           | Requirement                                                                                                                                                                                                         |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `type`          | Must be the string `"relationship"`                                                                                                                                                                                 |
-| `id`            | Required. Integer or string parseable as integer. Must start at `0` and increment by `1` with no gaps.                                                                                                              |
+| `id`            | Required. Integer or string parseable as integer.                                                                                                                                                                    |
 | `label`         | Required. Exactly one label.                                                                                                                                                                                        |
 | `start` / `end` | Required. Either: <br />- a bare integer (or string parseable as integer) referencing a node `id`<br />- a dictionary with an `id` key holding an integer (or string parseable as integer) referencing a node `id`. |
 | `properties`    | Optional. Dictionary with property keys and values.                                                                                                                                                                 |
 
-## Loading embedding properties
+## Property values
 
-By default, an array-valued property in the JSONL is stored as a string. To load specific array properties as **embeddings** (type `Embedding`, usable with `cosine_similarity` / `euclidean_distance`), append a `WITH EMBEDDINGS` clause listing each embedding property and its dimension:
+- Scalars (strings, integers, doubles, booleans) become properties of the matching type, and `null` values are skipped.
+- Arrays load as **List** properties.
+- Nested objects are stored as **JSON strings**.
+- ISO date strings stay strings, and integer durations stay integers, unless you declare them (see below).
+
+Each property name has a single type across the whole graph, so a property that is an integer on one node cannot be a string on another.
+
+## Loading date, duration and embedding properties
+
+Typed options can be chained after the graph name:
+
+```jsx
+LOAD JSONL 'mydata.jsonl' AS mygraph
+  WITH EMBEDDINGS [{"emb", 384}, {"summary_vec", 768}]
+  WITH DATETIMES [born, updatedAt]
+  WITH DURATIONS [tenure]
+```
+
+- `WITH DATETIMES [prop, ...]` parses ISO 8601 strings into `DateTime` values.
+- `WITH DURATIONS [prop, ...]` reads integers as microseconds and stores them as `Duration` values.
+- `WITH EMBEDDINGS [{"prop", dim}, ...]` stores arrays as `Embedding` values, see below.
+
+### Loading embedding properties
+
+An array-valued property is stored as a List by default. To load specific array properties as **embeddings** (type `Embedding`, usable with `cosine_similarity` / `euclidean_distance`), append a `WITH EMBEDDINGS` clause listing each embedding property and its dimension:
 
 ```jsx
 LOAD JSONL 'mydata.jsonl' AS mygraph WITH EMBEDDINGS [{"embedding", 384}, {"summary_vec", 768}]
 ```
 
-Each spec is `{"<property name>", <dimension>}`. The dimension must be **greater than 1**, and every array under that property must have exactly that many numeric elements (otherwise the load fails). This works for both node and relationship properties. Array properties not listed in `WITH EMBEDDINGS` are still stored as strings.
+Each spec is `{"<property name>", <dimension>}`. The dimension must be **greater than 1**, and every array under that property must have exactly that many numeric elements (otherwise the load fails). This works for both node and relationship properties. Array properties not listed in `WITH EMBEDDINGS` are stored as Lists.
+
+<Note>
+  When an import fails, the details are written to `<turing-dir>/logs/turingdb.log`.
+</Note>
 
 <Note>
   This sets embeddings as node/edge **properties**. To bulk-load embeddings onto an *existing* graph from a Parquet file, use [`LOAD EMBEDDING FROM`](/vector-search#embeddings-as-node-properties) instead.

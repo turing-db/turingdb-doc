@@ -6,43 +6,54 @@ description: "Search through high-dimensional embeddings and connect the results
 
 TuringDB has a built-in vector index that lets you run k-nearest-neighbor searches over embedding vectors. You bring your own embeddings, from any model or provider, and TuringDB handles the indexing, storage, and fast retrieval.
 
-Each vector is associated with a numerical ID. That ID can be a node property, an edge property, or a foreign key referencing data in an external system. This keeps the index lightweight and flexible: the vector store doesn't need to know what your data looks like.
+Each vector is stored with a numerical ID. When that ID is the **native node ID** of the node the vector describes (`id(n)`), search results are the nodes themselves, so you can read their properties and expand from them with no extra lookup.
 
 <Tip>
-  Vector indexes live at the TuringDB root level, independent of graphs and versioning. A single vector index can serve searches across multiple graphs and commits.
+  Vector indexes live at the TuringDB root level (`<turing-dir>/vector/`), independent of graphs and versioning. A single vector index can serve searches across multiple graphs and commits, and it persists across restarts.
 </Tip>
+
+<Warning>
+  Embedding literals use **parentheses**: `(1.2, 2.0, 0.0)`. Square brackets `[1.2, 2.0, 0.0]` make a list, which is a different type. An embedding literal needs at least 2 numbers.
+</Warning>
 
 ## Create a vector index
 
-A vector index is defined by a name, a dimension, and a distance metric.
+A vector index is defined by a name, a dimension, a distance metric and, optionally, an index type.
 
 **Syntax:**
 ```
-CREATE VECTOR INDEX <name> WITH DIMENSION <dim> METRIC <metric>
+CREATE VECTOR INDEX <name> WITH DIMENSION <dim> METRIC <metric> [TYPE <type>]
 ```
 
 | Parameter  | Description                                                                 |
 | ---------- | --------------------------------------------------------------------------- |
 | `<name>`   | Identifier for the vector index                                             |
-| `<dim>`    | Dimension of the embedding vectors (positive integer)                       |
-| `<metric>` | Distance metric: `EUCLID` (Euclidean distance) or `COSINE` (cosine similarity) |
+| `<dim>`    | Dimension of the embedding vectors (positive integer, at most 8192)          |
+| `<metric>` | `COSINE` or `EUCLID` (uppercase)                                            |
+| `<type>`   | Optional. `FLAT` (exact, the default) or `HNSW` (approximate, for large collections) |
 
 <Tabs>
   <Tab title="Cypher">
     ```jsx
     CREATE VECTOR INDEX doc_embeddings WITH DIMENSION 768 METRIC COSINE
+    CREATE VECTOR INDEX doc_hnsw WITH DIMENSION 768 METRIC EUCLID TYPE HNSW
     ```
   </Tab>
   <Tab title="Python SDK">
     ```python
     client.query("CREATE VECTOR INDEX doc_embeddings WITH DIMENSION 768 METRIC COSINE")
+    client.query("CREATE VECTOR INDEX doc_hnsw WITH DIMENSION 768 METRIC EUCLID TYPE HNSW")
     ```
   </Tab>
 </Tabs>
 
+<Note>
+  The metrics return raw scores. `COSINE` scores are the **inner product** of the stored and query vectors, so L2-normalise both to get true cosine similarity. `EUCLID` scores are the **squared** L2 distance.
+</Note>
+
 ## Load embeddings
 
-Once the index exists, load your pre-computed embeddings from a file. Each row in the file maps a numerical ID to a vector.
+Once the index exists, load your pre-computed embeddings from a header-less CSV file. Each line is `id,v1,v2,...,vd`, where `id` is normally the native TuringDB node ID (`id(n)`).
 
 The file path is relative to your TuringDB data directory (`~/.turing/data` by default).
 
@@ -73,36 +84,48 @@ LOAD VECTOR FROM "<filepath>" IN <index_name>
   </Tab>
 </Tabs>
 
+To build that file from your graph, export `id(n)` next to the text you want to embed, compute the embeddings in Python, and write `id,v1,...,vd` lines:
+
+```python
+docs = client.query("MATCH (d:Document) RETURN id(d) AS id, d.text AS text")
+vectors = model.encode(docs["text"].tolist())          # any embedding model
+
+with open("/home/me/.turing/data/document_vectors.csv", "w") as f:
+    for node_id, vec in zip(docs["id"], vectors):
+        f.write(f"{node_id}," + ",".join(f"{x:.6f}" for x in vec) + "\n")
+```
+
 ## Search
 
-`VECTOR SEARCH` finds the k nearest neighbors of a query vector and yields their IDs. It is a read statement, so you can chain it with `MATCH` to pull back the actual graph data.
+`VECTOR SEARCH` finds the k nearest neighbors of a query vector and yields their IDs and scores. It is a read statement, so you can chain it with `MATCH`, `WHERE` and `RETURN` to pull back the actual graph data.
 
 **Syntax:**
 ```
-VECTOR SEARCH IN <index_name> FOR <k> (<vector>) YIELD <variable>
+VECTOR SEARCH IN <index_name> FOR <k> (<vector>) YIELD ids [AS <node>] [, score [AS <s>]]
 ```
 
 | Parameter      | Description                                                |
 | -------------- | ---------------------------------------------------------- |
 | `<index_name>` | Name of the vector index to search                         |
 | `<k>`          | Number of nearest neighbors to return (positive integer)   |
-| `<vector>`     | Query vector as a list literal of float values             |
-| `<variable>`   | Variable name to hold the result IDs                       |
+| `<vector>`     | Query vector as an embedding literal, in parentheses. Its dimension must match the index |
+| `ids`          | The matched IDs, best first. Bound as nodes when the index is keyed by native node IDs |
+| `score`        | The score of each match                                    |
 
 ### Standalone search
 
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids
-    RETURN ids
+    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids, score
+    RETURN ids, score
     ```
   </Tab>
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids
-    RETURN ids
+    VECTOR SEARCH IN doc_embeddings FOR 5 (0.12, 0.45, 0.78, 0.33) YIELD ids, score
+    RETURN ids, score
     """)
     print(df)
     ```
@@ -111,29 +134,37 @@ VECTOR SEARCH IN <index_name> FOR <k> (<vector>) YIELD <variable>
 
 ### Combining with MATCH
 
-This is where it gets interesting. Chain `VECTOR SEARCH` with a `MATCH` clause to join the nearest-neighbor IDs back to your graph:
+This is where it gets interesting. When the vector file is keyed by native node IDs, `ids` **is the node**. Read its properties directly, filter on `score`, or expand from it with a pattern:
 
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids
-    MATCH (d:Document) WHERE d.id = ids
-    RETURN d.title, d.summary
+    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids AS doc, score
+    WHERE score > 0.8
+    MATCH (doc)-[:ABOUT]->(t:Topic)
+    RETURN doc.title, t.name, score
     ```
   </Tab>
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids
-    MATCH (d:Document) WHERE d.id = ids
-    RETURN d.title, d.summary
+    VECTOR SEARCH IN doc_embeddings FOR 10 (0.12, 0.45, 0.78, 0.33) YIELD ids AS doc, score
+    WHERE score > 0.8
+    MATCH (doc)-[:ABOUT]->(t:Topic)
+    RETURN doc.title, t.name, score
     """)
     print(df)
     ```
   </Tab>
 </Tabs>
 
-The `ids` variable works exactly like a variable introduced by `CALL ... YIELD`, so any subsequent `MATCH` clause can reference it.
+<Warning>
+  **Use `ids` directly. Do not re-match it.** Writing `MATCH (d:Document) WHERE d.id = ids` (or `WHERE d = ids`) scans the whole label and cross-joins it with the results. Key the vector file by native node IDs, as above, so that no lookup is needed. If you must key the file by your own IDs, expect a label scan to join them back.
+</Warning>
+
+<Note>
+  Node IDs are renumbered by [`MERGE_DATAPARTS`](/concepts/dataparts). After compacting a graph, rebuild any vector index keyed by node IDs.
+</Note>
 
 ## Manage indexes
 
@@ -142,6 +173,8 @@ The `ids` variable works exactly like a variable introduced by `CALL ... YIELD`,
 ```jsx
 SHOW VECTOR INDEXES
 ```
+
+This returns the name and dimension of each index.
 
 ### Delete a vector index
 
@@ -159,13 +192,12 @@ This removes the index and frees the associated resources.
     // 1. Create a vector index for product embeddings
     CREATE VECTOR INDEX product_vectors WITH DIMENSION 384 METRIC COSINE
 
-    // 2. Load embeddings generated by your model
+    // 2. Load embeddings generated by your model (keyed by native node ID)
     LOAD VECTOR FROM "product_embeddings.csv" IN product_vectors
 
     // 3. Find the 10 most similar products to a query embedding
-    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids
-    MATCH (p:Product) WHERE p.id = ids
-    RETURN p.name, p.price, p.category
+    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids AS p, score
+    RETURN p.name, p.price, p.category, score
 
     // 4. Inspect existing indexes
     SHOW VECTOR INDEXES
@@ -183,14 +215,13 @@ This removes the index and frees the associated resources.
     # 1. Create a vector index for product embeddings
     client.query("CREATE VECTOR INDEX product_vectors WITH DIMENSION 384 METRIC COSINE")
 
-    # 2. Load embeddings generated by your model
+    # 2. Load embeddings generated by your model (keyed by native node ID)
     client.query('LOAD VECTOR FROM "product_embeddings.csv" IN product_vectors')
 
     # 3. Find the 10 most similar products to a query embedding
     df = client.query("""
-    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids
-    MATCH (p:Product) WHERE p.id = ids
-    RETURN p.name, p.price, p.category
+    VECTOR SEARCH IN product_vectors FOR 10 (0.15, 0.82, 0.44, 0.91) YIELD ids AS p, score
+    RETURN p.name, p.price, p.category, score
     """)
     print(df)
 
@@ -205,9 +236,7 @@ This removes the index and frees the associated resources.
 
 ## Embeddings as node properties
 
-The vector index above is a standalone, root-level structure keyed by numeric IDs. Separately, you can store an embedding directly as a **node or edge property** (type `Embedding`) and compare embeddings inline with the `cosine_similarity` and `euclidean_distance` functions — no index required.
-
-Embedding literals use **parentheses** `(...)`, not square brackets (which are list literals):
+The vector index above is a standalone, root-level structure keyed by numeric IDs. Separately, you can store an embedding directly as a **node or edge property** (type `Embedding`) and compare embeddings inline with the `cosine_similarity` and `euclidean_distance` functions, with no index required.
 
 ```jsx
 // Set an embedding property (inside a change)
@@ -218,9 +247,11 @@ MATCH (n:Document) RETURN n.name, cosine_similarity(n.emb, (0.12, 0.45, 0.78, 0.
 MATCH (n:Document) RETURN n.name, euclidean_distance(n.emb, (0.12, 0.45, 0.78, 0.33))
 ```
 
+`cosine_similarity` is true cosine similarity and `euclidean_distance` is true (not squared) L2 distance. Both accept Embeddings only, not lists, and work in `RETURN`, `WHERE` and `ORDER BY`. This is a brute-force scan, so for large collections use a vector index.
+
 ### Bulk-loading embeddings from Parquet — `LOAD EMBEDDING FROM`
 
-To attach embeddings to **existing** nodes in bulk, load them from a Parquet file. This is a write, so run it inside a change.
+To attach embeddings to **existing** nodes in bulk, load them from a Parquet file. This is a write, so run it inside a change. Do not loop `SET n.emb = (...)` over many nodes: it is orders of magnitude slower (about 2.5 ms per node, against roughly 0.1 s for 20,000 embeddings of 384 dimensions with `LOAD EMBEDDING`).
 
 **Syntax:**
 ```
@@ -231,21 +262,36 @@ The Parquet file (relative to the TuringDB `data` directory) must have exactly t
 
 | Column      | Type                                   | Description                                              |
 | ----------- | -------------------------------------- | -------------------------------------------------------- |
-| `node_id`   | `INT64`                                | Internal TuringDB node ID to attach the embedding to     |
+| `node_id`   | `INT64`                                | Native TuringDB node ID (`id(n)`) to attach the embedding to |
 | `embedding` | `FIXED_LEN_BYTE_ARRAY` (`dim × 4` bytes) | Little-endian float32 vector; dimension inferred from width |
 
 ```python
-change = client.new_change()
-client.checkout(change=change)
-client.query('LOAD EMBEDDING FROM "embeddings.parquet" AS emb')
-client.query("COMMIT")
+import numpy as np, pyarrow as pa, pyarrow.parquet as pq
+from pathlib import Path
+
+docs = client.query("MATCH (d:Document) RETURN id(d) AS node_id, d.text AS text")
+vecs = model.encode(docs["text"].tolist()).astype("<f4")     # shape (n, dim), float32
+dim = vecs.shape[1]
+
+pq.write_table(
+    pa.table({
+        "node_id": pa.array(docs["node_id"].astype("int64")),
+        "embedding": pa.array([v.tobytes() for v in vecs], pa.binary(dim * 4)),
+    }),
+    Path.home() / ".turing" / "data" / "doc_embeddings.parquet",
+)
+
+client.new_change()
+client.query('LOAD EMBEDDING FROM "doc_embeddings.parquet" AS emb')
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```
 
-The named property is created with type `Embedding`. The load **fails** if any `node_id` is missing from the graph, or if the property name already exists with a non-embedding type.
+- The embedding column must be a **fixed-size binary** column. A list or fixed-size-list column is rejected.
+- The file can cover any subset of nodes. Only those nodes get the property.
+- Running it again with the same property name overwrites the stored vectors, which is how you refresh embeddings after a model change.
+- The load **fails** if any `node_id` is missing from the graph, or if the property name already exists with a non-embedding type.
 
 <Note>
-  When importing a graph from JSONL, you can mark embedding properties at load time instead — see [`LOAD JSONL ... WITH EMBEDDINGS`](/import_data/jsonl#loading-embedding-properties).
+  When importing a graph from JSONL, you can mark embedding properties at load time instead. See [`LOAD JSONL ... WITH EMBEDDINGS`](/import_data/jsonl#loading-embedding-properties).
 </Note>
-

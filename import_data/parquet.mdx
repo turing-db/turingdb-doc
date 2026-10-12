@@ -1,42 +1,91 @@
 ---
 title: "Import Parquet files"
 sidebarTitle: "Parquet"
-description: "Build a TuringDB graph from node and edge Parquet files with the turing-parquet CLI"
+description: "Build a TuringDB graph from node and edge Parquet files with LOAD PARQUET or the turing-parquet CLI"
 ---
 
-To load Parquet files containing columns for node IDs, node properties, edge source and target IDs, and edge properties, see: `LOAD PARQUET`.
+To load Parquet files containing columns for node IDs, node properties, edge source and target IDs, and edge properties, see [`LOAD PARQUET`](#load-parquet).
 
-
-To load Parquet files containing a JSON string column, which is then converted into a graph structure, see: `turing-parquet`.
+To load Parquet files containing a JSON string column, which is then converted into a graph structure, see [`turing-parquet`](#turing-parquet).
 
 # `LOAD PARQUET`
 
-`LOAD PARQUET` queries may be used to load a graph into TuringDB. The command is of the following format:
+`LOAD PARQUET` is the fastest way to get data into TuringDB, and the recommended path for anything beyond a few thousand entities. Above roughly 5,000 nodes or 1,000 edges, write your data to Parquet and load it with this command: 100,000 nodes and 200,000 edges load in about 0.2 seconds, whereas Cypher-driven loads (`LOAD CSV` or `UNWIND` with `MATCH` and `CREATE` for the edges) take minutes at a few thousand edges.
+
 ```
-LOAD PARQUET "<directory name> {AS <graph name>}"
+LOAD PARQUET '<directory>' [AS <graph name>] [WITH DURATIONS [<column>, ...]]
 ```
-where `{AS <graph name>}` may be omitted, in which case the name of the graph will be that of the directory.
 
-The directory specified need contain `nodes.parquet` and `edges.parquet`.
+The graph name defaults to the name of the directory. The directory is resolved inside the `data` subdirectory of the TuringDB working directory (`-turing-dir`) and must contain `nodes.parquet` and `edges.parquet`.
 
-Each row in `nodes.parquet` defines a node, and the file has a required format of:
-- a column of name `__id` of type `INT64` - defines the relative node ID for the row;
-- a column of name `__labels` of type `BYTE_ARRAY` with exactly 1 level of nesting, forming a byte array of byte arrays - each inner byte array is treated as a string (the name of that label), the path of each element *must* be `__labels.list.element`.
+<Warning>
+  `LOAD PARQUET` always creates a **new graph**. The target graph name must not already exist, and it cannot append to an existing graph. To add a large volume of data to an existing graph, write the existing data plus the new data to Parquet and load it under a new graph name. Use Cypher writes only for small, incremental changes.
+</Warning>
 
-Each row in `edges.parquet` defines an edge, and the file has a required format of:
-- a column of name `__source` of type `INT64` - defines the node ID (present in `nodes.parquet`) of the source node of this edge;
-- a column of name `__target` of type `INT64` - defines the node ID (present in `nodes.parquet`) of the target node of this edge;
-- a column of name `__type` of type `BYTE_ARRAY` with exactly 0 levels of nesting  - interpreted as a string (the name of this edge type).
+## Required columns
 
-As well as the above required columns, `nodes.parquet` and `edges.parquet` may contain any number of extra columns, all of which are interpreted as a property value for the node/edge of that row. These columns may have any name (other than the names of the columns explicitly required above).
+`nodes.parquet` has one row per node:
 
-The supported types for property columns are:
-- `BOOLEAN`
-- `INT64`
-- `DOUBLE`
-- `BYTE_ARRAY` with exactly 0 levels of nesting
+- `__id`: `INT64`, unique. Your own node key. Edges refer to it.
+- `__labels`: a list of strings (`list<string>`), non-empty. Each element is a label of the node. The path of each element must be `__labels.list.element`.
 
-Note: all property columns of `BYTE_ARRAY` are treated as strings
+`edges.parquet` has one row per edge:
+
+- `__source`: `INT64`, the `__id` of the source node.
+- `__target`: `INT64`, the `__id` of the target node.
+- `__type`: a string, the edge type. Every edge has exactly one.
+
+## Property columns
+
+Every other column becomes a property of the node or edge on that row. The column name is the property name. Null values are allowed.
+
+| Parquet type | TuringDB property type |
+| ------------ | ---------------------- |
+| `INT64` | Integer |
+| `DOUBLE` | Double |
+| `BOOLEAN` | Boolean |
+| `BYTE_ARRAY` (string) | String |
+| timestamp | DateTime |
+| list of the types above | List |
+
+`INT32` and `FLOAT` columns are rejected (for example `Node column was not of type INT64` or `Unsupported column type`), so cast them to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
+
+## From pandas
+
+To go from CSV, JSON, SQL extracts or API data, load it into pandas, map your natural keys to `INT64` ids, and write the two files:
+
+```python
+import pandas as pd, pyarrow as pa, pyarrow.parquet as pq
+from pathlib import Path
+
+people = pd.read_csv("people.csv")   # columns: email, name, age
+knows = pd.read_csv("knows.csv")     # columns: src, dst, since  (src and dst are emails)
+
+ids = {key: i for i, key in enumerate(people["email"])}            # natural key -> int64 __id
+nodes = pd.DataFrame({
+    "__id": pd.Series(range(len(people)), dtype="int64"),
+    "__labels": [["Person"]] * len(people),
+    "email": people["email"],
+    "name": people["name"],
+    "age": people["age"].astype("Int64"),                          # int64, never int32
+})
+edges = pd.DataFrame({
+    "__source": knows["src"].map(ids).astype("int64"),
+    "__target": knows["dst"].map(ids).astype("int64"),
+    "__type": "KNOWS",
+    "since": knows["since"].astype("int64"),
+})
+
+out = Path.home() / ".turing" / "data" / "people_graph"            # <turing-dir>/data/<directory>
+out.mkdir(parents=True, exist_ok=True)
+pq.write_table(pa.Table.from_pandas(nodes, preserve_index=False), out / "nodes.parquet")
+pq.write_table(pa.Table.from_pandas(edges, preserve_index=False), out / "edges.parquet")
+
+client.query("LOAD PARQUET 'people_graph' AS people")
+client.set_graph("people")
+```
+
+For several node types, concatenate them into a single `nodes.parquet` with non-overlapping `__id` ranges, each row carrying its own `__labels`. Keep the natural key (`email` above) as a property so you can match on it in later queries.
 
 # `turing-parquet`
 
