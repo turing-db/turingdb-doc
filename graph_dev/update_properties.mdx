@@ -102,8 +102,10 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     ```
 
     <Warning>
-      Each property name has a single type across the whole graph, so `SET n.age = 'old'` fails if `age` is an Integer. Labels cannot be changed after creation: `SET n:Label` is not supported. `SET n += {...}` and `SET n = {...}` are not supported either. See [Writing data](/query/writing#set-and-remove) for the full rules.
+      Each property name has a single type across the whole graph, so `SET n.age = 'old'` fails if `age` is an Integer. See [Writing data](/query/writing#set-and-remove) for the full rules.
     </Warning>
+
+    Labels cannot be changed after creation.
   </Tab>
   <Tab title="Python SDK">
     ```python
@@ -204,7 +206,9 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     ```
 
     <Warning>
-      Each property name has a single type across the whole graph, so `SET n.age = 'old'` fails if `age` is an Integer. Labels cannot be changed after creation: `SET n:Label` is not supported. See [Writing data](/query/writing#set-and-remove) for the full rules.
+      Each property name has a single type across the whole graph, so `SET n.age = 'old'` fails if `age` is an Integer. See [Writing data](/query/writing#set-and-remove) for the full rules.
     </Warning>
+
+    Labels cannot be changed after creation.
   </Tab>
 </Tabs>

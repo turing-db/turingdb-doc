@@ -21,7 +21,7 @@ LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP | ON ERROR FAIL] AS <row>
 | `ON ERROR FAIL` | Abort on the first malformed row (the default) |
 | `AS <row>` | Variable bound to each row |
 
-All values come back as **strings**. Wrap them in `toInteger(...)` / `toFloat(...)` / `datetime(...)` if you need other types. Files must be comma-separated: `FIELDTERMINATOR` and the Neo4j form `LOAD CSV WITH HEADERS FROM 'file:///...'` are not supported.
+All values come back as **strings**. Wrap them in `toInteger(...)` / `toFloat(...)` / `datetime(...)` if you need other types.
 
 ## With headers
 
@@ -38,7 +38,7 @@ RETURN row[0] AS name, row[1] AS age
 LIMIT 5
 ```
 
-Without `WITH HEADERS`, the header line comes back as an ordinary data row. A row cannot be returned whole: read its fields as `row.col` or `row[<literal index>]`.
+Read a row's fields as `row.col` or `row[<literal index>]`. Without `WITH HEADERS`, the header line comes back as an ordinary data row.
 
 ## Combining with the rest of a query
 

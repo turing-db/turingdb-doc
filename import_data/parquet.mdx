@@ -10,7 +10,7 @@ To load Parquet files containing a JSON string column, which is then converted i
 
 # `LOAD PARQUET`
 
-`LOAD PARQUET` is the fastest way to get data into TuringDB, and the recommended path for anything beyond a few thousand entities. Above roughly 5,000 nodes or 1,000 edges, write your data to Parquet and load it with this command: 100,000 nodes and 200,000 edges load in about 0.2 seconds, whereas Cypher-driven loads (`LOAD CSV` or `UNWIND` with `MATCH` and `CREATE` for the edges) take minutes at a few thousand edges.
+`LOAD PARQUET` is the fastest way to get data into TuringDB, and the recommended path for anything beyond a few thousand entities.
 
 ```
 LOAD PARQUET '<directory>' [AS <graph name>] [WITH DURATIONS [<column>, ...]]
@@ -48,7 +48,7 @@ Every other column becomes a property of the node or edge on that row. The colum
 | timestamp | DateTime |
 | list of the types above | List |
 
-`INT32` and `FLOAT` columns are rejected (for example `Node column was not of type INT64` or `Unsupported column type`), so cast them to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
+`INT32` and `FLOAT` columns are rejected, so cast them to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
 
 ## From pandas
 
