@@ -43,9 +43,9 @@ MATCH (n:Person)
 RETURN n.name, coalesce(n.nickname, n.name)
 ```
 
-<Warning>
-  **`edgeType()` was removed in v3.** Use `type(e)` to get an edge's type as a string.
-</Warning>
+<Note>
+  In v3, `type(e)` returns an edge's type as a string. It replaces `edgeType()` from earlier versions.
+</Note>
 
 The function library keeps growing. Some functions, such as `substring`, `split`, `rand()`, `keys` and `properties`, are not yet available. For now, filter strings with `STARTS WITH`, `ENDS WITH` and `CONTAINS`, and do any other post-processing in your application.
 
@@ -123,9 +123,9 @@ RETURN m.a
 
 You can read a key from a map **value** that is in scope, for example one bound by `WITH` or `UNWIND`, with `m.key`.
 
-<Warning>
-  A map **stored as a property** cannot be dereferenced inside a query: `n.meta.level` and `m['key']` are errors, and map projection (`n {.name, .age}`) is not supported. Return the property as a whole, or store the individual values as separate properties.
-</Warning>
+<Note>
+  To read individual values from a map stored as a property, return the property as a whole or store the values as separate properties. Dereferencing a stored map inside a query (`n.meta.level`, `m['key']`) and map projection (`n {.name, .age}`) are not yet supported.
+</Note>
 
 ## How results come back
 

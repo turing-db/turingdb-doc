@@ -19,7 +19,7 @@ LOAD PARQUET '<directory>' [AS <graph name>] [WITH DURATIONS [<column>, ...]]
 The graph name defaults to the name of the directory. The directory is resolved inside the `data` subdirectory of the TuringDB working directory (`-turing-dir`) and must contain `nodes.parquet` and `edges.parquet`.
 
 <Warning>
-  `LOAD PARQUET` always creates a **new graph**. The target graph name must not already exist, and it cannot append to an existing graph. To add a large volume of data to an existing graph, write the existing data plus the new data to Parquet and load it under a new graph name. Use Cypher writes only for small, incremental changes.
+  `LOAD PARQUET` creates a **new graph**, so choose a graph name that does not exist yet. To add a large volume of data to an existing graph, write the existing data plus the new data to Parquet and load it under a new graph name. Use Cypher writes only for small, incremental changes.
 </Warning>
 
 ## Required columns
@@ -48,7 +48,7 @@ Every other column becomes a property of the node or edge on that row. The colum
 | timestamp | DateTime |
 | list of the types above | List |
 
-`INT32` and `FLOAT` columns are rejected, so cast them to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
+Use 64-bit columns: cast `INT32` and `FLOAT` columns to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
 
 ## From pandas
 
@@ -67,7 +67,7 @@ nodes = pd.DataFrame({
     "__labels": [["Person"]] * len(people),
     "email": people["email"],
     "name": people["name"],
-    "age": people["age"].astype("Int64"),                          # int64, never int32
+    "age": people["age"].astype("Int64"),                          # int64
 })
 edges = pd.DataFrame({
     "__source": knows["src"].map(ids).astype("int64"),

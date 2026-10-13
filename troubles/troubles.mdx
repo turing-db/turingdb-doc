@@ -42,7 +42,7 @@ See [client backends](/pythonsdk/reference#client-backends) for details.
 
 ## `401 Unauthorized`
 
-The server was started with `-auth-on` and your client did not send the right token. Pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. The JSON client raises this as an `httpx.HTTPStatusError`.
+The server was started with `-auth-on` and your client did not send a valid token. Pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. The JSON client raises this as an `httpx.HTTPStatusError`.
 
 ---
 
@@ -58,7 +58,7 @@ All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run inside a chan
 
 ---
 
-## A `MATCH` after a `CREATE` finds nothing
+## A `MATCH` right after a `CREATE` returns no rows
 
 Entities created earlier in a change are not visible to later queries until you run `COMMIT`. Run `COMMIT` after creating nodes and before matching them to create edges or to `MERGE`. See [Writing data](/query/writing#when-you-need-commit-inside-a-change).
 
@@ -66,7 +66,7 @@ Entities created earlier in a change are not visible to later queries until you 
 
 ## `Function 'X' does not exist`
 
-Function names are case-sensitive (`toInteger`, not `TOINTEGER`), and some functions are not available in TuringDB. `edgeType()` was replaced by `type()` in v3. See [Functions and data types](/query/functions).
+Function names are case-sensitive (`toInteger`, not `TOINTEGER`), and some functions are not yet available in TuringDB. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions).
 
 ---
 

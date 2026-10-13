@@ -87,9 +87,9 @@ ORDER BY nm
 ```
 
 - **Dropped rows.** A non-optional `CALL` drops the outer rows for which its body returns nothing. Use `OPTIONAL CALL` to keep them with `null` values.
-- **Imported variables.** A `CALL` body cannot return an imported variable under its own name. Alias it: `RETURN p AS me`.
+- **Imported variables.** To return an imported variable from a `CALL` body, give it an alias: `RETURN p AS me`.
 - A `CALL` body can contain `UNION`, aggregation, `ORDER BY` and `LIMIT`. Write-only subqueries also work inside a [change](/query/writing).
 
-<Warning>
-  Not supported: `COLLECT { ... }` (use `collect()` in a `CALL` body or a [pattern comprehension](/query/aggregation#list-comprehensions) instead), `CALL (*) { }`, `CALL { } IN TRANSACTIONS`, and `OPTIONAL CALL` on a *procedure*.
-</Warning>
+<Note>
+  `COLLECT { ... }`, `CALL (*) { }`, `CALL { } IN TRANSACTIONS` and `OPTIONAL CALL` on a procedure are not yet available. To collect values, use `collect()` in a `CALL` body or a [pattern comprehension](/query/aggregation#list-comprehensions).
+</Note>

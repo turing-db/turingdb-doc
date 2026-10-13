@@ -7,7 +7,7 @@ description: "Find the weighted shortest path between nodes in a TuringDB graph 
 TuringDB's `shortestPath` statement runs a Dijkstra search from a source set of nodes to a target set of nodes, returning the shortest distance and the path taken based on a numeric edge weight property.
 
 <Note>
-  `shortestPath` is a TuringDB statement, not the openCypher function. The forms `shortestPath((a)-[*]-(b))`, `allShortestPaths(...)`, `ANY SHORTEST` and `SHORTEST k` are not supported. For hop-count questions or paths where you need the properties along the route, use [variable-length paths](/query/paths) instead.
+  `shortestPath` is a TuringDB statement for weighted shortest paths. For hop-count questions, or when you need the properties along the route, use [variable-length paths](/query/paths).
 </Note>
 
 ## Sample dataset
@@ -143,10 +143,10 @@ You can pass multiple nodes to the source or target set — `shortestPath` will 
 
 If a set matches several source and target nodes, only the single best pair is returned.
 
-## Limitations
+## Usage notes
 
 <Warning>
-  Every variable on a pattern going into `shortestPath` is consumed by the statement, so it cannot be returned. Only `dist` and `path` can follow `RETURN`. The following query fails, and so does returning a separately matched copy of an endpoint:
+  The variables in the pattern going into `shortestPath` are consumed by the statement, so `RETURN` takes `dist` and `path`. Asking for a pattern variable such as `n` is reported as an error:
 
   ```jsx
   MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
@@ -159,9 +159,9 @@ If a set matches several source and target nodes, only the single best pair is r
   ```
 </Warning>
 
-- **Directed only.** Only outgoing edges are followed. When the target cannot be reached from the source, the query returns **zero rows**, not an error.
-- **`RETURN` must follow directly.** `WITH` after `shortestPath` is a syntax error. `ORDER BY` and `LIMIT` on the `RETURN` are fine.
-- **Do not call path functions on `path`.** `nodes(path)`, `length(path)` and comprehensions over it are not supported.
+- **Directed.** Outgoing edges are followed. When the target cannot be reached from the source, the query returns zero rows.
+- **`RETURN` follows directly.** Put `ORDER BY` and `LIMIT` on that `RETURN`.
+- **Reading `path`.** `path` is a flat list of IDs. To get names and properties, map the IDs back with a second query (see below).
 - **Where the other nodes come from.** A join can feed an endpoint: `MATCH (x {name: "Bromsgrove"})-[:LINK]->(a), (b {name: "Worcester Shrub Hill"}) shortestPath(a, b, distance, dist, path) RETURN dist, path`.
 
 ## Naming the stations along the route

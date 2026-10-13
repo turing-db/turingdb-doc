@@ -45,9 +45,9 @@ Keywords are case-insensitive (`MATCH` and `match` are the same). Labels, edge t
 MATCH (n:Person) RETURN n.name // also fine at the end of a line
 ```
 
-<Warning>
-  SQL-style `-- comments` and `/* block comments */` are **not** supported. `--` is parsed as part of the query.
-</Warning>
+<Note>
+  Use `//` for comments. SQL-style `--` and `/* */` comments are not yet supported.
+</Note>
 
 ### Running a query
 
@@ -64,21 +64,21 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFram
   `EXPLAIN <query>` returns the compiled query plan without running the query. It is the easiest way to check that a lookup uses a constant node scan.
 </Tip>
 
-## What to know if you come from Neo4j
+## Coming from Neo4j
 
-TuringDB follows openCypher closely. These are the differences you are most likely to hit:
+TuringDB follows openCypher closely, so the queries you know carry over. These are the TuringDB specifics worth knowing:
 
-- **`RETURN n` returns the node's internal ID**, an integer, not a node object with all its properties. Return the properties you need: `RETURN n.name, n.age`. There is no `properties(n)` or `keys(n)`; use [`db.getNodes`](/query/procedures#inspecting-nodes-and-edges) to see every property of a few nodes.
-- **No query parameters.** `$name` is a parse error and `client.query()` only takes a string. Put literal values in the query text and escape quotes yourself.
-- **One statement per request.** Scripts separated by `;` are rejected (a single trailing `;` is fine).
-- **Labels are fixed at creation.** `SET n:Label` and `REMOVE n:Label` are not supported. Every node has at least one label, and every edge has exactly one edge type.
-- **Property types are global.** A property name has a single value type across the whole graph. If `age` is an Integer, you cannot store a String `age` on another node.
-- **Strict numeric equality.** Comparing an Integer with a Double using `=` (for example `n.age = 30.0`) is rejected. Use a range (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`. `<`, `>` and arithmetic across numeric types are fine.
-- **Unknown labels and properties do not raise an error.** A label that does not exist matches nothing, and a misspelled property reads as `null`. Check names with [`CALL db.labels()` and `CALL db.propertyTypes()`](/query/procedures).
-- **Label expressions such as `(n:A|B)` or `(n:!A)` are not supported.** Write `WHERE n:A OR n:B` or `WHERE NOT n:A` instead. Edge type alternatives (`[:A|B]`) are supported.
-- **No regular expressions.** `=~` is a parse error. Use `STARTS WITH`, `ENDS WITH` and `CONTAINS`.
-- **No `FOREACH` and no constraints.** Use `UNWIND` for loops and `MERGE` to avoid duplicates.
-- **Shortest paths use a TuringDB statement**, not `shortestPath((a)-[*]-(b))`. See [Shortest path](/shortest-path).
+- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or use [`db.getNodes`](/query/procedures#inspecting-nodes-and-edges) to see every property of a few nodes.
+- **Values go in the query text.** Queries are plain strings, so put literal values directly in the text and escape quotes in your application. Query parameters such as `$name` are not yet supported.
+- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine).
+- **Labels are set at creation.** Every node has at least one label and every edge exactly one edge type, chosen when it is created.
+- **Property types are global.** A property name has a single value type across the whole graph: if `age` is an Integer, it is an Integer on every node.
+- **Typed numeric equality.** Compare Integers with Integers, and match Doubles with a range (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`. `<`, `>` and arithmetic work across numeric types.
+- **Forgiving names.** An unknown label matches nothing and a misspelled property reads as `null`. Check names with [`CALL db.labels()` and `CALL db.propertyTypes()`](/query/procedures).
+- **Label alternatives.** Write `WHERE n:A OR n:B` or `WHERE NOT n:A`. Edge type alternatives (`[:A|B]`) work directly in patterns.
+- **String matching.** Use `STARTS WITH`, `ENDS WITH` and `CONTAINS`. Regular expressions (`=~`) are not yet supported.
+- **Loops and uniqueness.** Use `UNWIND` for loops and `MERGE` to avoid duplicates.
+- **Shortest paths** use a TuringDB statement, see [Shortest path](/shortest-path).
 - **Function names are case-sensitive** (`toInteger`, not `TOINTEGER`), except `count` and `collect`.
 
 <Note>
@@ -109,4 +109,4 @@ More detail on types, conversion and results is in [Functions and data types](/q
 
 ## Roadmap
 
-We keep extending Cypher coverage and growing the library of procedures available through `CALL`. If you need a query form that is not supported yet, please [tell us](/troubles/troubles#contact-us).
+We keep extending Cypher coverage and growing the library of procedures available through `CALL`. If there is a query form you would like to see, please [tell us](/troubles/troubles#contact-us).

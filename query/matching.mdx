@@ -4,7 +4,7 @@ sidebarTitle: "Matching"
 description: "Read data with MATCH, OPTIONAL MATCH and WHERE, join patterns, and look up nodes quickly by native node ID."
 ---
 
-Read queries run directly against the current graph. There is no change or transaction to open first.
+Read queries run directly against the current graph, with no change to open first.
 
 The examples on this page use a small graph of people, companies and interests. Create it once in a change (see [Writing data](/query/writing)) if you want to follow along:
 
@@ -93,7 +93,7 @@ RETURN n.name
 ```
 
 <Note>
-  Unknown labels and property names do **not** raise an error. `MATCH (n:Nope) RETURN n` returns no rows and `RETURN n.misspelled` returns `null`. Use [`CALL db.labels()`, `CALL db.edgeTypes()` and `CALL db.propertyTypes()`](/query/procedures) to check what exists in a graph.
+  Unknown labels and property names are forgiving: `MATCH (n:Nope) RETURN n` returns no rows and `RETURN n.misspelled` returns `null`. Use [`CALL db.labels()`, `CALL db.edgeTypes()` and `CALL db.propertyTypes()`](/query/procedures) to check what exists in a graph.
 </Note>
 
 ## OPTIONAL MATCH
@@ -175,13 +175,13 @@ RETURN p.name
 
 Property constraints in a pattern, `MATCH (n {name: 'Matt', age: 20})`, are exactly equivalent to the same equality tests in `WHERE`.
 
-<Warning>
-  Regular expressions (`=~`) and the `exists(n.prop)` function are not yet supported. Use `n.prop IS NOT NULL` to test for a property.
-</Warning>
+<Note>
+  Use `n.prop IS NOT NULL` to test for a property, and `STARTS WITH`, `ENDS WITH` and `CONTAINS` to match strings. Regular expressions (`=~`) and `exists(n.prop)` are not yet supported.
+</Note>
 
-### Numeric equality is strict
+### Comparing numbers
 
-Comparing an Integer with a Double using `=` is rejected when the query is analysed, and so is comparing two Doubles with `=`:
+Equality compares numbers of the same kind. An Integer compared with a Double using `=`, or two Doubles compared with `=`, is reported when the query is analysed:
 
 ```text
 MATCH (n:Person) WHERE n.age = 30.0 RETURN n.name
@@ -200,7 +200,7 @@ WHERE n.age = toInteger(30.0)
 RETURN n.name
 ```
 
-Mixed-type `<`, `>` and arithmetic are fine. Integer division by zero raises an error, and Int64 overflow wraps silently.
+Mixed-type `<`, `>` and arithmetic work as expected. Division by zero returns an execution error, and Int64 arithmetic wraps around on overflow.
 
 ## Joins and Cartesian products
 
@@ -274,7 +274,7 @@ On large graphs this is orders of magnitude faster than looking nodes up again t
   - its elements are **distinct** integers, so deduplicate first;
   - `x` is used **only** in `n = x`. Return `id(n)` rather than `x`.
 - **Fetch IDs once and reuse them.** Look nodes up with whatever filter you need (`MATCH (n:Person {name: 'Alice'}) RETURN id(n)`), keep the IDs in your application, and address the nodes by ID from then on.
-- **Never compute IDs per row, and never match two nodes from one row.** Forms such as `WHERE a = p[0] AND b = p[1]` are not rewritten and run as a Cartesian product of two full node scans, which can exhaust memory on large graphs. To connect two known nodes, put both IDs in as literals, one pair per query: `MATCH (a) WHERE a = 5 MATCH (b) WHERE b = 7`. For bulk edges, see [Parquet import](/import_data/parquet).
+- **Keep IDs constant.** Use literal IDs rather than IDs computed per row, and match one node per `MATCH`. Forms such as `WHERE a = p[0] AND b = p[1]` are not rewritten into a constant scan, so they run as a Cartesian product of two full node scans, which is expensive on large graphs. To connect two known nodes, put both IDs in as literals, one pair per query: `MATCH (a) WHERE a = 5 MATCH (b) WHERE b = 7`. For bulk edges, see [Parquet import](/import_data/parquet).
 - **Vector search results are already nodes.** `VECTOR SEARCH ... YIELD ids` binds `ids` as nodes, so use `ids.title` or `MATCH (ids)-[...]->(...)` directly. See [Vector search](/vector-search).
 
 **Stability.** The native IDs of existing nodes are stable across queries, change submits and server restarts, so it is safe to cache them. Two exceptions:
@@ -282,4 +282,4 @@ On large graphs this is orders of magnitude faster than looking nodes up again t
 - Nodes created in an open change get their final IDs at `COMMIT` or `CHANGE SUBMIT`. Read them after that.
 - [`MERGE_DATAPARTS`](/concepts/dataparts) renumbers all nodes. Re-fetch any cached IDs afterwards.
 
-Keep a business key as a property as well, for durable identity outside TuringDB. There is no `elementId()`. For edges, `MATCH ()-[r]->() WHERE id(r) = 0 RETURN startNode(r), endNode(r)` works.
+Keep a business key as a property as well, for durable identity outside TuringDB. Use `id(n)` for node IDs. For edges, `MATCH ()-[r]->() WHERE id(r) = 0 RETURN startNode(r), endNode(r)` works.

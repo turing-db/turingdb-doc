@@ -57,14 +57,14 @@ CALL db.history() YIELD `commit`, nodeCount
 RETURN `commit`, nodeCount
 ```
 
-- **Constant arguments only.** A procedure argument cannot read row values: `db.getNodes([id(n)])` fails with "must be constant".
+- **Constant arguments.** Procedure arguments are constants, so pass literal values (for example `db.getNodes([0, 1, 2])`) rather than values read from a row.
 - **`commit` is a keyword.** Yield it with backticks: ``YIELD `commit` ``.
-- `valueType` has its own enum type, so `WHERE valueType = 'String'` is rejected. Filter the DataFrame in pandas instead.
-- `OPTIONAL CALL` does not work on procedures.
+- To filter on `valueType`, filter the resulting DataFrame in pandas.
+- `OPTIONAL CALL` is for subqueries. It is not yet available for procedures.
 
 ### Inspecting nodes and edges
 
-`RETURN n` gives only an internal ID, and there is no `properties(n)`. To see every property of a few nodes, use `db.getNodes`, which returns the properties as a JSON string:
+`RETURN n` gives a node's internal ID. To see every property of a few nodes, use `db.getNodes`, which returns the properties as a JSON string:
 
 ```cypher
 CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties
@@ -115,7 +115,7 @@ Outside of Cypher, a set of commands controls the engine. Send them through `cli
 | `LOAD CSV '<file>' ... AS row` | Stream rows from a CSV file, see [CSV import](/import_data/csv) |
 | `EXPLAIN <query>` | Show the compiled plan without running the query |
 
-There is no command to drop or unload a graph.
+Dropping and unloading graphs from a running server is not yet available.
 
 ### Changes and versions
 

@@ -26,7 +26,7 @@ description: "Submit changes done to the database (just like a commit being subm
 </Tabs>
 
 <Note>
-  `CHANGE SUBMIT` commits any pending writes itself, so you do not need a `COMMIT` right before it. In the Python SDK, `client.checkout()` afterwards is **required**: the client still points at the submitted change, and the next query would fail with `CHANGE_NOT_FOUND`.
+  `CHANGE SUBMIT` commits any pending writes itself, so a `COMMIT` right before it is optional. In the Python SDK, call `client.checkout()` afterwards to return to main: the client points at the submitted change until you do.
 </Note>
 
-If two changes edit the same node, the second submit fails with an error such as `This change attempted to update Node 0 (...) which has been modified on main.` The failed change stays open: fix it and submit again, or discard it with `CHANGE DELETE`. See [Writing data](/query/writing#failed-queries-and-conflicts).
+If two changes edit the same node, the second submit reports a conflict, for example `This change attempted to update Node 0 (...) which has been modified on main.` The failed change stays open: fix it and submit again, or discard it with `CHANGE DELETE`. See [Writing data](/query/writing#failed-queries-and-conflicts).

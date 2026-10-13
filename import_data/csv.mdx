@@ -51,7 +51,7 @@ RETURN p.name, row.city
 ```
 
 <Note>
-  An `OPTIONAL MATCH` directly after `LOAD CSV` that uses `row.x` inside its pattern hits an internal error. Project the field first: `... AS row WITH row.name AS nm OPTIONAL MATCH (p:Person {name: nm}) ...`.
+  To use `row.x` inside an `OPTIONAL MATCH` pattern that directly follows `LOAD CSV`, project the field first: `... AS row WITH row.name AS nm OPTIONAL MATCH (p:Person {name: nm}) ...`.
 </Note>
 
 ## Building a graph from CSV
@@ -67,7 +67,7 @@ client.checkout()
 ```
 
 <Tip>
-  This is meant for small files and for adding to an existing graph. Creating edges with `LOAD CSV` has to `MATCH` both endpoints for every row, which becomes very slow beyond a few thousand edges. For bulk loads, convert the CSV to Parquet and use [`LOAD PARQUET`](/import_data/parquet), which loads 100,000 nodes and 200,000 edges in about 0.2 seconds.
+  This approach suits small files and additions to an existing graph. Creating edges with `LOAD CSV` matches both endpoints for every row, so it is best kept to a few thousand edges. For bulk loads, convert the CSV to Parquet and use [`LOAD PARQUET`](/import_data/parquet), which loads 100,000 nodes and 200,000 edges in about 0.2 seconds.
 </Tip>
 
-To skip malformed rows instead of failing, add `ON ERROR SKIP`. See [Writing data](/query/writing#bulk-writes) for a single-pass `MERGE` pattern that needs no `COMMIT`.
+To skip malformed rows, add `ON ERROR SKIP` (the default, `ON ERROR FAIL`, stops at the first one). See [Writing data](/query/writing#bulk-writes) for a single-pass `MERGE` pattern that needs no `COMMIT`.

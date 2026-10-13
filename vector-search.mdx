@@ -159,7 +159,7 @@ This is where it gets interesting. When the vector file is keyed by native node 
 </Tabs>
 
 <Warning>
-  **Use `ids` directly. Do not re-match it.** Writing `MATCH (d:Document) WHERE d.id = ids` (or `WHERE d = ids`) scans the whole label and cross-joins it with the results. Key the vector file by native node IDs, as above, so that no lookup is needed. If you must key the file by your own IDs, expect a label scan to join them back.
+  **Use `ids` directly.** `ids` is already the node, so read properties from it (`ids.title`) or expand from it (`MATCH (ids)-[...]->(...)`). Re-matching it with `MATCH (d:Document) WHERE d.id = ids` scans the whole label and cross-joins it with the results, so key the vector file by native node IDs, as above. If you key the file by your own IDs, joining them back needs a label scan.
 </Warning>
 
 <Note>
@@ -251,7 +251,7 @@ MATCH (n:Document) RETURN n.name, euclidean_distance(n.emb, (0.12, 0.45, 0.78, 0
 
 ### Bulk-loading embeddings from Parquet — `LOAD EMBEDDING FROM`
 
-To attach embeddings to **existing** nodes in bulk, load them from a Parquet file. This is a write, so run it inside a change. Do not loop `SET n.emb = (...)` over many nodes: it is orders of magnitude slower (about 2.5 ms per node, against roughly 0.1 s for 20,000 embeddings of 384 dimensions with `LOAD EMBEDDING`).
+To attach embeddings to **existing** nodes in bulk, load them from a Parquet file. This is a write, so run it inside a change. `LOAD EMBEDDING` is the fastest way to write many embeddings: about 0.1 s for 20,000 embeddings of 384 dimensions, against about 2.5 ms per node for a loop of `SET n.emb = (...)`.
 
 **Syntax:**
 ```
@@ -287,10 +287,10 @@ client.query("CHANGE SUBMIT")
 client.checkout()
 ```
 
-- The embedding column must be a **fixed-size binary** column. A list or fixed-size-list column is rejected.
+- The embedding column is a **fixed-size binary** column (`pa.binary(dim * 4)` above), rather than a list or fixed-size list.
 - The file can cover any subset of nodes. Only those nodes get the property.
 - Running it again with the same property name overwrites the stored vectors, which is how you refresh embeddings after a model change.
-- The load **fails** if any `node_id` is missing from the graph, or if the property name already exists with a non-embedding type.
+- Every `node_id` must exist in the graph, and the property name must be new or already an embedding property.
 
 <Note>
   When importing a graph from JSONL, you can mark embedding properties at load time instead. See [`LOAD JSONL ... WITH EMBEDDINGS`](/import_data/jsonl#loading-embedding-properties).

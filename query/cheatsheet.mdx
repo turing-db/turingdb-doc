@@ -41,7 +41,7 @@ RETURN n.name
 - Node labels use `:Label` and can be stacked: `(n:Person:Employee)`.
 - Edge types use `:EDGE_TYPE`: `-[:KNOWS]->`. An edge has exactly one type, and `[:A|B]` matches either.
 - `RETURN n` gives the internal node ID. Return properties explicitly: `RETURN n.name`.
-- Unknown labels and properties do not error. They match nothing or read as `null`.
+- Unknown labels and properties are forgiving: they match nothing or read as `null`.
 
 ## OPTIONAL MATCH
 
@@ -94,8 +94,8 @@ RETURN p.name
 
 - Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, boolean `AND OR XOR NOT`.
 - Strings and lists: `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, concatenation with `+` or `||`.
-- No `=~` regex and no `exists(n.prop)` (use `IS NOT NULL`).
-- `Integer = Double` and `Double = Double` comparisons are rejected. Use ranges or `toInteger`.
+- Use `IS NOT NULL` to test for a property (`=~` and `exists(n.prop)` are not yet supported).
+- For Doubles, use ranges (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`.
 
 ## Lookup by native node ID
 
@@ -121,7 +121,7 @@ RETURN n.name
 ```
 
 - Compare the **variable** (`n = 0`), not `id(n) = 0`. The first is a direct seek and the second scans every node.
-- For batches, `UNWIND` a literal list of distinct IDs and do not return `x`.
+- For batches, `UNWIND` a literal list of distinct IDs and return `id(n)` rather than `x`.
 
 ## Joins and Cartesian products
 
@@ -168,7 +168,7 @@ RETURN [n IN nodes(p) | n.name], length(p)
 ```
 
 - Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
-- Edges never repeat within a path. Bound the length on large graphs.
+- Each edge is used at most once per path. Bound the length on large graphs.
 
 ## WITH, ORDER BY, SKIP, LIMIT, UNION
 
@@ -214,8 +214,8 @@ RETURN type(r) AS t, count(*) AS c
 ORDER BY c DESC
 ```
 
-- Grouping is implicit. Aggregates are not allowed in `WHERE`: filter after a `WITH`.
-- No `stdev` or `percentile*` aggregates.
+- Grouping is implicit. To filter on an aggregate, compute it in a `WITH` and filter afterwards.
+- `stdev` and `percentile*` aggregates are not yet available.
 
 ## UNWIND, lists, CASE
 
@@ -300,7 +300,7 @@ RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
 - Function names are case-sensitive, except `count` and `collect`.
-- `edgeType()` was removed: use `type(e)`.
+- Use `type(e)` for an edge's type (it replaces `edgeType()`).
 
 ## Data types
 
@@ -351,7 +351,7 @@ DELETE e
 CHANGE SUBMIT
 ```
 
-- Every node needs at least one label and every edge exactly one type. Labels cannot be changed later.
+- Every node needs at least one label and every edge exactly one type. Labels are set at creation.
 - Run `COMMIT` after creating entities that a later query must match. `CHANGE SUBMIT` commits for you.
 - In the Python SDK, call `client.checkout()` after `CHANGE SUBMIT`.
 - For more than a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet).
@@ -404,11 +404,3 @@ See [Shortest path](/shortest-path) and [Vector search](/vector-search).
 | `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes |
 | `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures |
 | `EXPLAIN <query>` | Show the query plan without running it |
-
-## Not supported
-
-- Query parameters (`$name`), more than one statement per request, `--` and `/* */` comments.
-- `=~` regular expressions, `FOREACH`, `COLLECT { }`, `CREATE CONSTRAINT`.
-- Label expressions `(n:A|B)` and `(n:!A)`. Use `WHERE n:A OR n:B`.
-- `SET n:Label`, `REMOVE n:Label`, `SET n += {...}`, `SET n = {...}`.
-- `properties()`, `keys()`, `elementId()`, map projection `n {.name}`.

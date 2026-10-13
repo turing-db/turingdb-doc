@@ -140,12 +140,12 @@ ORDER BY c DESC
 | `avg(x)` | Always a Double |
 | `min(x)`, `max(x)` | Numbers, strings, booleans, `DateTime` and `Duration` |
 
-There are no statistical aggregates such as `stdev` or `percentileCont`. Compute those in your application, for example in pandas.
+Statistical aggregates such as `stdev` and `percentileCont` are not yet available. Compute them in your application, for example in pandas.
 
 **Rules:**
 
 - `WHERE` runs before aggregation, so to filter on an aggregate, compute it in a `WITH` first and filter on its alias (see the example below).
-- Aggregates cannot be nested: `count(count(*))` is an error.
+- To aggregate an aggregate, compute the first one in a `WITH` and aggregate the result in the next stage.
 - Aggregates can be combined with each other and with constants in one expression (`max(n.age) - min(n.age)`, `count(*) * 10`). To use a property in the same expression, return it as its own item so it is a grouping key: `RETURN n.age, n.age + count(*)` works.
 - With no grouping keys, an empty input still returns one row: `count` is `0`, `sum` is `0`, `avg` is `null` and `collect` is `[]`. With grouping keys, an empty input returns no rows.
 
@@ -186,9 +186,9 @@ RETURN t, count(*)
 
 `range(start, end[, step])` includes both bounds. Unwound nodes stay nodes, so `p.name` works after `UNWIND ns AS p`. You can also `UNWIND` a list of maps and read their keys: `UNWIND [{a: 1}, {a: 2}] AS m RETURN m.a`.
 
-<Warning>
-  Query parameters (`UNWIND $list`) are not yet supported. Write the list into the query text instead, for example `f"UNWIND {ids} AS x ..."` in Python.
-</Warning>
+<Note>
+  Write the list into the query text, for example `f"UNWIND {ids} AS x ..."` in Python. Query parameters such as `UNWIND $list` are not yet supported.
+</Note>
 
 ## Lists
 

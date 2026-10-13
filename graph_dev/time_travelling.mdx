@@ -44,8 +44,8 @@ description: "You can time travel in you graph databases and see the commit hist
 - Commits are listed newest first, and the latest one is marked with a literal `(HEAD)` suffix on its hash: strip it before passing the hash to `checkout`.
 - Every `COMMIT` and every submitted change adds an entry.
 - `nodeCount` and `edgeCount` count what **that commit** added, not the graph totals.
-- Use hashes exactly as printed, since they are not zero-padded. An unknown hash passed to `client.checkout(commit=...)` raises `COMMIT_NOT_FOUND`, and `CALL db.describeCommit('<hash>')` returns zeros for an unknown hash.
-- A past commit is read-only: writes are refused there. Call `client.checkout()` to return to main.
+- Use hashes exactly as printed (they are not zero-padded). An unknown hash returns `COMMIT_NOT_FOUND` from `client.checkout(commit=...)`, and zeros from `CALL db.describeCommit('<hash>')`.
+- A past commit is read-only, so make writes on main or in a change. Call `client.checkout()` to return to main.
 
 ## Lazy Commit Loading
 
