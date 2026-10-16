@@ -64,6 +64,13 @@
             "group": "Query Language",
             "pages": [
               "query/cypher_subset",
+              "query/matching",
+              "query/paths",
+              "query/aggregation",
+              "query/subqueries",
+              "query/functions",
+              "query/writing",
+              "query/procedures",
               "query/cheatsheet"
             ]
           },

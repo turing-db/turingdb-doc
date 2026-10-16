@@ -6,7 +6,7 @@ description: "Stream rows from a CSV file in a query with LOAD CSV"
 
 `LOAD CSV` streams the rows of a CSV file into a query. Unlike `LOAD JSONL` / `LOAD GML` (which build a whole graph from a file), `LOAD CSV` is a **reading statement** that yields one row at a time, bound to a variable you can reference in `RETURN`, `MATCH`, or `CREATE`.
 
-The file must live in the `data` subdirectory of the TuringDB working directory (set by `-turing-dir`, default `$HOME/.turing`).
+The file must live in the `data` subdirectory of the TuringDB working directory (set by `-turing-dir`, default `$HOME/.turing`). Absolute paths are re-rooted inside that directory.
 
 ## Syntax
 
@@ -21,7 +21,7 @@ LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP | ON ERROR FAIL] AS <row>
 | `ON ERROR FAIL` | Abort on the first malformed row (the default) |
 | `AS <row>` | Variable bound to each row |
 
-All values come back as **strings** — wrap them in `toInteger(...)` / `toFloat(...)` if you need numbers.
+All values come back as **strings**. Wrap them in `toInteger(...)` / `toFloat(...)` / `datetime(...)` if you need other types.
 
 ## With headers
 
@@ -38,19 +38,36 @@ RETURN row[0] AS name, row[1] AS age
 LIMIT 5
 ```
 
+Read a row's fields as `row.col` or `row[<literal index>]`. Without `WITH HEADERS`, the header line comes back as an ordinary data row.
+
+## Combining with the rest of a query
+
+`LOAD CSV` composes with `MATCH`, `WITH` / `WHERE`, aggregates, `ORDER BY` and `UNWIND`. For example, join the rows with nodes that are already in the graph:
+
+```jsx
+LOAD CSV "people.csv" WITH HEADERS AS row
+MATCH (p:Person {name: row.name})
+RETURN p.name, row.city
+```
+
+<Note>
+  To use `row.x` inside an `OPTIONAL MATCH` pattern that directly follows `LOAD CSV`, project the field first: `... AS row WITH row.name AS nm OPTIONAL MATCH (p:Person {name: nm}) ...`.
+</Note>
+
 ## Building a graph from CSV
 
 Because `LOAD CSV` yields rows, you can drive `CREATE` from it inside a change:
 
 ```python
-change = client.new_change()
-client.checkout(change=change)
+client.new_change()
 client.query('LOAD CSV "people.csv" WITH HEADERS AS row CREATE (:Person {name: row.name, age: toInteger(row.age)})')
-client.query("COMMIT")
+client.query("COMMIT")   # make the new nodes visible to the next query
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```
 
-<Note>
-  `LOAD CSV` followed by `MATCH` in the same read statement is not yet supported.
-</Note>
+<Tip>
+  This approach suits small files and additions to an existing graph. Creating edges with `LOAD CSV` matches both endpoints for every row, so it is best kept to a few thousand edges. For bulk loads, convert the CSV to Parquet and use [`LOAD PARQUET`](/import_data/parquet), which loads 100,000 nodes and 200,000 edges in about 0.2 seconds.
+</Tip>
+
+To skip malformed rows, add `ON ERROR SKIP` (the default, `ON ERROR FAIL`, stops at the first one). See [Writing data](/query/writing#bulk-writes) for a single-pass `MERGE` pattern that needs no `COMMIT`.

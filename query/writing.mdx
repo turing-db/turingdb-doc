@@ -1,0 +1,287 @@
+---
+title: "Writing Data"
+sidebarTitle: "Writing Data"
+description: "CREATE, MERGE, SET, REMOVE and DELETE in TuringDB, and the change workflow that every write goes through."
+---
+
+All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run **inside a change**. A change is TuringDB's equivalent of a git branch: you write in an isolated copy and then submit it to the main graph. A write sent outside a change returns a clear message such as `Cannot perform CREATE outside of a write transaction.`
+
+## The change workflow
+
+```python
+client.new_change()                 # CHANGE NEW: the client is now on this change
+
+client.query("CREATE (:Person {name: 'Alice'})-[:KNOWS]->(:Person {name: 'Bob'})")
+# ... more writes ...
+
+client.query("CHANGE SUBMIT")       # merge the change into main
+client.checkout()                   # return the client to main
+```
+
+- `new_change()` returns the change ID and puts the client on that change.
+- After `CHANGE SUBMIT` the client still points at the submitted change. Call `client.checkout()` to return to main before running the next query.
+- To abandon a change, run `CHANGE DELETE` and then `client.checkout()`.
+- `new_change()` raises if the client is already on a change or on a past commit. Call `checkout()` first.
+
+See [Create a change](/graph_dev/create_change), [Submit a change](/graph_dev/submit_change) and [Time travelling](/graph_dev/time_travelling) for more on the versioning model.
+
+### When you need `COMMIT` inside a change
+
+`COMMIT` seals the pending writes of a change. It adds a commit to the history but does not publish anything to main. Whether a later query can see an earlier write depends on what the earlier write did:
+
+| An earlier query in the same change did... | Visible to later queries before `COMMIT`? |
+| ------------------------------------------ | ----------------------------------------- |
+| `CREATE` nodes or edges | **After `COMMIT`.** Run `COMMIT` so that a later `MATCH`, `MATCH ... CREATE` or `MERGE` sees the new entities |
+| `SET`, `REMOVE` or `DELETE` on entities that already existed | Yes, immediately |
+| anything, followed by `COMMIT` | Yes |
+| writes earlier in the **same query** | Yes |
+
+**Rule of thumb: run `COMMIT` after any query that creates entities that a later query must `MATCH` or `MERGE`.** You can use several `COMMIT`s in one change. `CHANGE SUBMIT` commits whatever is still pending, so no `COMMIT` is needed right before it.
+
+```python
+client.new_change()
+client.query("CREATE (:Person {name: 'Alice'}), (:Person {name: 'Bob'})")
+client.query("COMMIT")   # make the new nodes visible to the next query
+client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) CREATE (a)-[:KNOWS]->(b)")
+client.query("CHANGE SUBMIT")
+client.checkout()
+```
+
+### Failed queries and conflicts
+
+- **Recovering from a failed query.** If a query stops with an execution error in the middle of a change, the writes it already made stay in the change. The safest recovery is `CHANGE DELETE`, then redoing the work.
+- **Changes are isolated.** Main does not see a change's writes, even committed ones, until the change is submitted. Each change is rebased onto main at submit time.
+- **Disjoint edits submit cleanly.** When two changes edit the same entity, the second `CHANGE SUBMIT` reports a conflict, for example `This change attempted to update Node 0 (...) which has been modified on main.` Conflict detection is coarse: creating an edge to a node that was modified on main also conflicts.
+- **A failed submit rejects the whole change but leaves it open.** You can fix it and submit again, or run `CHANGE DELETE`.
+- **IDs of newly created nodes and edges are provisional until `COMMIT` or `CHANGE SUBMIT`.** Read them after committing. IDs of existing nodes are stable across submits and restarts (see [node ID lookup](/query/matching#look-up-nodes-by-native-node-id)).
+
+## CREATE
+
+```cypher
+CREATE (:Person {name: 'Alice', age: 30})
+
+CREATE (a:Person:Employee {name: 'Bob'})
+RETURN a.name, id(a)
+
+CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+
+CREATE (a:T {x: 1}), (b:T {x: 2}), (a)-[:R]->(b)
+
+CREATE p = (:City {name: 'Paris'})-[:ROAD {km: 450}]->(:City {name: 'Lyon'})
+RETURN p
+
+CREATE (c:City {name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'], info: {zone: 1}, emb: (0.1, 0.2, 0.3)})
+
+CREATE (n:Item {sku: 'A1'})
+SET n.price = 9.99
+RETURN n.sku
+
+CREATE (a:W {k: 'a'})
+WITH a
+CREATE (b:W {k: 'b'})-[:NEXT]->(a)
+```
+
+To connect nodes that already exist, match them first. They must be committed, or created earlier **in the same query**:
+
+```cypher
+MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'})
+CREATE (a)-[:KNOWS {since: 2021}]->(b)
+RETURN a.name, b.name
+```
+
+If you know their [native node IDs](/query/matching#look-up-nodes-by-native-node-id), address them directly. That is the fastest option, but the IDs must be **constants** written in the query, one pair per query:
+
+```cypher
+MATCH (a)
+WHERE a = 0
+MATCH (b)
+WHERE b = 1
+CREATE (a)-[:KNOWS {since: 2021}]->(b)
+```
+
+**Rules:**
+
+- **Labels and edge types.** Create nodes with a label, `CREATE (n:Label)`, and give each edge a single type, `[:TYPE]`.
+- **Labels are set at creation** and cannot be changed afterwards.
+- **Property types are global.** Each property name has **one value type across the whole graph** (see `CALL db.propertyTypes()`). If `age` is an Integer, `CREATE (:X {age: 'old'})` and `SET n.age = 2.5` are both reported as type incompatibilities, and values are not widened from Integer to Double automatically.
+- **Nulls.** Leave a key out of `CREATE` when it has no value, rather than writing `{name: null}`.
+- **Write patterns use single hops.** Variable-length edges are for reading, and a matched edge variable is not reused in `CREATE`.
+- **Parallel edges and self-loops are allowed.** An undirected `CREATE (a)-[:R]-(b)` is accepted and creates `a->b`.
+
+<Warning>
+  Match the two endpoints of an edge with separate `MATCH` clauses and constant IDs. Taking both from one `UNWIND` row (`a = p[0] AND b = p[1]`) plans as a Cartesian product of two full node scans, which is expensive on large graphs. For thousands of edges, use [`LOAD PARQUET`](/import_data/parquet).
+</Warning>
+
+## MERGE
+
+`MERGE` matches the whole pattern or creates it. It supports `ON CREATE SET` and `ON MATCH SET`:
+
+```cypher
+MERGE (n:Person {name: 'Alice'})
+  ON CREATE SET n.created = true
+  ON MATCH SET n.seen = true
+RETURN n.name
+```
+
+```cypher
+MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Carol'})
+MERGE (a)-[e:KNOWS]->(b)
+  ON CREATE SET e.since = 2024
+
+MERGE (a:Tag {name: 'x'})-[:LINKS]->(b:Tag {name: 'y'})
+
+MATCH (p:Person {name: 'Bob'})
+MERGE (p)-[:OWNS]->(c:Car {model: 'Z'})
+
+UNWIND ['a', 'b', 'a'] AS k
+MERGE (t:Key {k: k})
+RETURN t.k
+```
+
+`MERGE` deduplicates within one query, so the last example creates two `Key` nodes, not three.
+
+<Note>
+  Run `COMMIT` before a `MERGE` that should find nodes created by an earlier query in the same change, otherwise `MERGE` creates them again. `MERGE` is the way to avoid duplicates.
+</Note>
+
+## SET and REMOVE
+
+```cypher
+MATCH (n:Person {name: 'Alice'})
+SET n.age = 31
+
+MATCH (n:Person {name: 'Alice'})
+SET n.score = n.age * 1.1, n.updated = true
+
+MATCH (p:Product)
+SET p.discountPrice = p.price * (1 - 0.15)
+
+MATCH (a:Person)
+SET a.band = CASE WHEN a.age > 30 THEN 'senior' ELSE 'junior' END
+
+MATCH (a:Person)
+SET a.place = coalesce(a.city, 'unknown')
+
+MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
+SET n.age = m.age
+
+MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m)
+SET e.weight = 0.5
+
+MATCH (n:Person)
+WHERE n.age < 18
+SET n.isMinor = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.tags = ['a', 'b'], n.meta = {level: 3}
+
+MATCH (n:Person {name: 'Alice'})
+SET n.emb = (1.2, 2.0, 0.0, 12.0)
+
+MATCH (n:Person {name: 'Alice'})
+SET n.joined = datetime('2024-03-15T10:30:00Z')
+
+MATCH (a:Person)
+WITH count(a) AS c
+MATCH (s:Stats {name: 'people'})
+SET s.total = c
+
+MATCH (n)
+WHERE n = 0
+SET n.flag = true
+
+UNWIND [0, 1, 2] AS x
+MATCH (n)
+WHERE n = x
+SET n.flag = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.age = null
+
+MATCH (n:Person {name: 'Alice'})
+REMOVE n.score, n.flag
+```
+
+- `SET` creates the property if it does not exist yet. Setting a property to `null` clears it, and `REMOVE n.prop` removes it.
+- The value can be any expression, including a `CASE`, a function call or a value from another matched entity.
+- Address nodes by [native node ID](/query/matching#look-up-nodes-by-native-node-id) for the fastest updates. Batch updates use the same literal `UNWIND` form as reads.
+- For a one-off embedding, `SET n.emb = (...)` is fine. To write embeddings onto many existing nodes, use [`LOAD EMBEDDING`](/vector-search#embeddings-as-node-properties) instead of a `SET` loop.
+
+<Note>
+  To update several properties at once, list the assignments: `SET n.a = 1, n.b = 2`. Map forms (`SET n += {...}`, `SET n = {...}`), label changes (`SET n:Label`) and aggregates directly inside `SET` (`SET n.c = count(*)`) are not yet supported. Compute aggregates in a `WITH` first, as in the `Stats` example above.
+</Note>
+
+## DELETE and DETACH DELETE
+
+```cypher
+MATCH (n:Person {name: 'Alice'})
+DETACH DELETE n
+
+MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m)
+DELETE e
+
+MATCH (n:Temp)
+WHERE n.v > 3
+DELETE n
+
+MATCH (n:Person {name: 'Remy'})-[e]->(m:Person)
+DELETE e, n
+```
+
+- `DETACH DELETE` removes a node together with all of its edges.
+- Use `DETACH DELETE` for a node that still has edges. A plain `DELETE` reports `Cannot delete a node with relationships; use DETACH DELETE`.
+- To delete a path, delete its nodes or edges.
+
+## Bulk writes
+
+<Tip>
+  **Beyond a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet) rather than Cypher writes.** Above roughly 5,000 nodes or 1,000 edges, write your data to Parquet and load it into a new graph. It loads 100,000 nodes and 200,000 edges in about 0.2 seconds, while Cypher-driven loads that `MATCH` both endpoints of every edge take minutes at a few thousand edges. Use Cypher writes for small, incremental changes.
+</Tip>
+
+For small volumes, inline the data with `UNWIND`:
+
+```cypher
+UNWIND range(1, 1000) AS i
+CREATE (:Num {v: i})
+
+UNWIND ['Brest', 'Rennes', 'Nantes'] AS nm
+MERGE (:City {name: nm})
+
+UNWIND [['Brest', 'FR-29'], ['Rennes', 'FR-35']] AS row
+CREATE (:City {name: row[0], code: row[1]})
+```
+
+For rows with mixed types, such as `['Brest', 139000]`, use parallel lists:
+
+```cypher
+WITH ['Brest', 'Rennes'] AS names, [139000, 220000] AS pops
+UNWIND range(0, size(names) - 1) AS i
+CREATE (:City {name: names[i], pop: pops[i]})
+```
+
+`LOAD CSV` can drive writes too. Create the nodes, `COMMIT`, then create the edges (see [CSV import](/import_data/csv)). Alternatively `MERGE` both endpoints in a single pass, which deduplicates across the rows of one query so no `COMMIT` is needed:
+
+```cypher
+LOAD CSV 'knows.csv' WITH HEADERS AS row
+  MERGE (a:Person {pid: toInteger(row.src)})
+  MERGE (b:Person {pid: toInteger(row.dst)})
+  CREATE (a)-[:KNOWS {since: toInteger(row.since)}]->(b)
+```
+
+Use `UNWIND` to loop over a list.
+
+**Building the query text in Python.** Queries are plain text, so escape quotes in your application:
+
+```python
+def lit(v):
+    if isinstance(v, str):
+        return "'" + v.replace("\\", "\\\\").replace("'", "\\'") + "'"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    return repr(v)
+
+names = ["Alice", "O'Brien"]
+client.query(f"UNWIND [{', '.join(lit(n) for n in names)}] AS nm MERGE (:Person {{name: nm}})")
+```
+
+Keep each query to a few thousand rows at most.

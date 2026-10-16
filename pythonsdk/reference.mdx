@@ -22,6 +22,8 @@ or using `pip`:
 pip install turingdb
 ```
 
+The SDK targets TuringDB v3: pin `turingdb>=3.0` in your project (older projects may pin `1.x`, which uses the previous engine and a much smaller Cypher subset). The wheel supports Python 3.10 to 3.14 on Linux (x86_64, aarch64) and macOS 15 or later (arm64). It also contains the `turingdb` command-line tool, the `turing-parquet` import tool, and the in-process engine.
+
 ## Getting Started
 
 ```python
@@ -42,25 +44,81 @@ print(client.list_available_graphs())
 
 | `type` | Encoding / transport | Constructor arguments |
 | ------ | -------------------- | --------------------- |
-| `"json"` *(default)* | JSON payloads over HTTP against a running daemon | `host="http://localhost:6666"` |
-| `"native"` | Binary (Turing proto) payloads over HTTP — faster; requires the compiled extension | `host="localhost"`, `port=6666` |
-| `"embedded"` | In-process engine, no daemon or socket | `data_dir="/path/to/.turing"` |
-
-Both `json` and `native` talk to a daemon over HTTP; they differ in the wire encoding (JSON vs. binary). `embedded` runs the engine in-process with no network at all.
+| `"json"` *(default)* | JSON over HTTP against a running server | `host="http://localhost:6666"`, optional `token` |
+| `"native"` | TuringDB's binary protocol against a running server. Faster for large results | `host="localhost"`, `port=6666`, optional `token` |
+| `"embedded"` | In-process engine, no server or socket | `data_dir="/path/to/.turing"` |
 
 ```python
-# Default HTTP client
+# Default HTTP/JSON client
 client = TuringDB(host="http://localhost:6666")
 
 # Native binary protocol
 client = TuringDB(type="native", host="localhost", port=6666)
 
-# Embedded, in-process — no server needed
-client = TuringDB(type="embedded", data_dir="~/.turing")
+# Embedded, in-process: no server needed
+client = TuringDB(type="embedded", data_dir="/home/me/.turing")
 ```
 
+Use the default `json` backend unless you have a reason not to. The other two are optimisations for specific situations:
+
+- **`native`** when you control the server and need more throughput on large results.
+- **`embedded`** when you want a self-contained engine with no server to start, stop or connect to.
+
+### The native binary protocol
+
+The binary protocol is a **server-side mode**, selected once when the server starts with the environment variable `USE_TURING_PROTO=1`:
+
+```bash
+USE_TURING_PROTO=1 turingdb start -demon -p 6666
+```
+
+```python
+client = TuringDB(type="native", host="localhost", port=6666)
+```
+
+A server speaks either JSON or the binary protocol on a given port:
+
+| Server started | `type="json"` client | `type="native"` client |
+| -------------- | -------------------- | ---------------------- |
+| normally (JSON, the default) | works | returns `Proto header dataLen does not match chunk payload size` |
+| with `USE_TURING_PROTO=1` | returns `Invalid response from the server` | works |
+
+A server in binary mode serves the binary protocol only, so `curl`, the JSON client and the browser visualizer (`-ui`) connect to a server running in the default mode. To use both, run two servers on different ports.
+
+- `host` accepts `"localhost"` together with `port=`, or a full URL such as `"http://localhost:6666"`. Use one of these two forms.
+- The query API is identical, and results come back as the same DataFrames. Embeddings are returned as numpy `float32` arrays instead of Python lists.
+- To list the graphs on disk, use the JSON client. On the native backend, `list_loaded_graphs()` lists the loaded graphs.
+- `token`, `reconnect()` and the S3 helpers work as on the JSON backend.
+
+### Authentication
+
+A server started with `-auth-on` requires a bearer token. Pass it with `token=` or set the `TURINGDB_AUTH_TOKEN` environment variable, which the SDK reads automatically. This works on both the `json` and `native` backends:
+
+```bash
+TURINGDB_AUTH_TOKEN=s3cret turingdb start -demon -auth-on
+```
+
+```python
+client = TuringDB(host="http://localhost:6666", token="s3cret")
+```
+
+A missing or incorrect token returns HTTP `401`, which the JSON client raises as an `httpx.HTTPStatusError`. The embedded backend runs in-process and needs no authentication, so it does not take a `token`.
+
+### The embedded backend
+
+```python
+import os
+
+client = TuringDB(type="embedded", data_dir=os.path.expanduser("~/.turing"))
+```
+
+- `data_dir` is the TuringDB root directory (the one that holds `graphs/`, `data/` and `vector/`). Omit it to use `~/.turing`.
+- **Use an absolute path**, for example with `os.path.expanduser("~/...")`, since a leading `~` is not expanded.
+- Writes still persist to disk when you submit a change, so your work survives the process ending.
+- The embedded backend is designed for a single process. For the browser visualizer, `list_available_graphs()`, concurrent access from several processes, the S3 helpers and `token=`, use a server.
+
 <Note>
-  `list_available_graphs()` and the S3 helpers (`s3_connect`, `transfer`) are only supported on the default JSON backend (`type="json"`).
+  `list_available_graphs()` is only supported on the default JSON backend. The S3 helpers (`s3_connect`, `transfer`) work on the JSON and native backends.
 </Note>
 
 ## Core Methods
@@ -125,15 +183,16 @@ Returns whether the current graph is loaded in memory.
 
 ### `new_change() → int`
 
-Creates a new isolated change (equivalent to `CHANGE NEW`), makes it the active change, and returns its integer ID.
+Creates a new isolated change (equivalent to `CHANGE NEW`), makes it the active change, and returns its integer ID. The client is already on the new change, so a separate `checkout(change=...)` is not needed.
 
 ```python
 change = client.new_change()
-client.checkout(change=change)
 ```
 
+`new_change()` raises if the client is already on a change or on a past commit. Call `client.checkout()` first.
+
 <Note>
-  There is no `submit()` method — submit a change by running `client.query("CHANGE SUBMIT")`.
+  Submit a change by running `client.query("CHANGE SUBMIT")`, then call `client.checkout()` to return to main. The client points at the submitted change until you do, so call `checkout()` before the next query.
 </Note>
 
 ## Version Control Helpers
@@ -184,7 +243,7 @@ You can also read the current context through the `current_graph`, `current_comm
 
 ### `reconnect()`
 
-Resets the connection. A no-op for the HTTP and embedded backends; reopens the socket for the native backend.
+Resets the connection. A no-op for the HTTP and embedded backends. Reopens the socket for the native backend.
 
 ### `try_reach(timeout: int = 5)` / `warmup(timeout: int = 5)`
 
@@ -196,7 +255,7 @@ Return the server-side execution time and the full round-trip time (in milliseco
 
 ## S3 / Data Transfer
 
-These helpers move graph data between local paths, S3, and the TuringDB server. They are only available on the JSON backend (`type="json"`).
+These helpers move graph data between local paths, S3, and the TuringDB server. They are available on the JSON and native backends, but not on the embedded backend.
 
 ### `s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)`
 
@@ -219,7 +278,7 @@ The equivalent engine commands (issued directly via `query`) are `S3 CONNECT "<k
 
 ## Response Format
 
-All queries return a `pandas.DataFrame`, typed according to schema:
+All queries return a `pandas.DataFrame`, typed according to the schema:
 
 | Cypher Type | pandas dtype   |
 | ----------- | -------------- |
@@ -228,17 +287,31 @@ All queries return a `pandas.DataFrame`, typed according to schema:
 | `UInt64`    | `UInt64`       |
 | `Double`    | `float64`      |
 | `Bool`      | `boolean`      |
+| `DateTime`  | `datetime64[us, UTC]` |
+| `Duration`  | `timedelta64[us]` |
+| `List`, `Map` | object (Python list, dict) |
+| `Embedding` | object (list over HTTP, numpy `float32` array on the native and embedded backends) |
+
+Nodes and edges (`RETURN n`) come back as their internal integer IDs (`UInt64`), so project the properties you need. A named path comes back as a list of `{'type': 'node' | 'edge', 'id': ...}` dictionaries. See [Functions and data types](/query/functions#how-results-come-back) for the full table.
+
+<Note>
+  Over the JSON backend, Doubles are serialised with 6 decimal places. Use the native or embedded backend if you need full precision.
+</Note>
 
 ## Error Handling
 
-All SDK errors raise a custom `TuringDBException`.
+Query errors raise `TuringDBException`. The message starts with the error code (`PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND`, ...) and points at the offending part of the query.
 
 ```python
+from turingdb import TuringDB, TuringDBException
+
 try:
-    client.query("MATCH (x) RETURN x")
+    client.query("MATCH (n RETURN n")
 except TuringDBException as e:
     print("Query failed:", e)
 ```
+
+On the JSON backend, transport failures (the server is down, or HTTP 401 for a bad or missing token) surface as `httpx` exceptions instead.
 
 ## Example Workflow
 

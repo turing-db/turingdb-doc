@@ -1,10 +1,14 @@
 ---
 title: "Shortest Path"
 sidebarTitle: "Shortest Path"
-description: "Find the shortest path between nodes in a TuringDB graph using the Dijkstra processor"
+description: "Find the weighted shortest path between nodes in a TuringDB graph with the shortestPath statement (Dijkstra)"
 ---
 
-TuringDB's `shortestPath` processor runs a Dijkstra search from a source set of nodes to a target set of nodes, returning the shortest distance and the path taken based on a numeric edge weight property.
+TuringDB's `shortestPath` statement runs a Dijkstra search from a source set of nodes to a target set of nodes, returning the shortest distance and the path taken based on a numeric edge weight property.
+
+<Note>
+  `shortestPath` is a TuringDB statement for weighted shortest paths. For hop-count questions, or when you need the properties along the route, use [variable-length paths](/query/paths).
+</Note>
 
 ## Sample dataset
 
@@ -44,9 +48,9 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
 | ------------------- | ------------------------------------------------------------------- |
 | `sourceSet`         | Variable bound to the source node(s) via a preceding `MATCH` clause |
 | `targetSet`         | Variable bound to the target node(s) via a preceding `MATCH` clause |
-| `edgePropName`      | Name of the numeric edge property to use as weight                  |
-| `distanceReturnVar` | Output variable name for the total shortest distance                |
-| `pathReturnVar`     | Output variable name for the path string                            |
+| `edgePropName`      | Name of the numeric edge property to use as weight, written as a bare identifier (`distance`), **not** a quoted string. Edges where it is null are skipped |
+| `distanceReturnVar` | Output variable name for the total shortest distance. A Double, or an Integer if the weight is an integer |
+| `pathReturnVar`     | Output variable name for the path: a flat list of alternating IDs `[node, edge, node, edge, ..., node]` |
 
 ## Basic usage
 
@@ -71,12 +75,11 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
 </Tabs>
 
 ```
-+-------+--------------+
-| dist  | path         |
-+-------+--------------+
-| 11.29 | (0)-[1]->(6) |
-+-------+--------------+
+    dist       path
+0  11.29  [0, 1, 6]
 ```
+
+`path` alternates node and edge IDs: node `0`, edge `1`, node `6`.
 
 ### Returning only the distance or only the path
 
@@ -103,11 +106,8 @@ Both output variables are always computed — you can choose to return one or bo
 </Tabs>
 
 ```
-+-------+
-| dist  |
-+-------+
-| 11.29 |
-+-------+
+    dist
+0  11.29
 ```
 
 ## Multiple sources or targets
@@ -137,17 +137,16 @@ You can pass multiple nodes to the source or target set — `shortestPath` will 
 </Tabs>
 
 ```
-+------+--------------+
-| dist | path         |
-+------+--------------+
-| 12.6 | (1)-[5]->(6) |
-+------+--------------+
+   dist       path
+0  12.6  [1, 5, 6]
 ```
 
-## Limitations
+If a set matches several source and target nodes, only the single best pair is returned.
+
+## Usage notes
 
 <Warning>
-  Any variable on a pattern going into a `shortestPath` processor cannot be returned in the `RETURN` clause — they are consumed by the processor. The following query will produce an error:
+  The variables in the pattern going into `shortestPath` are consumed by the statement, so `RETURN` takes `dist` and `path`. Asking for a pattern variable such as `n` is reported as an error:
 
   ```jsx
   MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
@@ -156,24 +155,30 @@ You can pass multiple nodes to the source or target set — `shortestPath` will 
   ```
 
   ```
-  PLAN_ERROR: Unexpected exception: projection variable n not found in output column
+  ANALYZE_ERROR: Cannot return n after SHORTESTPATH.
   ```
 </Warning>
 
-<Tip>
-  You can still `MATCH` additional nodes outside of the source and target sets and include them in `RETURN`. The result will be a cartesian product with the shortest path output:
+- **Directed.** Outgoing edges are followed. When the target cannot be reached from the source, the query returns zero rows.
+- **`RETURN` follows directly.** Put `ORDER BY` and `LIMIT` on that `RETURN`.
+- **Reading `path`.** `path` is a flat list of IDs. To get names and properties, map the IDs back with a second query (see below).
+- **Where the other nodes come from.** A join can feed an endpoint: `MATCH (x {name: "Bromsgrove"})-[:LINK]->(a), (b {name: "Worcester Shrub Hill"}) shortestPath(a, b, distance, dist, path) RETURN dist, path`.
 
-  ```jsx
-  MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"}), (p{name:"Cheltenham Spa"})
-  shortestPath(n, m, distance, dist, path)
-  RETURN dist, path, p.name
-  ```
+## Naming the stations along the route
 
-  ```
-  +-------+--------------+----------------+
-  | dist  | path         | p.name         |
-  +-------+--------------+----------------+
-  | 11.29 | (0)-[1]->(6) | Cheltenham Spa |
-  +-------+--------------+----------------+
-  ```
-</Tip>
+To turn the IDs in `path` back into names, run a second query. The even positions of `path` are nodes:
+
+```python
+row = client.query("""
+MATCH (a:Station {name: 'Bromsgrove'}), (b:Station {name: 'Worcester Shrub Hill'})
+shortestPath(a, b, distance, dist, path)
+RETURN dist, path
+""").iloc[0]
+
+node_ids = sorted({int(i) for i in row["path"][0::2]})
+names = client.query(f"UNWIND {node_ids} AS x MATCH (n) WHERE n = x RETURN id(n) AS id, n.name AS name")
+```
+
+The `UNWIND` list is a literal of distinct IDs and `x` is not returned, so this is a constant scan (see [lookup by node ID](/query/matching#look-up-nodes-by-native-node-id)).
+
+For large graphs prefer `shortestPath` over variable-length paths: variable-length matching enumerates every path.

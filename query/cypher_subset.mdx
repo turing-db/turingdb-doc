@@ -1,621 +1,112 @@
 ---
 title: "Query Language in TuringDB"
-sidebarTitle: "Query Language"
-description: "TuringDB uses Cypher as a query language and has some unique types of queries"
+sidebarTitle: "Overview"
+description: "TuringDB v3 runs Cypher on a new engine and supports most of openCypher: OPTIONAL MATCH, WITH, UNWIND, UNION, MERGE, variable-length paths, subqueries and more."
 ---
 
-TuringDB supports most of the **Cypher query language**, extended with versioning, metadata search, and flexible property matching.
+TuringDB v3 (`turingdb` 3.0 on PyPI) runs every query on a new MLIR-based engine and supports **most of openCypher**, extended with versioning, vector search and fast lookup by native node ID.
 
-This guide covers some examples of queries types, including `MATCH`, `CREATE`, property filters, procedures, and available data types.
+If you know Cypher from Neo4j, you can write the queries you are used to. This page covers the basics and the handful of places where TuringDB differs. The rest of the language is documented in the pages that follow.
 
-# Basics
+## What is supported
 
-Queries are built by referencing nodes and edges. TuringDB supports the standard CYPHER syntax, in that nodes are denoted using parentheses `()`, whilst edges are denoted using square brackets `[]`.
+| Area | Supported |
+| ---- | --------- |
+| Reading | `MATCH`, `OPTIONAL MATCH`, `WHERE`, `WITH`, `RETURN [DISTINCT]`, `ORDER BY`, `SKIP`, `LIMIT`, `UNWIND`, `UNION [ALL]`, `LOAD CSV` |
+| Patterns | Multiple labels, edge type alternatives (`[:A\|B]`), inline `WHERE`, variable-length paths (`*1..3`, `->+`, `{2,4}`), quantified path patterns, named paths, pattern predicates |
+| Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps |
+| Aggregation | `count`, `sum`, `avg`, `min`, `max`, `collect`, `DISTINCT`, implicit grouping, aggregates inside expressions |
+| Subqueries | `EXISTS { }`, `COUNT { }`, `CALL { }` and `OPTIONAL CALL { }` |
+| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE` |
+| Types | String, Integer, Double, Boolean, List, Map, `DateTime`, `Duration`, Embedding |
+| TuringDB extras | Changes, commits and time travel, `shortestPath`, `VECTOR SEARCH`, `gnn.graphSAGE`, lookup by native node ID |
 
-For example, `(n)`  would denote a node named `n`, whilst `[e]` would denote an edge named `e`.
+## Basics
 
-Nodes and edges can have both **label** and **property** constraints. As in standard CYPHER, property constraints are specified using curly brackets `{}`, whilst labels are specified using colon `:` syntax.
+Queries are built from **nodes** and **edges**:
 
-An example of a node with a label constraint would be `(n:Person)`. The edge equivalent is the **edge type**, written the same way: `[e:FRIENDS_WITH]`. An edge has exactly one edge type.
+- Nodes are written in parentheses: `(n)` is a node named `n`.
+- Edges are written in square brackets: `[e]` is an edge named `e`.
+- **Labels** are added with a colon: `(n:Person)`. A node can have several: `(n:Person:Employee)`.
+- **Edge types** use the same syntax: `[e:FRIENDS_WITH]`. An edge has exactly one edge type.
+- **Properties** are constrained with curly braces: `(n:Person {name: 'John', age: 20})`.
 
-An example of an edge with a property constraint would be `[e {duration: 10}]`.
-
-Property and label constraints may be combined, for instance, `(n:Person {name: 'John'})` specifies a node which both has the label `Person`, and a `name` property with the value `John`.
-
-Nodes and edges can have label and property multiple constraints, which are specified in a comma-separated list: `(n:Person:Man {name: 'John', age: 20})`. These lists can be arbitrarily long.
-
-By convention:
-
-- we prefer using single quotes around strings (even if double quotes alsowork )
-- node label are written in Pascal case (no spaces): e.g. `Person`, `BankAccount`, `BloodType`
-- edge label are written in upper case (spaces replaced by underscores): e.g. `TRANSACTION`, `FRIENDS_WITH`, `IS_CLIENT_OF`
-
-### Summary:
-
-Queries are built around **nodes** and **edges**:
-
-- **Nodes** are written in parentheses `()` e.g. `(n)` - a node with alias `n`
-- **Edges** are written in square brackets `[]` e.g. `[e]` - an edge with alias `e`
-
-You can add:
-
-- **Labels** with a colon `:` - e.g. `(n:Person)`
-- **Edge types** with a colon `:` - e.g. `[e:FRIENDS_WITH]` or `[:FRIENDS_WITH]`
-- **Property constraints** with curly braces `{}` - e.g. `[e {duration: 10}]`
-- **Both** at once - e.g. `(n:Person {name: 'John'})`
-
-Multiple labels and properties can be specified:
-
-```jsx
-(n:Person:Man {name: 'John', age: 20})
+```cypher
+MATCH (a:Person {name: 'Alice'})-[e:KNOWS]->(b:Person)
+RETURN a.name, e.since, b.name
 ```
 
-# Queries
+By convention, node labels are written in PascalCase (`Person`, `BankAccount`), edge types in upper case with underscores (`WORKS_AT`, `FRIENDS_WITH`), and strings use single quotes.
 
-Queries are built up of combinations of nodes and edges, as specified above.
+Keywords are case-insensitive (`MATCH` and `match` are the same). Labels, edge types and property names are case-sensitive. Only `//` starts a comment:
 
-## `MATCH` queries
-
-`MATCH` queries are used to retrieve nodes, edges, and their property values from the database via specification of relationships and properties.
-
-It is easiest to demonstrate the syntax of a `MATCH` query with a concrete example:
-
-```jsx
-MATCH (n)-[e]->(m) RETURN n, e, m
-MATCH (m)<-[e]-(n) RETURN n, e, m  // also works
+```cypher
+// a line comment
+MATCH (n:Person) RETURN n.name // also fine at the end of a line
 ```
 
-The above query will look for all the directed edges in the graph. The query will return the internal ID of the node `n`.
+<Note>
+  Use `//` for comments. SQL-style `--` and `/* */` comments are not yet supported.
+</Note>
+
+### Running a query
+
+Queries run through the Python SDK, the interactive shell, or the HTTP endpoint. Read queries run directly against the current graph; [write queries](/query/writing) must run inside a change.
+
+```python
+from turingdb import TuringDB
+
+client = TuringDB(host="http://localhost:6666")
+df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFrame
+```
 
 <Tip>
-  When using `RETURN n`, other implementations of CYPHER may return all properties of `n`, whilst TuringDB only returns the internal ID of `n`.
+  `EXPLAIN <query>` returns the compiled query plan without running the query. It is the easiest way to check that a lookup uses a constant node scan.
 </Tip>
 
-`MATCH` queries are flexible: they can contain a single node and no edges, or any number of node, edge pairs. For example:
+## Coming from Neo4j
 
-```jsx
-MATCH (n) RETURN n
-```
+TuringDB follows openCypher closely, so the queries you know carry over. These are the TuringDB specifics worth knowing:
 
-will match all nodes in the database. An example of a multi-hop `MATCH` query would be:
+- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or use [`db.getNodes`](/query/procedures#inspecting-nodes-and-edges) to see every property of a few nodes.
+- **Values go in the query text.** Queries are plain strings, so put literal values directly in the text and escape quotes in your application. Query parameters such as `$name` are not yet supported.
+- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine).
+- **Labels are set at creation.** Every node has at least one label and every edge exactly one edge type, chosen when it is created.
+- **Property types are global.** A property name has a single value type across the whole graph: if `age` is an Integer, it is an Integer on every node.
+- **Typed numeric equality.** Compare Integers with Integers, and match Doubles with a range (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`. `<`, `>` and arithmetic work across numeric types.
+- **Forgiving names.** An unknown label matches nothing and a misspelled property reads as `null`. Check names with [`CALL db.labels()` and `CALL db.propertyTypes()`](/query/procedures).
+- **Label alternatives.** Write `WHERE n:A OR n:B` or `WHERE NOT n:A`. Edge type alternatives (`[:A|B]`) work directly in patterns.
+- **String matching.** Use `STARTS WITH`, `ENDS WITH` and `CONTAINS`. Regular expressions (`=~`) are not yet supported.
+- **Loops and uniqueness.** Use `UNWIND` for loops and `MERGE` to avoid duplicates.
+- **Shortest paths** use a TuringDB statement, see [Shortest path](/shortest-path).
+- **Function names are case-sensitive** (`toInteger`, not `TOINTEGER`), except `count` and `collect`.
 
-```jsx
-MATCH (n)-[e]->(m)-[f]->(p) RETURN n, m, p
-```
+<Note>
+  Coming from TuringDB 1.x? The v3 engine replaces the previous one, and many earlier limits are gone: `OPTIONAL MATCH`, `WITH`, `DISTINCT`, `UNION`, `MERGE`, `DELETE`, aggregates in any position, `UNWIND` over any list, `LOAD CSV` followed by `MATCH`, and `CREATE ... SET` all work now. One function changed name: `edgeType(e)` is now `type(e)`.
+</Note>
 
-<Card horizontal>
-  Queries have _variables_, which in the above examples are those such as `n`, `m`, `e`, etc. Variables are a way to give a name to a node or an edge, so that those nodes or edges can be specified in the `RETURN` clause. However, if you do not want to return an edge or its properties, the edge need not have a name. For example:
+## Data types
 
-  ```jsx
-  MATCH (n)-->(m) RETURN m
-  ```
+TuringDB offers these types for node and edge properties and for values in queries:
 
-  Both node and edges can omit a variable name if they specify at least a label constraint:
-
-  ```jsx
-  MATCH (:Person)-[:FRIENDS_WITH]->(m) RETURN m
-  ```
-</Card>
-
-You can also return multiple properties using a comma separated list:
-
-```jsx
-MATCH (n:Person)-->(m:Person) RETURN n.name, m.age
-```
-
-Combining the syntax of `MATCH` queries, and the ability to specify constraints, here are a few examples of some syntactically correct TuringDB `MATCH` queries:
-
-- `MATCH (n:Person) RETURN n.name`
-- `MATCH (:Person)-->(n:Person) RETURN n.name`
-- `MATCH (n:Person:Woman:SoftwareEngineer) RETURN n.name`
-- `MATCH (n:Person:Woman:SoftwareEngineer)-->(m)-[e]->(p:Man)-[f]->(q) RETURN e, f`
+| Type | Literal | Notes |
+| ---- | ------- | ----- |
+| String | `'Alice'` or `"Alice"` | Backslash escapes (`\'`). Backticks quote identifiers, not strings |
+| Integer | `30`, `0x1F` | Signed 64-bit. Integer division truncates |
+| Double | `3.14`, `1e3` | `^` always returns a Double |
+| Boolean | `true`, `false` | |
+| List | `[1, 'a', [2]]` | May mix types and nest |
+| Map | `{a: 1, b: [1, 2]}` | See [Maps](/query/functions#maps) |
+| DateTime | `datetime('2024-03-15T10:30:00Z')` | Microsecond precision, always UTC |
+| Duration | `duration({days: 2})` | Microsecond precision, no month component |
+| Embedding | `(1.2, 2.0, 0.0)` | Parentheses, at least 2 numbers. See [Vector search](/vector-search) |
 
 <Warning>
-  Note that whilst all the above the queries are all _syntactically_ valid, if the graph does not have a node property which is used in a query, it will fail to execute.
+  Embedding literals use **parentheses**. `[1.2, 2.0, 0.0]` is a List, which is a different type.
 </Warning>
 
-## `CREATE` queries
+More detail on types, conversion and results is in [Functions and data types](/query/functions).
 
-`CREATE` queries follow exactly the same syntax as `MATCH` queries when it comes to specifying nodes, edges, and property/label constraints. `CREATE` queries may have `RETURN` clauses, but they do not need them. There is also the additional requirement that all nodes and edges _must have at least one label_. This means a query such as
+## Roadmap
 
-```jsx
-CREATE (n)
-```
-
-is not valid, whilst
-
-```jsx
-CREATE (n:Person)
-```
-
-is a valid query.
-
-There is no requirement to declare any names for any variables. This means we can have queries such as
-
-```jsx
-CREATE (:Person)-[:FRIENDS_WITH]->(:Person)
-```
-
-However, naming variables can be useful if you want to create multiple edges to or from a given node. For instance, if you would like to create a triangle pattern, this can be achieved using the following approach
-
-```jsx
-CREATE (a:Corner)-[:EDGE]->(b:Corner), (b)-[:EDGE]->(c:Corner), (c)-[:EDGE]->(a)
-```
-
-## `MATCH ... CREATE ...` and `MATCH ... CREATE ... RETURN ...` queries
-
-`MATCH`, `CREATE` and `RETURN` statements can be used together in queries.
-
-For example, to create a edge between two existing graph, the following queries can be used:
-
-```jsx
-// Create two nodes Person
-CREATE (:Person {name: 'Alice', age: 24})
-CREATE (:Person {name: 'John', age: 27})
-
-// Match two nodes to create the edge between them
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
-CREATE (n)-[:FRIENDS_WITH]->(m)
-
-// RETURN clause can also be added
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
-CREATE (n)-[:FRIENDS_WITH]->(m)
-RETURN n.name, n.age, m.name, m.age
-```
-
-## `WHERE` queries
-
-The `WHERE` clause allows to filter the results on node and/or edge labels and/or properties.
-
-To filter on node label:
-
-```jsx
-MATCH (n)
-WHERE n:Person
-RETURN n, n.age
-```
-
-To filter on node property:
-
-```jsx
-MATCH (n)
-WHERE n.name = 'Alice'
-RETURN n, n.age
-```
-
-To filter on edge label:
-
-```jsx
-MATCH (n)-[e]->(m)
-WHERE e:PLAYPOKER
-RETURN n.name, m.age
-```
-
-To filter on edge property:
-
-```jsx
-MATCH (n)-[e]->(m:Person)
-WHERE n.name = 'Gabby'
-AND e.play_poker = true
-RETURN n.name, m.age
-```
-
-## Filtering on edge types
-
-`MATCH` queries can be restricted to a given edge type with the `[:EDGE_TYPE]` syntax, the edge counterpart of a node label:
-
-```cypher
-// Only KNOWS edges
-MATCH (n:Person)-[:KNOWS]->(m:Person)
-RETURN n.name, m.name
-
-// Name the edge to also return its properties
-MATCH (n:Person)-[e:KNOWS]->(m:Person)
-RETURN n.name, e.since, m.name
-
-// Each hop can have its own edge type
-MATCH (a:Person)-[:KNOWS]->(b:Person)-[:WORKS_AT]->(c:Company)
-RETURN a.name, b.name, c.name
-```
-
-An edge carries exactly one edge type, so each edge pattern takes a single `[:EDGE_TYPE]` constraint. Use `CALL db.edgeTypes()` to list the edge types available in the graph.
-
-## Multi-pattern queries (Joins and Cartesian Products)
-
-TuringDB supports matching multiple patterns in a single query by separating them with commas. Depending on whether the patterns share variables, this results in either a **join** or a **cartesian product**.
-
-### Cartesian Product
-
-When patterns in a `MATCH` clause are separated by commas and do **not** share any variables, TuringDB computes a cartesian product of the results. Every row from the first pattern is combined with every row from the second.
-
-```cypher
-MATCH (a:Person), (b:Interest)
-RETURN a.name, b.name
-```
-
-This returns all combinations of Person nodes with Interest nodes. If there are 6 persons and 5 interests, the result contains 30 rows.
-
-You can use `WHERE` to filter the cartesian product:
-
-```cypher
-MATCH (p:Person), (i:Interest)
-WHERE p.isFrench = true AND i.name = 'MegaHub'
-RETURN p.name, i.name
-```
-
-Three or more patterns can be combined:
-
-```cypher
-MATCH (p:Person), (i:Interest), (c:Category)
-WHERE p.name = 'A' AND i.name = 'Shared' AND c.name = 'Cat1'
-RETURN p.name, i.name, c.name
-```
-
-<Warning>
-  Cartesian products can produce very large result sets. A product of N nodes by M nodes produces N × M rows. Use `WHERE` filters or `LIMIT` to keep result sizes manageable.
-</Warning>
-
-### Pattern-based Joins
-
-When two paths converge on a shared node variable, TuringDB performs a **hash join** on that variable. This is useful for finding entities that share a common connection.
-
-```cypher
-MATCH (a:Person)-->(b:Interest)<--(c:Person)
-WHERE a.name <> c.name
-RETURN a.name, b.name, c.name
-```
-
-This finds pairs of different persons who share a common interest. The variable `b` acts as the join point.
-
-Multi-hop joins are also supported:
-
-```cypher
-MATCH (a:Person)-->(i:Interest)-->(c:Category)
-RETURN a.name, i.name, c.name
-```
-
-You can specify edge types explicitly:
-
-```cypher
-MATCH (a:Person)-[:INTERESTED_IN]->(b:Interest)<-[:INTERESTED_IN]-(c:Person)
-WHERE a.name <> c.name
-RETURN a.name, b.name, c.name
-```
-
-### Mixing Paths and Cartesian Products
-
-Connected paths and independent patterns can be combined in the same query. Shared variables create joins, while unrelated patterns create cartesian products.
-
-```cypher
-MATCH (a:Person)-->(i:Interest), (c:Category)
-WHERE c.name = 'Cat1'
-RETURN a.name, i.name, c.name
-```
-
-This returns every Person→Interest connection combined with the Cat1 category node.
-
-Two independent paths can also be combined:
-
-```cypher
-MATCH (a:Person)-->(i1:Interest), (b:Person)-->(i2:Interest)
-WHERE a.name = 'Alice' AND b.name = 'Bob' AND i1.name <> i2.name
-RETURN a.name, i1.name, b.name, i2.name
-```
-
-This finds all combinations of Alice's interests with Bob's interests, excluding pairs where both interests are the same.
-
-## `LIMIT` keyword
-
-**LIMIT** restricts the number of returned results. The following query returns only the first 10 results:
-
-```cypher
-MATCH (n)
-RETURN n
-LIMIT 10
-```
-
-## `SKIP` keyword
-
-**SKIP** skips the first N results before returning the rest. The following query skips the first 10 results:
-
-```cypher
-MATCH (n)
-RETURN n
-SKIP 10
-```
-
-`SKIP` and `LIMIT` can be combined for pagination. The following query will return the 11th to 20th results:
-
-```cypher
-MATCH (n)
-RETURN n
-SKIP 10
-LIMIT 10
-```
-
-## Sorting with `ORDER BY`
-
-**ORDER BY** sorts the results by one or more properties. By default, results are sorted in ascending order.
-
-```cypher
-MATCH (n:Person)
-RETURN n.name, n.age
-ORDER BY n.age
-```
-
-Use `DESC` to sort in descending order:
-
-```cypher
-MATCH (n:Person)
-RETURN n.name, n.age
-ORDER BY n.age DESC
-```
-
-You can sort by multiple properties. Results are sorted by the first property, then ties are broken by subsequent properties:
-
-```cypher
-MATCH (n:Person)
-RETURN n.name, n.age, n.city
-ORDER BY n.city, n.age DESC
-```
-
-`ORDER BY` can be combined with `SKIP` and `LIMIT` for sorted pagination:
-
-```cypher
-MATCH (n:Person)
-RETURN n.name, n.age
-ORDER BY n.age DESC
-SKIP 10
-LIMIT 10
-```
-
-# Data Types
-
-TuringDB offers the following data types for node and edge properties:
-
-- String
-- Boolean
-- Integer (signed)
-- Double (decimal)
-- Embedding (vector of floats, e.g. `(1.2, 2.0, 0.0)`)
-
-String properties can be enclosed using double quotes (`"`), single quotes (`'`), or backticks (\`\`\`).
-
-# Operators
-
-## Boolean operators
-
-The `OR` and  `AND` operartors are used to filter on multiple conditions:
-
-```jsx
-MATCH (n:Person)
-WHERE n.medication = "Aspirin"
-OR n.medication = "Ibuprofen"
-RETURN n.name
-```
-
-```jsx
-MATCH (n)
-WHERE n.name = 'Matt'
-AND n.age = 20
-AND n.hasPhD = false
-RETURN n
-```
-
-## Comparison operators
-
-TuringDB allows you to query against node and edge properties using the `:` operator for exact matching of the property value.
-
-```jsx
-MATCH (n {name: 'Matt', age: 20, hasPhD: false}) RETURN n
-```
-
-You can also pass through the WHERE clause to do the exact equivalent query:
-
-```text
-MATCH (n)
-WHERE n.name = 'Matt'
-AND n.age = 20
-AND n.hasPhD = false
-RETURN n
-```
-
-Implemented comparison operators:
-
-- Equal: `=`
-
-  ```text
-  # Find antibodies targeting proteins in Human
-  MATCH (ab:Antibody)-->(prot:Protein)
-  WHERE prot.host = 'Human'
-  RETURN ab.name, prot.name
-  ```
-- Inequal: `<>`
-
-  ```jsx
-  # Find antibodies (associated to a protein) used together
-  # in same publication (2-hop)
-  MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
-  WHERE ab1.name <> ab2.name
-  RETURN ab1.name, ab2.name, prot.name, prot.gene_name
-  ```
-- Less than: `<`
-- Less than or equal to: `<=`
-- Greater than: `>`
-- Greater than or equal to: `>=`
-
-  ```jsx
-  # Publications published on 2020 or after
-  MATCH (pub:Publication)
-  WHERE pub.published_year >= 2020
-  RETURN pub.displayName, pub.pubmedid, pub.published_year, pub.country
-  ```
-- is null:`IS NULL`
-- is not null:`IS NOT NULL`
-
-  ```jsx
-  # Publications from the United States
-  MATCH (pub:Publication)
-  WHERE pub.country = 'United States'
-  AND pub.institution IS NOT NULL
-  RETURN pub.displayName, pub.institution, pub.published_year
-  ```
-
-# Expression Evaluation in RETURN
-
-Since v1.22.0, TuringDB supports arithmetic expressions directly in `RETURN` projections.
-
-**Supported operators:** `+`, `-`, `*`, `/`
-
-```cypher
--- Single property with constant
-MATCH (n)
-WHERE n.type = 'Patient'
-RETURN n.age * 12
-
--- Two properties combined
-MATCH ()-[r]->()
-WHERE r.value_satoshi > 0
-AND r.value_usd > 0
-RETURN r.value_usd / r.value_satoshi * 100000000.0
-```
-
-# Built-in Functions
-
-TuringDB supports built-in functions for type conversion, introspection, and embedding comparison.
-
-## Introspection: `labels()`, `edgeType()`
-
-```jsx
-MATCH (n)-[e]->(m) RETURN labels(n), edgeType(e), labels(m)
-```
-
-## Type conversion: `toInteger()`, `toFloat()`, `toBoolean()`
-
-```jsx
-MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name, n.year
-MATCH (n) RETURN n.name, n.price * toFloat("1.07")
-MATCH (n) RETURN toBoolean("true")
-```
-
-## Embedding comparison: `cosine_similarity()`, `euclidean_distance()`
-
-Compare two embeddings (embedding literals use parentheses — see [Vector Search](/vector-search)):
-
-```jsx
-MATCH (n:Document) RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
-MATCH (n:Document) RETURN n.title, euclidean_distance(n.emb, (0.4, 0.3, 0.8, 0.1))
-```
-
-## Aggregation: `count()`, `avg()`
-
-TuringDB supports the `count()` and `avg()` aggregating functions. Aggregates may only be used when the query has a single return item:
-
-```jsx
-MATCH (n:Person) RETURN count(*)
-MATCH (n:Person) RETURN count(n.age)
-MATCH (n:Person) RETURN avg(n.age)
-```
-
-Aggregates may be combined within that single return item:
-
-```jsx
-MATCH (n:Person) RETURN count(n) + avg(n.age)
-```
-
-# Procedures
-
-On top of supporting queries which return or alter information _in the graph_, TuringDB supports a number of _procedures_ which return information, or metadata, _about the graph_.
-
-These queries follow the `CALL` syntax, and the following variants are supported:
-
-1. `CALL db.propertyTypes()` - all node and edge property keys and their types
-2. `CALL db.labels()` - all node labels
-3. `CALL db.edgeTypes()` - all edge types (edge equivalent of node labels)
-4. `CALL db.history()` - the commit history (commit, nodeCount, edgeCount, partCount)
-5. `CALL db.describeCommit('<hash>')` - node/edge/part counts for a single commit
-6. `CALL db.procedures()` - list the available procedures and their signatures
-7. `CALL db.showIndexes()` - list property indexes and their sizes
-
-These procedures are useful for exploring the data which is available in the graph, and using this to plan `MATCH` queries.
-
-A procedure's output columns can be `YIELD`ed and fed into a following `MATCH`/`WHERE`:
-
-```jsx
-CALL db.propertyTypes() YIELD propertyType, valueType RETURN *
-CALL db.labels() YIELD label, id MATCH (n) WHERE n.name = label RETURN n, label
-```
-
-# Commands
-
-Outside of CYPHER, there are a number of commands which you can use to interact with the TuringDB engine.
-
-| Command                                | Explanation                                                                                                                                                                            |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CREATE GRAPH <graph name>`            | Create a graph with the specified name                                                                                                                                                 |
-| `LOAD GRAPH <graph name>`              | Load the specified TuringDB graph. Requires the graph files to be accessible in TuringDB directory (`-turing-dir`, `graphs` subdir)                                                    |
-| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                       |
-| `LOAD JSONL 'mygraph.jsonl' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)                                                 |
-| `LOAD JSONL 'mygraph.jsonl' AS my_graph WITH EMBEDDINGS [{"emb", 384}]` | Load JSONL and mark array properties as embeddings (see [JSONL import](/import_data/jsonl#loading-embedding-properties))                |
-| `COMMIT`                               | Persist intermediate state within a change (needed between separate node and edge create steps)                                                                                        |
-| `CHANGE NEW`                           | Creates a new change, returning a column with the ID of the created change                                                                                                             |
-| `CHANGE SUBMIT`                        | When checked out on a specific change, submits all changes made to the “master branch”                                                                                                 |
-| `CHANGE DELETE`                        | Deletes the currently checked out change                                                                                                                                               |
-| `CHANGE LIST`                          | Lists the currently active (uncommitted) changes                                                                                                                                       |
-| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory for querying. Required when sending queries directly to the REST API for non-HEAD commits. The CLI `checkout` and Python SDK handle this automatically. |
-| `LIST GRAPH`                           | Lists the available graphs                                                                                                                                                             |
-| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index (see [Vector Search](/vector-search))                                                                            |
-| `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor search over a vector index                                                                                                            |
-| `CREATE INDEX <name> FOR (n) ON n.prop`  | Create a property index on a node property (write — see Indexes below)                                                                                |
-| `CREATE INDEX <name> FOR [e] ON e.prop`  | Create a property index on an edge property                                                                                                          |
-| `DROP INDEX <name>`                      | Drop a property or vector index by name                                                                                                              |
-| `MERGE_DATAPARTS`                        | Compact all DataParts of the current graph into one (see [DataParts](/concepts/dataparts))                                                            |
-| `INSTALL <extension>`                    | Load a procedure extension (see Extensions below)                                                                                                     |
-| `SHOW EXTENSIONS`                        | List installed extensions                                                                                                                            |
-| `SHOW PROCEDURES`                        | List available procedures and signatures (same data as `CALL db.procedures()`)                                                                       |
-
-# UNWIND
-
-`UNWIND` expands a list into one row per element. It is a reading statement and composes with `RETURN` / `MATCH`.
-
-```jsx
-UNWIND [1, 2, 3] AS x RETURN x
-```
-
-<Warning>
-  `UNWIND` currently accepts **literal lists only** — `UNWIND $param`, `UNWIND someVariable`, and `UNWIND collect(...)` are not yet supported. List literals (`[...]`) may also be returned directly, e.g. `RETURN [1, 2, 3] AS nums`, but their elements must be literals.
-</Warning>
-
-# Property Indexes
-
-A property index speeds up equality lookups on a node or edge property. The query optimizer automatically rewrites `WHERE n.prop = <value>` into an index lookup when a matching index exists.
-
-Creating an index is a **write**, so it must run inside a change and only takes effect after the change is committed/submitted:
-
-```jsx
-CHANGE NEW
-CREATE INDEX age_index FOR (n) ON n.age      -- node property index
-CREATE INDEX since_index FOR [e] ON e.since   -- edge property index
-CHANGE SUBMIT
-
--- now this uses the index instead of a full scan:
-MATCH (n) WHERE n.age = 30 RETURN n
-```
-
-Inspect existing indexes with `CALL db.showIndexes()` (yields `name`, `size`); remove one with `DROP INDEX age_index`.
-
-# Extensions
-
-Extensions are native shared libraries that register extra procedure namespaces callable via `CALL`. Install one by name, then call its procedures:
-
-```jsx
-INSTALL greeter
-SHOW EXTENSIONS
-CALL greeter.hello() YIELD message RETURN message
-```
-
-`SHOW PROCEDURES` lists every available procedure and its signature (the same information as `CALL db.procedures()`).
-
-# Roadmap
-
-Whilst TuringDB currently supports most of CYPHER, 100% of CYPHER can be parsed but we are working on supporting query execution for some rare CYPHER queries types. TuringDB also has a CALL function which over time will contain more and more algorithms.
+We keep extending Cypher coverage and growing the library of procedures available through `CALL`. If there is a query form you would like to see, please [tell us](/troubles/troubles#contact-us).

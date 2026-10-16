@@ -1,0 +1,166 @@
+---
+title: "Functions and Data Types"
+sidebarTitle: "Functions and Types"
+description: "Built-in functions, how values come back to the Python SDK, dates and durations, maps, and embedding comparison in TuringDB v3."
+---
+
+## Built-in functions
+
+Function names are **case-sensitive** (`toInteger`, not `TOINTEGER`), except `count` and `collect`.
+
+| Category | Functions | Notes |
+| -------- | --------- | ----- |
+| Entity | `id(x)`, `labels(n)`, `type(r)`, `startNode(r)`, `endNode(r)` | `labels` returns a **list**. `type` returns a string. `startNode(r).name` works |
+| Path | `nodes(p)`, `relationships(p)`, `length(p)` | Lists of IDs. Read properties through a [comprehension](/query/aggregation#list-comprehensions) |
+| List | `size`, `length`, `head`, `last`, `tail`, `reverse`, `range(start, end[, step])`, `reduce` | `size`, `length` and `reverse` also work on strings. `range` bounds are inclusive |
+| Predicates | `all`, `any`, `none`, `single` `(x IN list WHERE ...)` | |
+| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `coalesce(a, b, ...)` | `toInteger` and `toFloat` accept strings, integers and doubles, and return `null` for a bad string. `toBoolean` accepts strings. `coalesce` arguments must share one type |
+| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `reverse` | Plus the operators `STARTS WITH`, `ENDS WITH`, `CONTAINS` and `\|\|` |
+| Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi()`, `e()` | Trigonometry: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`, `degrees`, `radians`, `haversin` |
+| Temporal | `datetime(isoString)`, `datetime(epochSeconds)`, `datetime()`, `duration({days: 2, hours: 3})`, `duration(micros)` | See [Dates and durations](#dates-and-durations) |
+| Embedding | `cosine_similarity(a, b)`, `euclidean_distance(a, b)` | Arguments must be Embeddings, not lists. See [Vector search](/vector-search) |
+| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max` | See [Aggregation](/query/aggregation#aggregation) |
+
+```cypher
+MATCH (n)-[e]->(m)
+RETURN labels(n), type(e), labels(m)
+
+MATCH (n:Person)
+RETURN toUpper(n.name), toString(n.age)
+
+MATCH (n:Person)
+WHERE n.age > toInteger('29')
+RETURN n.name
+
+MATCH (n:Person)
+RETURN n.name, n.age * toFloat('1.07')
+
+RETURN toBoolean('true')
+
+RETURN abs(-3), round(2.5), sqrt(16.0), pi()
+
+MATCH (n:Person)
+RETURN n.name, coalesce(n.nickname, n.name)
+```
+
+<Note>
+  In v3, `type(e)` returns an edge's type as a string. It replaces `edgeType()` from earlier versions.
+</Note>
+
+The function library keeps growing. Some functions, such as `substring`, `split`, `rand()`, `keys` and `properties`, are not yet available. For now, filter strings with `STARTS WITH`, `ENDS WITH` and `CONTAINS`, and do any other post-processing in your application.
+
+## Arithmetic in `RETURN` and `SET`
+
+Arithmetic expressions work anywhere an expression is allowed:
+
+```cypher
+MATCH (n:Person)
+RETURN n.age * 12
+
+MATCH (n:Person)
+RETURN n.name, n.age + 5 AS adjusted, n.age / 2
+
+MATCH ()-[r]->()
+WHERE r.since > 0
+RETURN r.since / 10 * 100
+```
+
+`+ - * / % ^` are supported. Integer `/` truncates, and `^` returns a Double. `+` and `||` concatenate strings and lists, and `'x' + 1` gives `'x1'`.
+
+## Dates and durations
+
+`DateTime` and `Duration` are first-class types:
+
+```cypher
+RETURN datetime('2024-03-15T10:30:00Z') AS d
+
+RETURN datetime('2024-03-15') AS midnight
+
+RETURN datetime(1700000000) AS fromEpoch
+
+RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1, hours: 2}) AS later
+
+RETURN datetime('2024-03-16T00:00:00Z') - datetime('2024-03-15T00:00:00Z') AS elapsed
+
+RETURN datetime('2024-03-15T10:30:00Z').year, datetime('2024-03-15T10:30:00Z').month
+
+RETURN duration({days: 2, hours: 3}).hours
+```
+
+Durations can be added, subtracted, scaled and compared with each other and with datetimes:
+
+```cypher
+RETURN duration({hours: 36}) + duration({hours: 12}) AS total
+
+RETURN duration({days: 2, hours: 12}) - duration({days: 1}) AS remaining
+
+RETURN duration({days: 2}) * 3 AS threeTimes
+
+RETURN duration({hours: 36}) / 2 AS half
+
+RETURN duration({hours: 1}) > duration({minutes: 30}) AS longer
+```
+
+- `datetime` values are stored as microseconds since the Unix epoch, **normalised to UTC**. A date-only string means midnight, and an offset (`+02:00`) is converted to the equivalent UTC instant.
+- `duration` is a signed count of microseconds. It has no month component, because a month has no fixed length. `duration(<integer>)` reads the number as microseconds.
+- Components are available as properties: `d.year`, `d.month`, `d.day`, `d.hour`, and so on. On a duration, `dur.days`, `dur.hours`, ... give the **total** in that unit, so `duration({days: 2, hours: 3}).hours` is `51`.
+- `<`, `>`, `min` and `max` work on temporal values.
+- When you [import JSONL](/import_data/jsonl) you can declare which properties are `DateTime` or `Duration` with `WITH DATETIMES [...]` and `WITH DURATIONS [...]`.
+
+## Maps
+
+Map literals can be built, returned, compared with `=`, and stored as node or edge properties:
+
+```cypher
+RETURN {name: 'Alice', tags: ['a', 'b']} AS m
+
+WITH {a: 1, b: 'x'} AS m
+RETURN m.a, m.b
+
+UNWIND [{a: 1}, {a: 2}] AS m
+RETURN m.a
+```
+
+You can read a key from a map **value** that is in scope, for example one bound by `WITH` or `UNWIND`, with `m.key`.
+
+<Note>
+  To read individual values from a map stored as a property, return the property as a whole or store the values as separate properties. Dereferencing a stored map inside a query (`n.meta.level`, `m['key']`) and map projection (`n {.name, .age}`) are not yet supported.
+</Note>
+
+## How results come back
+
+`client.query()` returns a pandas DataFrame. The column types follow the query's value types:
+
+| Type | HTTP `column_types` | pandas dtype |
+| ---- | ------------------- | ------------ |
+| String | `String` | `string` |
+| Integer | `Int64` | `Int64` |
+| Unsigned integer (IDs, `count`, `length(p)`) | `UInt64` | `UInt64` |
+| Double | `Double` | `float64` |
+| Boolean | `Bool` | `boolean` |
+| List | `List` | object (Python list) |
+| Map | `Map` | object (dict) |
+| Embedding | `Embedding` | object (list over HTTP, numpy `float32` array over the native and embedded backends) |
+| DateTime | `DateTime` | `datetime64[us, UTC]` |
+| Duration | `Duration` | `timedelta64[us]` |
+| Node or edge (`RETURN n`) | `UInt64` | `UInt64` (internal ID) |
+| Named path (`RETURN p`) | `EntityList` | object (list of `{type, id}` dicts) |
+
+<Note>
+  Over the default HTTP/JSON backend, Doubles are serialised with **6 decimal places** (`3.14159265` becomes `3.141593`). If you need full precision, scale the value in the query, or use the [native or embedded backend](/pythonsdk/reference#client-backends).
+</Note>
+
+## Embeddings
+
+Embeddings are stored as ordinary properties (type `Embedding`) and compared with `cosine_similarity` (true cosine) and `euclidean_distance`. Both work in `RETURN`, `WHERE` and `ORDER BY`:
+
+```cypher
+MATCH (n:Document)
+RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)) AS sim
+ORDER BY sim DESC LIMIT 10
+
+MATCH (n:Document)
+RETURN n.title, euclidean_distance(n.emb, (0.4, 0.3, 0.8, 0.1))
+```
+
+This is a brute-force scan over the matched nodes. For large collections, build a [vector index](/vector-search).

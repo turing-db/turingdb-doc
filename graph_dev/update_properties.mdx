@@ -84,12 +84,28 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     SET n.isMinor = true
     ```
 
-    <Warning>
-      `CREATE ... SET` is not supported. When creating nodes or edges, use brace initialisation to set properties directly in the `CREATE` clause:
+    <Tip>
+      When creating nodes or edges, you can set properties directly in the `CREATE` clause with braces:
       ```jsx
       CREATE (:Person {name: 'Alice', age: 30})
       ```
+      `CREATE ... SET` also works: `CREATE (n:Item {sku: 'A1'}) SET n.price = 9.99`.
+    </Tip>
+
+    ## Clearing and removing properties
+
+    Set a property to `null` to clear its value, or use `REMOVE` to remove properties:
+
+    ```jsx
+    MATCH (n:Person {name: 'Alice'}) SET n.age = null
+    MATCH (n:Person {name: 'Alice'}) REMOVE n.position, n.surname
+    ```
+
+    <Warning>
+      Each property name has a single type across the whole graph, so `SET n.age = 'old'` is reported as a type incompatibility when `age` is an Integer. See [Writing data](/query/writing#set-and-remove) for the full rules.
     </Warning>
+
+    Labels cannot be changed after creation.
   </Tab>
   <Tab title="Python SDK">
     ```python
@@ -172,11 +188,27 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     """)
     ```
 
-    <Warning>
-      `CREATE ... SET` is not supported. When creating nodes or edges, use brace initialisation to set properties directly in the `CREATE` clause:
+    <Tip>
+      When creating nodes or edges, you can set properties directly in the `CREATE` clause with braces:
       ```python
       client.query("CREATE (:Person {name: 'Alice', age: 30})")
       ```
+      `CREATE ... SET` also works: `client.query("CREATE (n:Item {sku: 'A1'}) SET n.price = 9.99")`.
+    </Tip>
+
+    ## Clearing and removing properties
+
+    Set a property to `null` to clear its value, or use `REMOVE` to remove properties:
+
+    ```python
+    client.query("MATCH (n:Person {name: 'Alice'}) SET n.age = null")
+    client.query("MATCH (n:Person {name: 'Alice'}) REMOVE n.position, n.surname")
+    ```
+
+    <Warning>
+      Each property name has a single type across the whole graph, so `SET n.age = 'old'` is reported as a type incompatibility when `age` is an Integer. See [Writing data](/query/writing#set-and-remove) for the full rules.
     </Warning>
+
+    Labels cannot be changed after creation.
   </Tab>
 </Tabs>

@@ -27,6 +27,49 @@ turingdb -reset-default -turing-dir /path/to/your/turing/dir
 
 ---
 
+## `Invalid response from the server` or `Proto header dataLen does not match chunk payload size`
+
+These two errors mean the client and the server disagree on the protocol. A TuringDB server speaks **either** JSON over HTTP **or** the binary protocol, chosen when it starts:
+
+| Error | Cause | Fix |
+|---|---|---|
+| `Invalid response from the server: Expecting value...` from `TuringDB(host=...)` | The server was started with `USE_TURING_PROTO=1` (binary mode) but you used the default JSON client | Connect with `TuringDB(type="native", host="localhost", port=6666)`, or restart the server without `USE_TURING_PROTO` |
+| `Proto header dataLen does not match chunk payload size` from `TuringDB(type="native", ...)` | The server is a normal JSON server | Use the default `TuringDB(host="http://localhost:6666")`, or restart the server with `USE_TURING_PROTO=1` |
+
+See [client backends](/pythonsdk/reference#client-backends) for details.
+
+---
+
+## `401 Unauthorized`
+
+The server was started with `-auth-on` and your client did not send a valid token. Pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. The JSON client raises this as an `httpx.HTTPStatusError`.
+
+---
+
+## `CHANGE_NOT_FOUND` after `CHANGE SUBMIT`
+
+After `CHANGE SUBMIT` the Python client still points at the submitted change. Call `client.checkout()` to return to main before running the next query.
+
+---
+
+## `Cannot perform CREATE outside of a write transaction`
+
+All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run inside a change. Call `client.new_change()` first, and submit with `CHANGE SUBMIT`. See [Writing data](/query/writing).
+
+---
+
+## A `MATCH` right after a `CREATE` returns no rows
+
+Entities created earlier in a change are not visible to later queries until you run `COMMIT`. Run `COMMIT` after creating nodes and before matching them to create edges or to `MERGE`. See [Writing data](/query/writing#when-you-need-commit-inside-a-change).
+
+---
+
+## `Function 'X' does not exist`
+
+Function names are case-sensitive (`toInteger`, not `TOINTEGER`), and some functions are not yet available in TuringDB. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions).
+
+---
+
 ## Contact us
 
 If you have any feedback, bugs to report, or features requests please send us an email: [team@turingdb.ai](team@turingdb.ai)

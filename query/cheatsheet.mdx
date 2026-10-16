@@ -1,477 +1,406 @@
 ---
 title: "TuringDB Query Language Cheatsheet"
 sidebarTitle: "CheatSheet"
-description: "A compact reference for querying, creating, and exploring graphs in TuringDB using Cypher-like syntax + TuringDB-specific extensions."
+description: "A compact reference for querying, writing and exploring graphs in TuringDB v3: Cypher plus TuringDB-specific extensions."
 ---
 
-## MATCH: Pattern Matching
+Each section links to the page that explains it in full.
 
-```jsx
-MATCH (n) RETURN n
-MATCH (n:Person {name: 'Alice'}) RETURN n.age
-MATCH (a:Person)-->(b:Company) RETURN a.name, b.name
-```
+## MATCH: pattern matching
 
-- `()` → Node
-- `[]` → Edge
-- `-` → Undirected edge
-- Node labels: `:Label` - e.g. `(n:Person)`
-- Edge types: `:EDGE_TYPE` - e.g. `-[:KNOWS]->` (one edge type per edge)
-- Properties: `{key: 'value', age: 30}`
+[Matching patterns](/query/matching)
 
-## CREATE: Add Nodes & Edges
+```cypher
+MATCH (n)
+RETURN n
 
-```jsx
-CREATE (:Person {name: 'Alice', age: 30})
-CREATE (:Person {name: 'Mick'})-[:FRIEND_OF]->(:Person {name: 'John'})
-CREATE (a)-[:EDGE]->(b), (b)-[:EDGE]->(c), (c)-[:EDGE]->(a)
-
-CREATE (gabby:Person {name: 'Gabby', age: 27}),
-(susan:Person {name: 'Susan', age: 35}),
-(lynette:Person {name: 'Lynette', age: 41}),
-(bree:Person {name: 'Bree', age: 42}),
-(gabby)-[FRIEND_OF]->(susan),
-(gabby)-[FRIEND_OF]->(lynette),
-...
-```
-
-- Labels **required** for node creation
-- No `RETURN` clause
-- Use commas to create multiple items at once
-
-## MATCH + CREATE and MATCH + CREATE + RETURN
-
-```jsx
-// Create two nodes Person
-CREATE (:Person {name: 'Alice', age: 24}),
-	   (:Person {name: 'John', age: 27})
-
-// Match two nodes to create the edge between them
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
-CREATE (n)-[:FRIENDS_WITH]->(m)
-
-// RETURN clause can also be added
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'John'})
-CREATE (n)-[:FRIENDS_WITH]->(m)
-RETURN n.name, n.age, m.name, m.age
-```
-
-## SET: Update Properties
-
-```jsx
-// Update a single property
 MATCH (n:Person {name: 'Alice'})
-SET n.age = 30
+RETURN n.age
 
-// Update multiple properties at once
-MATCH (n:Person {name: 'Alice'})
-SET n.position = 'Developer', n.surname = 'Taylor'
+MATCH (a:Person)-->(b:Company)
+RETURN a.name, b.name
 
-// Update from an expression
-MATCH (p:Product)
-SET p.discountPrice = p.price * (1 - 0.15)
+MATCH (a:Person)-[e:KNOWS {since: 2010}]->(b:Person)
+RETURN a.name, e.since, b.name
 
-// Update edge property
-MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
-SET e.since = 2020
+MATCH (a)-[r:KNOWS|WORKS_AT]->(b)
+RETURN a.name, type(r), b.name
 
-// Set an embedding vector
-MATCH (n:Person {name: 'Alice'})
-SET n.emb = (1.2, 2.0, 0.0, 12.0)
+MATCH (a:Person)-[e]-(b)
+RETURN a.name, b.name
 
-// Set an embedding vector by node ID
-MATCH (n) WHERE n = 1234
-SET n.emb = (1.2, 2.0, 0.0, 12.0)
+MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+RETURN b.name
 
-// Conditional update with WHERE
 MATCH (n:Person)
-WHERE n.age < 18
-SET n.isMinor = true
+ORDER BY n.age LIMIT 2
+RETURN n.name
 ```
 
-- Always used with `MATCH`, not `CREATE`
-- Creates the property if it does not already exist
-- Use `COMMIT` to persist changes
+- `()` is a node, `[]` is an edge, `-` ignores direction.
+- Node labels use `:Label` and can be stacked: `(n:Person:Employee)`.
+- Edge types use `:EDGE_TYPE`: `-[:KNOWS]->`. An edge has exactly one type, and `[:A|B]` matches either.
+- `RETURN n` gives the internal node ID. Return properties explicitly: `RETURN n.name`.
+- Unknown labels and properties are forgiving: they match nothing or read as `null`.
 
-## WHERE: Filter nodes and edges by properties
+## OPTIONAL MATCH
 
-To filter on node label:
+```cypher
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:WORKS_AT]->(c:Company)
+RETURN a.name, c.name
 
-```jsx
+MATCH (a:Person)
+OPTIONAL MATCH (a)-[:KNOWS]->(b)
+RETURN a.name, count(b)
+```
+
+## WHERE: filter
+
+```cypher
 MATCH (n)
 WHERE n:Person
-RETURN n, n.age
-```
+RETURN n.name
 
-To filter on node property:
+MATCH (n:Person)
+WHERE n.age >= 18 AND n.city = 'London'
+RETURN n.name
 
-```jsx
-MATCH (n)
-WHERE n.name = 'Alice'
-RETURN n, n.age
-```
+MATCH (n:Person)
+WHERE n.name STARTS
+WITH 'A' OR n.name CONTAINS 'ro'
+RETURN n.name
 
-To filter on edge label:
+MATCH (n:Person)
+WHERE n.name IN ['Alice', 'Bob']
+RETURN n.name
 
-```jsx
+MATCH (n:Person)
+WHERE 'admin' IN n.tags
+RETURN n.name
+
+MATCH (n:Person)
+WHERE n.tags IS NOT NULL
+RETURN n.name
+
 MATCH (n)-[e]->(m)
-WHERE e:PLAY_POKER_TOGETHER
-RETURN n.name, m.age
+WHERE e:KNOWS AND e.since > 2012
+RETURN n.name, m.name
+
+MATCH (p:Person)
+WHERE NOT (p)-[:KNOWS]->()
+RETURN p.name
 ```
 
-To filter on edge property:
+- Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, boolean `AND OR XOR NOT`.
+- Strings and lists: `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, concatenation with `+` or `||`.
+- Use `IS NOT NULL` to test for a property (`=~` and `exists(n.prop)` are not yet supported).
+- For Doubles, use ranges (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`.
 
-```jsx
-MATCH (n)-[e]->(m:Person)
-WHERE n.name = 'Gabby'
-AND e.play_poker_together = true
-RETURN n.name, m.age
+## Lookup by native node ID
+
+[Details](/query/matching#look-up-nodes-by-native-node-id)
+
+```cypher
+MATCH (n)
+WHERE n = 0
+RETURN n.name
+
+MATCH (n)-[:KNOWS]->(m)
+WHERE n = 0
+RETURN m.name
+
+UNWIND [0, 1, 2] AS x
+MATCH (n)
+WHERE n = x
+RETURN id(n), n.name
+
+EXPLAIN MATCH (n)
+WHERE n = 0
+RETURN n.name
 ```
 
-## Edge type filtering
+- Compare the **variable** (`n = 0`), not `id(n) = 0`. The first is a direct seek and the second scans every node.
+- For batches, `UNWIND` a literal list of distinct IDs and return `id(n)` rather than `x`.
 
-```jsx
-// Match only edges of a given type
-MATCH (n:Person)-[:KNOWS]->(m:Person) RETURN n.name, m.name
+## Joins and Cartesian products
 
-// Name the edge to also return its properties
-MATCH (n:Person)-[e:KNOWS]->(m:Person) RETURN n.name, e.since, m.name
+```cypher
+MATCH (p:Person), (c:Company)
+RETURN p.name, c.name
 
-// One edge type per hop
-MATCH (a:Person)-[:KNOWS]->(b:Person)-[:WORKS_AT]->(c:Company) RETURN a.name, b.name, c.name
-
-// List the edge types in the graph
-CALL db.edgeTypes()
-```
-
-- An edge has exactly one edge type, so a pattern takes a single `[:EDGE_TYPE]` constraint
-
-## SKIP and LIMIT
-
-```jsx
-// Return first 10 results
-MATCH (n) RETURN n LIMIT 10
-
-// Pagination: skip 10, return next 10
-MATCH (n) RETURN n SKIP 10 LIMIT 10
-```
-
-## ORDER BY
-
-```jsx
-// Sort ascending (default)
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age
-
-// Sort descending
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC
-
-// Sort by multiple properties
-MATCH (n:Person) RETURN n.name, n.age, n.city ORDER BY n.city, n.age DESC
-
-// Combined with pagination
-MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC SKIP 10 LIMIT 10
-```
-
-## Joins and Cartesian Products
-
-```jsx
-// Cartesian product: all combinations of Person × Interest
-MATCH (a:Person), (b:Interest) RETURN a.name, b.name
-
-// Three-way cartesian product
-MATCH (p:Person), (i:Interest), (c:Category) RETURN p.name, i.name, c.name
-
-// Join on shared variable: persons sharing an interest
-MATCH (a:Person)-->(b:Interest)<--(c:Person)
-WHERE a.name <> c.name
+MATCH (a:Person)-[:KNOWS]->(b), (b)-[:WORKS_AT]->(c)
 RETURN a.name, b.name, c.name
 
-// With explicit edge types
-MATCH (a:Person)-[:INTERESTED_IN]->(b:Interest)<-[:INTERESTED_IN]-(c:Person)
-WHERE a.name <> c.name
-RETURN a.name, b.name, c.name
+MATCH (a:Person)-->(i:Interest)<--(b:Person)
+WHERE a <> b
+RETURN a.name, b.name, i.name
 
-// Multi-hop join
-MATCH (a:Person)-->(i:Interest)-->(c:Category)
-RETURN a.name, i.name, c.name
-
-// Mix path + cartesian product
-MATCH (a:Person)-->(i:Interest), (c:Category)
-WHERE c.name = 'Cat1'
-RETURN a.name, i.name, c.name
-
-// Two independent paths (cartesian of each path's results)
-MATCH (a:Person)-->(i1:Interest), (b:Person)-->(i2:Interest)
-WHERE a.name <> b.name
-RETURN a.name, i1.name, b.name, i2.name
+MATCH (a:Person), (b:Person)
+WHERE a.city = b.city AND a <> b
+RETURN a.name, b.name
 ```
 
-- Comma `,` separates independent patterns
-- Shared variables between patterns create joins
-- Unrelated patterns create cartesian products (N × M rows)
+- A comma separates independent patterns. Shared variables create joins, unrelated patterns create Cartesian products (N × M rows).
 
-## Property Match Operators
+## Variable-length and quantified paths
 
-```jsx
-MATCH (n {name: 'Alice'}) RETURN n
-// exact equivalent of
-MATCH (n) WHERE n.name = 'Alice' RETURN n
+[Paths](/query/paths)
+
+```cypher
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->*(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS]->{1,2}(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b)
+RETURN DISTINCT b.name
+
+MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
+RETURN b.name
+
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+RETURN [n IN nodes(p) | n.name], length(p)
 ```
 
-- `:` → exact match using property filter in node directly
-- `=` → exact match using property filter in WHERE clause
+- Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
+- Each edge is used at most once per path. Bound the length on large graphs.
 
-## Boolean operators
+## WITH, ORDER BY, SKIP, LIMIT, UNION
 
-- `OR`
+[Results and aggregation](/query/aggregation)
 
-  ```jsx
-  MATCH (n:Person)
-  WHERE n.medication = "Aspirin"
-  OR n.medication = "Ibuprofen"
-  RETURN n.name
-  ```
-- `AND`
+```cypher
+MATCH (n:Person)
+WITH n.city AS city, count(*) AS c
+WHERE c > 1
+RETURN city, c
 
-  ```jsx
-  MATCH (n)
-  WHERE n.name = 'Matt'
-  AND n.age = 20
-  AND n.hasPhD = false
-  RETURN n
-  ```
+MATCH (n:Person)
+RETURN DISTINCT n.city
 
-## Comparison operators
+MATCH (n:Person)
+RETURN n.name, n.age
+ORDER BY n.age DESC SKIP 1 LIMIT 2
 
-- Equal: `=`
-
-  ```jsx
-  # Find antibodies targeting proteins in Human
-  MATCH (ab:Antibody)-->(prot:Protein)
-  WHERE prot.host = 'Human'
-  RETURN ab.name, prot.name
-  ```
-- Inequal: `<>`
-
-  ```jsx
-  # Find antibodies (associated to a protein) used together
-  # in same publication (2-hop)
-  MATCH (ab1:Antibody)-->(prot:Protein), (ab2:Antibody)-->(prot:Protein)
-  WHERE ab1.name <> ab2.name
-  RETURN ab1.name, ab2.name, prot.name, prot.gene_name
-  ```
-- Less than: `<`
-- Less than or equal to: `<=`
-- Greater than: `>`
-- Greater than or equal to: `>=`
-
-  ```jsx
-  # Publications published on 2020 or after
-  MATCH (pub:Publication)
-  WHERE pub.published_year >= 2020
-  RETURN pub.displayName, pub.pubmedid, pub.published_year, pub.country
-  ```
-- is null:`IS NULL`
-- is not null:`IS NOT NULL`
-
-  ```jsx
-  # Publications from the United States
-  MATCH (pub:Publication)
-  WHERE pub.country = 'United States'
-  AND pub.institution IS NOT NULL
-  RETURN pub.displayName, pub.institution, pub.published_year
-  ```
-
-## Data Types
-
-| Type      | Example                  |
-| --------- | ------------------------ |
-| String    | `'hello'` or `"hello"`   |
-| Integer   | `age=30`                 |
-| Boolean   | `flag=true`              |
-| Double    | `score=3.14`             |
-| Embedding | `emb=(1.2, 2.0, 0.0)`   |
-
-## RETURN Clause
-
-```jsx
-MATCH (n)-->(m) RETURN n.name, n.age, m.name, m.age
+MATCH (p:Person)
+RETURN p.name AS name
+UNION
+MATCH (c:Company)
+RETURN c.name AS name
 ```
 
-- Select fields with `RETURN n.prop, m.prop`
+- Expressions in `WITH` must be aliased.
+- Nulls sort last ascending and first descending.
 
-## Expression evaluation
+## Aggregation
 
-```jsx
-// Multiply property by constant
-MATCH (n) RETURN n.price * 1.1
+```cypher
+MATCH (n:Person)
+RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
 
-// Divide two properties
-MATCH ()-[r]->() RETURN r.a / r.b
+MATCH (a:Person)-[:WORKS_AT]->(c:Company)
+RETURN c.name, count(a) AS employees, collect(a.name) AS who
 
-// Add two properties
-MATCH (n) RETURN n.val + n.tax
+MATCH (n:Person)
+RETURN count(DISTINCT n.city)
+
+MATCH ()-[r]->()
+RETURN type(r) AS t, count(*) AS c
+ORDER BY c DESC
 ```
 
-## LOAD graphs
+- Grouping is implicit. To filter on an aggregate, compute it in a `WITH` and filter afterwards.
+- `stdev` and `percentile*` aggregates are not yet available.
 
-### Load TuringDB graph
+## UNWIND, lists, CASE
 
-Files have to be available in `graphs` subdirectory of `turing-dir`.
+```cypher
+UNWIND [1, 2, 3] AS x
+RETURN x * 10
 
-```jsx
-LOAD GRAPH graph_name
+MATCH (n:Person)
+WITH collect(n.name) AS names
+UNWIND names AS nm
+RETURN nm
+
+MATCH (n:Person)
+UNWIND n.tags AS t
+RETURN t, count(*)
+
+RETURN [x IN range(1, 6) WHERE x % 2 = 0 | x * x]
+
+MATCH (a:Person)
+RETURN a.name, [(a)-[:KNOWS]->(b) | b.name] AS friends
+
+MATCH (n:Person)
+WHERE any(t IN n.tags WHERE t = 'vip')
+RETURN n.name
+
+RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
+
+MATCH (n:Person)
+RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
 ```
 
-### Load external data into TuringDB graph
+## Subqueries
 
-Files have to be available in `data` subdirectory of `turing-dir`.
+[Subqueries](/query/subqueries)
 
-```jsx
-LOAD GML 'mygml.gml' AS my_graph
+```cypher
+MATCH (p:Person)
+WHERE EXISTS { (p)-[:WORKS_AT]->(:Company {name: 'Acme'}) }
+RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
+
+MATCH (p:Person)
+CALL (p) {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN f.name AS friend LIMIT 1
+}
+RETURN p.name, friend
+
+MATCH (p:Person)
+OPTIONAL CALL (p) {
+  MATCH (p)-[:WORKS_AT]->(c)
+  RETURN c.name AS co
+}
+RETURN p.name, co
 ```
-
-```jsx
-LOAD JSONL 'myjsonl.jsonl' AS my_graph
-```
-
-## Procedures (`CALL`)
-
-| Query                     | Description                         |
-| ------------------------- | ----------------------------------- |
-| `CALL db.labels()`         | All node labels                            |
-| `CALL db.propertyTypes()`  | All node/edge property keys & types        |
-| `CALL db.edgeTypes()`      | All edge types                             |
-| `CALL db.history()`        | Commit history                             |
-| `CALL db.describeCommit('<hash>')` | Counts for a single commit         |
-| `CALL db.procedures()`     | List available procedures                  |
-| `CALL db.showIndexes()`    | List property indexes                      |
-
-Procedure outputs can be `YIELD`ed and chained: `CALL db.labels() YIELD label MATCH (n) WHERE n.name = label RETURN n`.
-
-## DELETE
-
-```jsx
-// Delete a node
-MATCH (n:Person {name: 'Alice'}) DELETE n
-
-// Delete an edge
-MATCH (n)-[e:KNOWS]->(m) DELETE e
-```
-
-## Variable-length paths
-
-```jsx
-// Postfix quantifiers (not Neo4j's -[*1..3]-)
-MATCH (a:Person)-[e]->+(b:Person) RETURN a, b      // one or more hops
-MATCH (a:Person)-[e]->*(b:Person) RETURN a, b      // zero or more hops
-MATCH (a:Person)-[e]->{2,4}(b:Interest) RETURN a, b // 2 to 4 hops
-```
-
-## Graph algorithms
-
-| Function                                   | Description                                                    |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `shortestPath(n, m, distanceProperty, distOutputVar, pathOutputVar)` | Shortest path between nodes using the Dijkstra processor |
 
 ## Functions
 
-| Function          | Description                                                        |
-| ----------------- | ------------------------------------------------------------------ |
-| `labels(n)`       | Node label as a string                                             |
-| `edgeType(e)`     | Edge type as a string                                              |
-| `toInteger(expr)` | Parses a string as an integer                                      |
-| `toFloat(expr)`   | Parses a string as a float                                         |
-| `toBoolean(expr)` | Parses a string as a boolean                                       |
-| `cosine_similarity(a, b)` | Cosine similarity of two embeddings                        |
-| `euclidean_distance(a, b)` | Euclidean distance of two embeddings                      |
+[Functions and data types](/query/functions)
 
-## Aggregate Functions
+| Category | Functions |
+| -------- | --------- |
+| Entity | `id`, `labels`, `type`, `startNode`, `endNode` |
+| Path and list | `nodes`, `relationships`, `length`, `size`, `head`, `last`, `tail`, `reverse`, `range`, `reduce` |
+| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `coalesce` |
+| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `reverse` |
+| Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi`, `e`, `sin`, `cos`, `tan` |
+| Temporal | `datetime`, `duration` |
+| Embedding | `cosine_similarity`, `euclidean_distance` |
+| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max` |
 
-| Function          | Description                                                        |
-| ----------------- | ------------------------------------------------------------------ |
-| `count(expr)`   | Returns the number of non-null rows in the column corresponding to `expr`  |
-| `avg(expr)`   | Returns the average value of non-null rows in the numeric-valued column corresponding to `expr`  |
+```cypher
+MATCH (n)-[e]->(m)
+RETURN labels(n), type(e), labels(m)
 
-```jsx
-// Introspection
-MATCH (n)-[e]->(m) RETURN labels(n), edgeType(e)
+RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1})
 
-// Type conversion
-MATCH (n) WHERE n.year > toInteger("2020") RETURN n.name
-MATCH (n) RETURN n.price * toFloat("1.07")
-
-// Aggregation
-MATCH (n:Person) RETURN count(*)
+MATCH (n:Document)
+RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
-## Engine Commands
+- Function names are case-sensitive, except `count` and `collect`.
+- Use `type(e)` for an edge's type (it replaces `edgeType()`).
 
-| Command                                | Description                                                                                                                           |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `CREATE GRAPH <name>`                  | Create a new named graph                                                                                                              |
-| `LOAD GRAPH <name>`                    | Load an existing graph                                                                                                                |
-| `LOAD GML 'mygraph.gml' AS my_graph`   | Load the specified GML as TuringDB graph. Requires the GML to be accessible in TuringDB directory (`-turing-dir`, `data` subdir)      |
-| `LOAD JSONL 'mygraph.jsonl' AS my_graph` | Load the specified JSONL as TuringDB graph. Requires the JSONL to be accessible in TuringDB directory (`-turing-dir`, `data` subdir) |
-| `COMMIT`                               | Persist intermediate state within a change (needed between separate node/edge create steps)                                          |
-| `LOAD COMMIT '<hash>'`                 | Load a past commit into memory (needed for REST API queries on non-HEAD commits; CLI and SDK do this automatically)                   |
-| `LIST GRAPH`                           | List all available graphs                                                                                                             |
-| `HISTORY`                              | Show commit history (versioning)                                                                                                      |
-| `CHANGE NEW`                           | Create a new isolated change                                                                                                          |
-| `CHANGE SUBMIT`                        | Merge current change into main                                                                                                        |
-| `CHANGE DELETE`                        | Delete current change                                                                                                                 |
-| `CHANGE LIST`                          | List active uncommitted changes                                                                                                       |
-| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index                                                                 |
-| `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbor vector search                                                                        |
-| `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes                                                                            |
-| `CREATE INDEX <name> FOR (n) ON n.prop` / `FOR [e] ON e.prop` | Create a property index (write; commit to take effect)                                          |
-| `DROP INDEX <name>`                    | Drop a property or vector index                                                                                                      |
-| `MERGE_DATAPARTS`                      | Compact the current graph's DataParts into one                                                                                      |
-| `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures                                                     |
-| `LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP\|FAIL] AS row` | Stream CSV rows (see [CSV import](/import_data/csv))                                                       |
+## Data types
 
-## UNWIND
+| Type | Example |
+| ---- | ------- |
+| String | `'hello'` or `"hello"` |
+| Integer | `30`, `0x1F` |
+| Double | `3.14` |
+| Boolean | `true` |
+| List | `[1, 'a', [2]]` |
+| Map | `{a: 1}` |
+| DateTime | `datetime('2024-03-15T10:30:00Z')` |
+| Duration | `duration({days: 2})` |
+| Embedding | `(1.2, 2.0, 0.0)` (parentheses, not brackets) |
 
-```jsx
-// Expand a literal list into rows (literal lists only)
-UNWIND [1, 2, 3] AS x RETURN x
+## Writing (inside a change)
 
-// Return a list literal directly
-RETURN [1, 2, 3] AS nums
-```
+[Writing data](/query/writing)
 
-## Property indexes
-
-```jsx
-// Indexes are writes — create inside a change, then commit
+```cypher
 CHANGE NEW
-CREATE INDEX age_index FOR (n) ON n.age
+
+CREATE (:Person {name: 'Alice', age: 30})
+
+CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+
+COMMIT
+
+MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Mick'})
+CREATE (a)-[:KNOWS]->(b)
+
+MERGE (n:Person {name: 'Alice'})
+  ON CREATE SET n.created = true
+  ON MATCH SET n.seen = true
+
+MATCH (n:Person {name: 'Alice'})
+SET n.age = 31, n.position = 'Developer'
+
+MATCH (n:Person {name: 'Alice'})
+REMOVE n.position
+
+MATCH (n:Person {name: 'Alice'})
+DETACH DELETE n
+
+MATCH (n:Person)-[e:KNOWS]->(m)
+DELETE e
+
 CHANGE SUBMIT
-MATCH (n) WHERE n.age = 30 RETURN n   // optimizer uses the index
-
-DROP INDEX age_index                  // remove
 ```
 
-## Useful Patterns
+- Every node needs at least one label and every edge exactly one type. Labels are set at creation.
+- Run `COMMIT` after creating entities that a later query must match. `CHANGE SUBMIT` commits for you.
+- In the Python SDK, call `client.checkout()` after `CHANGE SUBMIT`.
+- For more than a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet).
 
-```jsx
-// Two-hop connection
-MATCH (a)-[r1]->(b)-[r2]->(c) RETURN c
+## Procedures
 
-// All people named John
-MATCH (n:Person {name: 'John'}) RETURN n
-/// exact equivalent of
-MATCH (n:Person) WHERE n.name = 'John' RETURN n
+[Procedures and commands](/query/procedures)
 
-// Find co-authors: two persons linked to the same publication
-MATCH (a:Person)-->(p:Publication)<--(b:Person)
-WHERE a.name <> b.name
-RETURN a.name, b.name, p.title
+| Query | Description |
+| ----- | ----------- |
+| `CALL db.labels()` | All node labels |
+| `CALL db.edgeTypes()` | All edge types |
+| `CALL db.propertyTypes()` | All property keys and their types |
+| `CALL db.history()` | Commit history |
+| `CALL db.describeCommit('<hash>')` | Counts for a single commit |
+| `CALL db.getNodes([0, 1])` | Labels and all properties of specific nodes |
+| `CALL db.procedures()` | All procedures and signatures |
 
-// Match existing nodes then create edge between them
-MATCH (n:Person {name: 'Alice'}), (m:Person {name: 'Bob'})
-CREATE (n)-[:KNOWS]->(m)
+Outputs can be chained: `CALL db.labels() YIELD label MATCH (n) WHERE label IN labels(n) RETURN label, count(n)`.
 
-// Cartesian: pair every person with every city
-MATCH (p:Person), (c:City) RETURN p.name, c.name
+## Graph algorithms and search
+
+```cypher
+MATCH (a:Station {name: 'Ashchurch'}), (b:Station {name: 'Pershore'})
+shortestPath(a, b, distance, dist, path)
+RETURN dist, path
+
+VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1) YIELD ids, score
+RETURN ids, score
 ```
+
+See [Shortest path](/shortest-path) and [Vector search](/vector-search).
+
+## Engine commands
+
+| Command | Description |
+| ------- | ----------- |
+| `CREATE GRAPH <name>` | Create a new named graph |
+| `LOAD GRAPH <name>` | Load an existing graph |
+| `LOAD GML 'f.gml' AS g` | Load a [GML](/import_data/gml) file as a graph (file in `<turing-dir>/data`) |
+| `LOAD JSONL 'f.jsonl' AS g` | Load a [JSONL](/import_data/jsonl) file as a graph, optionally `WITH EMBEDDINGS`, `WITH DATETIMES`, `WITH DURATIONS` |
+| `LOAD PARQUET '<dir>' AS g` | Load [Parquet](/import_data/parquet) files as a graph |
+| `LOAD CSV 'f.csv' [WITH HEADERS] [ON ERROR SKIP\|FAIL] AS row` | Stream rows from a [CSV](/import_data/csv) file |
+| `LIST GRAPH` / `LIST AVAILABLE GRAPHS` | Loaded graphs / graphs on disk |
+| `CHANGE NEW` / `SUBMIT` / `DELETE` / `LIST` | Create, merge, discard and list changes |
+| `COMMIT` | Seal pending writes inside a change |
+| `LOAD COMMIT '<hash>'` | Load a past commit (REST API only; the CLI and SDK do it for you) |
+| `MERGE_DATAPARTS` | Compact the graph's DataParts into one (renumbers nodes) |
+| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index |
+| `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes |
+| `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures |
+| `EXPLAIN <query>` | Show the query plan without running it |

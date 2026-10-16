@@ -1,0 +1,156 @@
+---
+title: "Procedures and Commands"
+sidebarTitle: "Procedures and Commands"
+description: "Explore a graph with CALL db.* procedures, and manage graphs, changes, vector indexes and extensions with TuringDB engine commands."
+---
+
+Beyond queries over the data in a graph, TuringDB has **procedures**, which return information about the graph, and **commands**, which drive the engine itself.
+
+## Procedures
+
+Procedures use the `CALL` syntax. Use them to explore a graph before writing queries against it:
+
+```cypher
+CALL db.labels()
+CALL db.edgeTypes()
+CALL db.propertyTypes()
+CALL db.history()
+CALL db.procedures()
+```
+
+| Procedure | Yields |
+| --------- | ------ |
+| `db.labels()` | `id`, `label` |
+| `db.edgeTypes()` | `id`, `edgeType` |
+| `db.propertyTypes()` | `id`, `propertyType`, `valueType` |
+| `db.history()` | `commit`, `nodeCount`, `edgeCount`, `partCount` |
+| `db.describeCommit(commit)` | `nodeCount`, `edgeCount`, `partCount` |
+| `db.procedures()` | `name`, `signature` (same as `SHOW PROCEDURES`) |
+| `db.hierarchicalLabelCounts(labels)` | `label`, `nodeCount` |
+| `db.listNodes(labels, properties, skip, limit)` | `id`, `labels`, `properties` |
+| `db.getNodes(nodeIDs)` | `id`, `labels`, `inEdgeCount`, `outEdgeCount`, `properties` |
+| `db.getEdges(edgeIDs)` | `id`, `src`, `tgt`, `edgeTypeID`, `properties` |
+| `db.getNodeEdges(...)` | `id`, `outgoingEdges`, `incomingEdges`, `outEdgeCounts`, `inEdgeCounts` |
+| `gnn.neighbourhoodSample(node, sampleSize, seed)` | `src`, `edge`, `edgeType`, `tgt` |
+| `gnn.graphSAGE(seeds, fanouts, seed)` | `dst_nodes0..2`, `src_nodes0..2`, `tgt_nodes0..2` |
+
+`db.history()` lists commits newest first. Every `COMMIT` and every submitted change adds an entry, and `nodeCount` / `edgeCount` count what **that commit** added, not the graph totals.
+
+### Chaining procedures with YIELD
+
+A procedure's output columns can be renamed, filtered and used by the rest of the query with `YIELD`:
+
+```cypher
+CALL db.propertyTypes() YIELD *
+
+CALL db.labels() YIELD label AS l
+WHERE l STARTS
+WITH 'P'
+RETURN l
+
+CALL db.labels() YIELD label
+MATCH (n)
+WHERE label IN labels(n)
+RETURN label, count(n)
+
+CALL db.history() YIELD `commit`, nodeCount
+RETURN `commit`, nodeCount
+```
+
+- **Constant arguments.** Procedure arguments are constants, so pass literal values (for example `db.getNodes([0, 1, 2])`) rather than values read from a row.
+- **`commit` is a keyword.** Yield it with backticks: ``YIELD `commit` ``.
+- To filter on `valueType`, filter the resulting DataFrame in pandas.
+- `OPTIONAL CALL` is for subqueries. It is not yet available for procedures.
+
+### Inspecting nodes and edges
+
+`RETURN n` gives a node's internal ID. To see every property of a few nodes, use `db.getNodes`, which returns the properties as a JSON string:
+
+```cypher
+CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties
+RETURN id, labels, properties
+
+CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
+```
+
+`db.listNodes(labels, properties, skip, limit)` does a case-insensitive substring search on property values.
+
+```python
+import json
+
+df = client.query("CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties")
+df["properties"] = df["properties"].map(json.loads)
+```
+
+### Profiling a graph with plain Cypher
+
+```cypher
+MATCH (n)
+RETURN labels(n) AS labels, count(*) AS n
+ORDER BY n DESC
+
+MATCH (a)-[r]->(b)
+RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst, count(*) AS n
+ORDER BY n DESC
+
+MATCH (n:Person)
+RETURN count(n.age) AS withAge, count(*) AS total
+```
+
+## Commands
+
+Outside of Cypher, a set of commands controls the engine. Send them through `client.query()` or from the interactive shell.
+
+### Graphs
+
+| Command | Description |
+| ------- | ----------- |
+| `CREATE GRAPH <name>` | Create an empty graph |
+| `LOAD GRAPH <name>` | Load an on-disk graph. Its files must be in the TuringDB directory (`-turing-dir`, `graphs` subdirectory) |
+| `LIST GRAPH` | List the graphs currently **loaded** in the server |
+| `LIST AVAILABLE GRAPHS` | List the graphs on disk, with `isLoaded` and `isLoading` |
+| `LOAD JSONL 'f.jsonl' AS <name>` | Build a graph from a [JSONL](/import_data/jsonl) file in the `data` subdirectory |
+| `LOAD GML 'f.gml' AS <name>` | Build a graph from a [GML](/import_data/gml) file in the `data` subdirectory |
+| `LOAD PARQUET '<dir>' AS <name>` | Build a graph from Parquet files, see [Parquet import](/import_data/parquet) |
+| `LOAD CSV '<file>' ... AS row` | Stream rows from a CSV file, see [CSV import](/import_data/csv) |
+| `EXPLAIN <query>` | Show the compiled plan without running the query |
+
+Dropping and unloading graphs from a running server is not yet available.
+
+### Changes and versions
+
+| Command | Description |
+| ------- | ----------- |
+| `CHANGE NEW` | Create a new change and return its ID |
+| `CHANGE SUBMIT` | Commit pending writes and merge the current change into main |
+| `CHANGE DELETE` | Discard the current change |
+| `CHANGE LIST` | List the open changes on the current graph |
+| `COMMIT` | Seal the pending writes inside a change. Needed before a later query can `MATCH` or `MERGE` newly created entities |
+| `LOAD COMMIT '<hash>'` | Load a past commit for querying. Only needed when sending queries directly to the REST API. The CLI `checkout` and the Python SDK do it for you |
+| `MERGE_DATAPARTS` | Compact all [DataParts](/concepts/dataparts) of the graph into one. Run it on main with no change open on any graph |
+
+`MERGE_DATAPARTS` **renumbers** all nodes. Re-fetch any cached node IDs afterwards, and rebuild vector indexes keyed by node IDs.
+
+### Vector indexes
+
+| Command | Description |
+| ------- | ----------- |
+| `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index, see [Vector search](/vector-search) |
+| `VECTOR SEARCH IN <index> FOR <k> (<vec>) YIELD ids` | k-nearest-neighbour search |
+| `SHOW VECTOR INDEXES` | List vector indexes |
+| `DELETE VECTOR INDEX <name>` | Delete a vector index |
+
+## Extensions
+
+Extensions are native libraries that register extra procedure namespaces. Install one by name and then call its procedures:
+
+```cypher
+INSTALL greeter
+SHOW EXTENSIONS
+SHOW PROCEDURES
+
+CALL greeter.hello() YIELD message
+RETURN message
+```
+
+`SHOW PROCEDURES` lists every available procedure and its signature, including the ones from extensions. The `greeter` example ships with the Python wheel. Extensions are looked up in `<install>/lib/turingdb/extensions/<name>.so`, then in `<turing-dir>/extensions/<name>.so`.

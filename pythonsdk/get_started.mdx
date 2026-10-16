@@ -130,7 +130,7 @@ from turingdb import TuringDB
 client = TuringDB(host="http://localhost:6666")
 
 # Or run the engine in-process, with no server:
-# client = TuringDB(type="embedded", data_dir="~/.turing")
+# client = TuringDB(type="embedded", data_dir="/home/me/.turing")   # use an absolute path
 
 # Create and set working graph
 client.create_graph("people")

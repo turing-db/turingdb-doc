@@ -39,6 +39,14 @@ description: "You can time travel in you graph databases and see the commit hist
   </Tab>
 </Tabs>
 
+## About `db.history()`
+
+- Commits are listed newest first, and the latest one is marked with a literal `(HEAD)` suffix on its hash: strip it before passing the hash to `checkout`.
+- Every `COMMIT` and every submitted change adds an entry.
+- `nodeCount` and `edgeCount` count what **that commit** added, not the graph totals.
+- Use hashes exactly as printed (they are not zero-padded). An unknown hash returns `COMMIT_NOT_FOUND` from `client.checkout(commit=...)`, and zeros from `CALL db.describeCommit('<hash>')`.
+- A past commit is read-only, so make writes on main or in a change. Call `client.checkout()` to return to main.
+
 ## Lazy Commit Loading
 
 TuringDB lazily loads commits from disk. When a graph is loaded, only the **HEAD commit** (the latest commit on the current branch) is fully loaded into memory. All other commits are registered but their data remains on disk until explicitly requested.

@@ -32,10 +32,18 @@ graph [
 | `source` / `target` | Required. Must reference the `id` of a node defined in the same file. |
 | other fields        | Optional. Stored as edge properties.                                  |
 
-**Supported property value types:** String, Integer, Double, Boolean. All property values are stored as strings in the TuringDB graph regardless of their original type in the GML file.
+**Property values:** all property values are stored as **strings** in the TuringDB graph, regardless of their original type in the GML file. Convert them with `toInteger` / `toFloat` in your queries.
 
 <Warning>
   All imported nodes are assigned the label `GMLNode` and all edges the type `GMLEdge`, regardless of any fields present in the file. Any field other than `id`, `source`, and `target` is treated as a plain property. To query your data after import, use `MATCH (n:GMLNode)` and `MATCH ()-[e:GMLEdge]->()`.
+</Warning>
+
+<Warning>
+  Property names also get a **type suffix**, for example `label (String)` and `weight (String)`. Quote them with backticks in queries, and run `CALL db.propertyTypes()` to see the exact names:
+
+  ```jsx
+  MATCH (n:GMLNode) RETURN n.`label (String)`, toInteger(n.`age (String)`)
+  ```
 </Warning>
 
 ## Import steps

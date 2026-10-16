@@ -25,6 +25,7 @@ turingdb start [options]
 | `-reset-default` | Delete the default graph before starting | off |
 | `-ui` | Launch the built-in visualizer proxy | off |
 | `-ui-port <port>` | Visualizer proxy port | `8080` |
+| `-auth-on` | Require a bearer token on every request. The token is read from the `TURINGDB_AUTH_TOKEN` environment variable, and must be set when you use this flag | off |
 | `-start-timeout <ms>` | Time to wait for daemon readiness | `500` |
 
 ### Examples
@@ -52,6 +53,34 @@ Load a graph at startup:
 ```bash
 turingdb -load mygraph
 ```
+
+Require authentication:
+
+```bash
+TURINGDB_AUTH_TOKEN=s3cret turingdb start -demon -auth-on
+```
+
+Serve the binary protocol instead of JSON (see [Environment variables](#environment-variables)):
+
+```bash
+USE_TURING_PROTO=1 turingdb start -demon
+```
+
+<Note>
+  Server logs are written to `<turing-dir>/logs/turingdb.log`. Additional details about an import, such as a `LOAD JSONL`, are written there.
+</Note>
+
+### Interactive shell
+
+Without `-demon`, `turingdb start` serves HTTP **and** opens an interactive Cypher shell. Besides Cypher queries and [engine commands](/query/procedures#commands), the shell has a few local commands:
+
+| Command | Description |
+|---|---|
+| `cd <graph>` | Switch the active graph |
+| `checkout change-<id>` | Work on a change. `checkout <commit>` opens a past commit, and `checkout` returns to the latest commit of main |
+| `read <file>` | Run the queries in a file |
+| `help` | List the available commands |
+| `quit` / `exit` | Leave the shell |
 
 ---
 
@@ -116,3 +145,29 @@ Stop an instance running in a custom directory:
 ```bash
 turingdb stop -turing-dir /data/myturing
 ```
+
+---
+
+## Environment variables
+
+| Variable | Read by | Effect |
+|---|---|---|
+| `USE_TURING_PROTO` | server | `1` makes the server speak TuringDB's **binary protocol** instead of JSON over HTTP. The server then serves the binary protocol only: connect with `TuringDB(type="native")`, and use a server in the default mode for `curl`, the JSON client and the visualizer. See [client backends](/pythonsdk/reference#client-backends) |
+| `TURINGDB_AUTH_TOKEN` | server and Python SDK | With `-auth-on`, the token the server requires. The SDK sends it as a bearer token when set |
+| `TURINGDB_TYPE` | Python SDK | Default client backend (`json`, `native` or `embedded`) when `type` is not passed |
+
+---
+
+## HTTP API
+
+The Python SDK is a thin client over a single endpoint, so you can query a server from any language. With the default (JSON) server:
+
+```bash
+curl -s -X POST 'http://localhost:6666/query?graph=mygraph' -d "MATCH (n) RETURN count(n)"
+```
+
+- The request body is the query text. The optional query-string parameters `change=<hex change id>` and `commit=<hash>` target a change or a past commit.
+- With `-auth-on`, send `Authorization: Bearer <token>`. A missing or incorrect token returns HTTP `401` with an empty body.
+- A successful response is `{"header": {"column_names": [...], "column_types": [...]}, "data": [chunk, ...], "time": <ms>}`, where each chunk is a list of columns.
+- An error response is `{"error": "PARSE_ERROR", "error_details": "...", "time": <ms>}`. The code is one of `PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `CHANGE_NOT_FOUND` or `COMMIT_NOT_FOUND`.
+- Queries on a non-HEAD commit need `LOAD COMMIT '<hash>'` first when you talk to the API directly. The CLI and the SDK do this for you.
