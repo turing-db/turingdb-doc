@@ -22,7 +22,7 @@ or using `pip`:
 pip install turingdb
 ```
 
-The SDK targets TuringDB v3: pin `turingdb>=3.0` in your project (older projects may pin `1.x`, which uses the previous engine and a much smaller Cypher subset). The wheel supports Python 3.10 to 3.14 on Linux (x86_64, aarch64) and macOS 15 or later (arm64). It also contains the `turingdb` command-line tool, the `turing-parquet` import tool, and the in-process engine.
+The SDK targets TuringDB v3: pin `turingdb>=3.0.2` in your project (older projects may pin `1.x`, which uses the previous engine and a much smaller Cypher subset). Upgrade the SDK and the server together: from 3.0.2 the JSON client sends each query as a JSON body, which is what a 3.0.2 server expects. The wheel supports Python 3.10 to 3.14 on Linux (x86_64, aarch64) and macOS 15 or later (arm64). It also contains the `turingdb` command-line tool, the `turing-parquet` import tool, and the in-process engine.
 
 ## Getting Started
 
@@ -87,6 +87,7 @@ A server in binary mode serves the binary protocol only, so `curl`, the JSON cli
 
 - `host` accepts `"localhost"` together with `port=`, or a full URL such as `"http://localhost:6666"`. Use one of these two forms.
 - The query API is identical, and results come back as the same DataFrames. Embeddings are returned as numpy `float32` arrays instead of Python lists.
+- A [`shortestPath`](/shortest-path) `path` cannot be read over the native backend yet. Run those queries through the JSON backend.
 - To list the graphs on disk, use the JSON client. On the native backend, `list_loaded_graphs()` lists the loaded graphs.
 - `token`, `reconnect()` and the S3 helpers work as on the JSON backend.
 
@@ -159,17 +160,18 @@ client.load_graph("mygraph")
 
 If `raise_if_loaded=False`, it will silently continue if the graph is already loaded.
 
-### `query(query: str) → pandas.DataFrame`
+### `query(query: str, query_parameters: dict | None = None) → pandas.DataFrame`
 
 Runs a Cypher query on the current graph.
 
 ```python
 df = client.query("MATCH (n:Person) RETURN n.name, n.age")
+df = client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
 ```
 
-Returns results as a `pandas.DataFrame`, with automatic typing and parsing.
+Returns results as a `pandas.DataFrame`, with automatic typing and parsing. `query_parameters` fills `$name` [parameters](/query/cypher_subset#query-parameters), which stand for labels and edge types.
 
-### `query_raw(query: str) → dict`
+### `query_raw(query: str, query_parameters: dict | None = None) → dict`
 
 Like `query`, but returns the raw server response as a `dict` instead of a DataFrame. Useful for inspecting result metadata or column dtypes directly.
 
@@ -223,7 +225,7 @@ client.set_commit("haax42")
 
 ### `set_change(change: int | str)`
 
-Manually set the change ID to use (accepts int or hex string).
+Manually set the change ID to use (accepts the int that `new_change()` returns, or the same number as a string).
 
 ```python
 client.set_change(3)
@@ -292,15 +294,15 @@ All queries return a `pandas.DataFrame`, typed according to the schema:
 | `List`, `Map` | object (Python list, dict) |
 | `Embedding` | object (list over HTTP, numpy `float32` array on the native and embedded backends) |
 
-Nodes and edges (`RETURN n`) come back as their internal integer IDs (`UInt64`), so project the properties you need. A named path comes back as a list of `{'type': 'node' | 'edge', 'id': ...}` dictionaries. See [Functions and data types](/query/functions#how-results-come-back) for the full table.
+Nodes and edges (`RETURN n`) come back as their internal integer IDs (`UInt64`), so project the properties you need, or return `properties(n)` as a dictionary. A named path comes back as a list of `{'type': 'node' | 'edge', 'id': ...}` dictionaries. Doubles keep their full precision on every backend. See [Functions and data types](/query/functions#how-results-come-back) for the full table.
 
-<Note>
-  Over the JSON backend, Doubles are serialised with 6 decimal places. Use the native or embedded backend if you need full precision.
-</Note>
+<Tip>
+  Integer columns hold numpy integers, which an f-string prints as `np.int64(5)`. Convert IDs with `.tolist()` or `int()` before writing them into a query.
+</Tip>
 
 ## Error Handling
 
-Query errors raise `TuringDBException`. The message starts with the error code (`PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND`, ...) and points at the offending part of the query.
+Query errors raise `TuringDBException`. The message starts with the error code (`PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `GRAPH_NOT_FOUND`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND`, `REQUEST_TOO_BIG`, ...) and points at the offending part of the query, or names the graph, change or commit that was not found.
 
 ```python
 from turingdb import TuringDB, TuringDBException
@@ -311,7 +313,7 @@ except TuringDBException as e:
     print("Query failed:", e)
 ```
 
-On the JSON backend, transport failures (the server is down, or HTTP 401 for a bad or missing token) surface as `httpx` exceptions instead.
+On the JSON backend, transport failures (the server is down, or HTTP 401 for a bad or missing token) surface as `httpx` exceptions instead. HTTP errors that the server explains, such as `REQUEST_TOO_BIG`, still raise `TuringDBException`.
 
 ## Example Workflow
 

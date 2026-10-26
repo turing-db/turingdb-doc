@@ -40,6 +40,21 @@ See [client backends](/pythonsdk/reference#client-backends) for details.
 
 ---
 
+## `The request body must be a JSON object`
+
+The server expects each query as a JSON body, `{"query": "...", "parameters": {...}}`. Two common causes:
+
+- **An older SDK against a 3.0.2 server.** Upgrade the Python SDK to the same version as the server: `pip install 'turingdb>=3.0.2'`.
+- **A raw HTTP request with the query as plain text.** Send JSON instead, see the [HTTP API](/commands#http-api).
+
+---
+
+## `REQUEST_TOO_BIG`
+
+A request can be up to 1 MiB. Split a large `UNWIND` into batches, for example 10,000 node-ID pairs per request, or load bulk data from a file with [`LOAD PARQUET`](/import_data/parquet) or [`LOAD JSONL`](/import_data/jsonl).
+
+---
+
 ## `401 Unauthorized`
 
 The server was started with `-auth-on` and your client did not send a valid token. Pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. The JSON client raises this as an `httpx.HTTPStatusError`.
@@ -60,13 +75,13 @@ All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run inside a chan
 
 ## A `MATCH` right after a `CREATE` returns no rows
 
-Entities created earlier in a change are not visible to later queries until you run `COMMIT`. Run `COMMIT` after creating nodes and before matching them to create edges or to `MERGE`. See [Writing data](/query/writing#when-you-need-commit-inside-a-change).
+Entities created earlier in a change are visible to a later `MATCH` once you run `COMMIT`. Run `COMMIT` after creating nodes and before matching them to create edges. A `MERGE` finds them without it. See [Writing data](/query/writing#when-you-need-commit-inside-a-change).
 
 ---
 
 ## `Function 'X' does not exist`
 
-Function names are case-sensitive (`toInteger`, not `TOINTEGER`), and some functions are not yet available in TuringDB. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions).
+A few functions are not yet available in TuringDB, such as `rand()`, `date()`, `timestamp()` and `elementId()`. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions) for the full list.
 
 ---
 

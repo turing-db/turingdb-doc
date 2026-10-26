@@ -64,11 +64,19 @@ RETURN `commit`, nodeCount
 
 ### Inspecting nodes and edges
 
-`RETURN n` gives a node's internal ID. To see every property of a few nodes, use `db.getNodes`, which returns the properties as a JSON string:
+`RETURN n` gives a node's internal ID. To see every property of some nodes, return `properties(n)`, which comes back as a dictionary, or `keys(n)` for just the property names:
 
 ```cypher
-CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties
-RETURN id, labels, properties
+MATCH (n:Person)
+RETURN id(n), labels(n), properties(n)
+LIMIT 5
+```
+
+The procedures `db.getNodes` and `db.listNodes` also return the properties, as a JSON string, together with edge counts:
+
+```cypher
+CALL db.getNodes([0, 1, 2]) YIELD id, labels, inEdgeCount, outEdgeCount, properties
+RETURN id, labels, inEdgeCount, outEdgeCount, properties
 
 CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
 ```
@@ -108,12 +116,12 @@ Outside of Cypher, a set of commands controls the engine. Send them through `cli
 | `CREATE GRAPH <name>` | Create an empty graph |
 | `LOAD GRAPH <name>` | Load an on-disk graph. Its files must be in the TuringDB directory (`-turing-dir`, `graphs` subdirectory) |
 | `LIST GRAPH` | List the graphs currently **loaded** in the server |
-| `LIST AVAILABLE GRAPHS` | List the graphs on disk, with `isLoaded` and `isLoading` |
+| `LIST AVAILABLE GRAPHS` | List the graphs on disk and in memory, with `isLoaded` and `isLoading` |
 | `LOAD JSONL 'f.jsonl' AS <name>` | Build a graph from a [JSONL](/import_data/jsonl) file in the `data` subdirectory |
 | `LOAD GML 'f.gml' AS <name>` | Build a graph from a [GML](/import_data/gml) file in the `data` subdirectory |
 | `LOAD PARQUET '<dir>' AS <name>` | Build a graph from Parquet files, see [Parquet import](/import_data/parquet) |
 | `LOAD CSV '<file>' ... AS row` | Stream rows from a CSV file, see [CSV import](/import_data/csv) |
-| `EXPLAIN <query>` | Show the compiled plan without running the query |
+| `EXPLAIN <query>` | Show the compiled plan without running the query. `EXPLAIN (db) <query>` shows only the database plan |
 
 Dropping and unloading graphs from a running server is not yet available.
 
@@ -125,7 +133,7 @@ Dropping and unloading graphs from a running server is not yet available.
 | `CHANGE SUBMIT` | Commit pending writes and merge the current change into main |
 | `CHANGE DELETE` | Discard the current change |
 | `CHANGE LIST` | List the open changes on the current graph |
-| `COMMIT` | Seal the pending writes inside a change. Needed before a later query can `MATCH` or `MERGE` newly created entities |
+| `COMMIT` | Seal the pending writes inside a change. Needed before a later query can `MATCH` newly created entities |
 | `LOAD COMMIT '<hash>'` | Load a past commit for querying. Only needed when sending queries directly to the REST API. The CLI `checkout` and the Python SDK do it for you |
 | `MERGE_DATAPARTS` | Compact all [DataParts](/concepts/dataparts) of the graph into one. Run it on main with no change open on any graph |
 

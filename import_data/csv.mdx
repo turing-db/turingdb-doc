@@ -42,17 +42,17 @@ Read a row's fields as `row.col` or `row[<literal index>]`. Without `WITH HEADER
 
 ## Combining with the rest of a query
 
-`LOAD CSV` composes with `MATCH`, `WITH` / `WHERE`, aggregates, `ORDER BY` and `UNWIND`. For example, join the rows with nodes that are already in the graph:
+`LOAD CSV` composes with `MATCH`, `OPTIONAL MATCH`, `WITH` / `WHERE`, aggregates, `ORDER BY`, `UNWIND` and subqueries, which can all read `row.x`. For example, join the rows with nodes that are already in the graph:
 
 ```jsx
 LOAD CSV "people.csv" WITH HEADERS AS row
 MATCH (p:Person {name: row.name})
 RETURN p.name, row.city
-```
 
-<Note>
-  To use `row.x` inside an `OPTIONAL MATCH` pattern that directly follows `LOAD CSV`, project the field first: `... AS row WITH row.name AS nm OPTIONAL MATCH (p:Person {name: nm}) ...`.
-</Note>
+LOAD CSV "people.csv" WITH HEADERS AS row
+OPTIONAL MATCH (p:Person {name: row.name})
+RETURN row.name, p.age
+```
 
 ## Building a graph from CSV
 

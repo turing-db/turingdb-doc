@@ -1,7 +1,7 @@
 ---
 title: "Results, Aggregation and Lists"
 sidebarTitle: "Results and Aggregation"
-description: "Shape results with WITH, DISTINCT, ORDER BY, SKIP, LIMIT and UNION, then aggregate, unwind and transform lists."
+description: "Shape results with WITH, DISTINCT, ORDER BY, SKIP, LIMIT and UNION, chain queries with NEXT and WHEN, then aggregate, unwind and transform lists."
 ---
 
 These examples use the [sample graph](/query/matching) from the matching page.
@@ -97,6 +97,49 @@ RETURN c.name AS name
 
 `UNION` removes duplicates and `UNION ALL` keeps them. All branches must return the same column names, and each column must keep one value type across the branches.
 
+## NEXT
+
+`NEXT` chains queries in one request: the columns returned by the query before it become the incoming rows of the query after it.
+
+```cypher
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+RETURN nm
+ORDER BY nm LIMIT 2
+
+MATCH (n:Person)
+RETURN n.city AS city, count(*) AS people
+NEXT
+RETURN max(people) AS biggestCity
+```
+
+- Every expression in a `RETURN` followed by `NEXT` needs an alias (`AS`).
+- A later query sees what an earlier one wrote: `CREATE (x:Tag {v: 1}) RETURN x NEXT MATCH (t:Tag) RETURN count(t)`.
+
+## Conditional queries with WHEN
+
+`WHEN <condition> THEN <query> [WHEN ... THEN ...] [ELSE <query>]` runs the first branch whose condition holds. Branches return the same columns, and they can also write.
+
+```cypher
+WHEN true THEN RETURN 1 AS x ELSE RETURN 2 AS x
+
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+WHEN age > 30 THEN RETURN nm, 'senior' AS band
+ELSE RETURN nm, 'junior' AS band
+
+MATCH (n:Person)
+CALL (n) {
+  WHEN n.age > 30 THEN RETURN 'senior' AS band
+  ELSE RETURN 'junior' AS band
+}
+RETURN n.name, band
+```
+
+A `WHEN` can start a query, follow `NEXT`, or form the body of a [`CALL` subquery](/query/subqueries#call-subqueries), where it runs once per row. Several `WHEN` queries combine with `UNION`: `{ WHEN c1 THEN RETURN 1 AS x } UNION { WHEN c2 THEN RETURN 2 AS x }`.
+
 ## Aggregation
 
 Grouping is implicit, as in Neo4j: the non-aggregated items in the `RETURN` are the grouping keys.
@@ -130,6 +173,9 @@ ORDER BY c DESC
 MATCH (n)
 RETURN labels(n) AS l, count(*) AS c
 ORDER BY c DESC
+
+MATCH (n:Person)
+RETURN stDev(n.age) AS sd, percentileCont(n.age, 0.5) AS median, percentileDisc(n.age, 0.9) AS p90
 ```
 
 | Aggregate | Notes |
@@ -138,9 +184,9 @@ ORDER BY c DESC
 | `collect(x)`, `collect(DISTINCT x)` | Nulls are dropped |
 | `sum(x)` | |
 | `avg(x)` | Always a Double |
-| `min(x)`, `max(x)` | Numbers, strings, booleans, `DateTime` and `Duration` |
-
-Statistical aggregates such as `stdev` and `percentileCont` are not yet available. Compute them in your application, for example in pandas.
+| `min(x)`, `max(x)` | Numbers, strings, booleans, `DateTime`, `Duration`, lists and values of mixed types |
+| `stDev(x)`, `stDevP(x)` | Sample and population standard deviation |
+| `percentileCont(x, p)`, `percentileDisc(x, p)` | Interpolated and nearest-value percentile; `p` is a fraction, such as `0.5` for the median |
 
 **Rules:**
 
@@ -187,7 +233,7 @@ RETURN t, count(*)
 `range(start, end[, step])` includes both bounds. Unwound nodes stay nodes, so `p.name` works after `UNWIND ns AS p`. You can also `UNWIND` a list of maps and read their keys: `UNWIND [{a: 1}, {a: 2}] AS m RETURN m.a`.
 
 <Note>
-  Write the list into the query text, for example `f"UNWIND {ids} AS x ..."` in Python. Query parameters such as `UNWIND $list` are not yet supported.
+  Write the list into the query text, for example `f"UNWIND {ids} AS x ..."` in Python. Value parameters such as `UNWIND $list` are not yet supported.
 </Note>
 
 ## Lists
@@ -200,7 +246,7 @@ RETURN size([1, 2]), head([1, 2]), last([1, 2]), tail([1, 2]), reverse([1, 2, 3]
 MATCH (n:Person {name: 'Alice'})
 RETURN n.tags[0], size(n.tags)
 
-RETURN [1, 2] + [3], 'a' || 'b'
+RETURN [1, 2] + [3], [1, 2] + 3, 'a' || 'b'
 ```
 
 - Indexing and slicing work on literals, list properties and function results (`labels(n)[0]`). Negative indexes count from the end, and an out-of-range index returns `null`.
@@ -237,3 +283,5 @@ RETURN n.name,
 ```
 
 The simple form (`CASE n.city WHEN 'London' THEN ...`) and the searched form (`CASE WHEN condition THEN ...`) both work. TuringDB also accepts comparison tests in the simple form, such as `CASE n.age WHEN > 30 THEN 'old' WHEN IS NULL THEN '?' END`.
+
+Branches can return lists, maps, `DateTime` and `Duration` values, and they may mix types: `CASE WHEN n.age > 30 THEN n.tags ELSE [] END` and `coalesce(n.nickname, n.age)` both work.

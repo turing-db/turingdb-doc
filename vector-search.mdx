@@ -51,9 +51,11 @@ CREATE VECTOR INDEX <name> WITH DIMENSION <dim> METRIC <metric> [TYPE <type>]
   The metrics return raw scores. `COSINE` scores are the **inner product** of the stored and query vectors, so L2-normalise both to get true cosine similarity. `EUCLID` scores are the **squared** L2 distance.
 </Note>
 
+HNSW indexes are memory-mapped from disk rather than read into memory when the server starts. Start the server with [`-no-vector-mmap`](/commands#options) to read them into memory instead.
+
 ## Load embeddings
 
-Once the index exists, load your pre-computed embeddings from a header-less CSV file. Each line is `id,v1,v2,...,vd`, where `id` is normally the native TuringDB node ID (`id(n)`).
+Once the index exists, load your pre-computed embeddings from a header-less CSV file. Each line is `id,v1,v2,...,vd`, where `id` is normally the native TuringDB node ID (`id(n)`). Loading a file again with IDs that are already in the index replaces their vectors.
 
 The file path is relative to your TuringDB data directory (`~/.turing/data` by default).
 

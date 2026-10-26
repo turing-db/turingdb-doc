@@ -26,6 +26,12 @@ RETURN a.name, e.since, b.name
 MATCH (a)-[r:KNOWS|WORKS_AT]->(b)
 RETURN a.name, type(r), b.name
 
+MATCH (n:Person|Company)
+RETURN n.name
+
+MATCH (n:!Person)
+RETURN n.name
+
 MATCH (a:Person)-[e]-(b)
 RETURN a.name, b.name
 
@@ -40,7 +46,9 @@ RETURN n.name
 - `()` is a node, `[]` is an edge, `-` ignores direction.
 - Node labels use `:Label` and can be stacked: `(n:Person:Employee)`.
 - Edge types use `:EDGE_TYPE`: `-[:KNOWS]->`. An edge has exactly one type, and `[:A|B]` matches either.
-- `RETURN n` gives the internal node ID. Return properties explicitly: `RETURN n.name`.
+- Label expressions: `(n:A|B)`, `(n:!A)`, `(n:A&B)`, also on edge types and in `WHERE`.
+- Labels and edge types can be [parameters](/query/cypher_subset#query-parameters): `client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})`.
+- `RETURN n` gives the internal node ID. Return properties explicitly (`RETURN n.name`), or all of them with `properties(n)`.
 - Unknown labels and properties are forgiving: they match nothing or read as `null`.
 
 ## OPTIONAL MATCH
@@ -95,7 +103,7 @@ RETURN p.name
 - Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, boolean `AND OR XOR NOT`.
 - Strings and lists: `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, concatenation with `+` or `||`.
 - Use `IS NOT NULL` to test for a property (`=~` and `exists(n.prop)` are not yet supported).
-- For Doubles, use ranges (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`.
+- Integers and Doubles compare by value (`n.age = 30.0`). Compare two Doubles with a range (`n.score > 1.99 AND n.score < 2.01`).
 
 ## Lookup by native node ID
 
@@ -113,15 +121,22 @@ RETURN m.name
 UNWIND [0, 1, 2] AS x
 MATCH (n)
 WHERE n = x
-RETURN id(n), n.name
+RETURN x, n.name
+
+UNWIND [[0, 1], [2, 3]] AS p
+MATCH (a)
+WHERE a = p[0]
+MATCH (b)
+WHERE b = p[1]
+RETURN a.name, b.name
 
 EXPLAIN MATCH (n)
 WHERE n = 0
 RETURN n.name
 ```
 
-- Compare the **variable** (`n = 0`), not `id(n) = 0`. The first is a direct seek and the second scans every node.
-- For batches, `UNWIND` a literal list of distinct IDs and return `id(n)` rather than `x`.
+- `n = 0` and `id(n) = 0` both look the node up directly.
+- For batches, `UNWIND` a list of IDs, from the query text, a variable, `collect()` or `range()`. Prefer it to `WHERE n IN [...]`, which checks every node.
 
 ## Joins and Cartesian products
 
@@ -163,14 +178,17 @@ RETURN DISTINCT b.name
 MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
 RETURN b.name
 
+MATCH (a:Person {name: 'Alice'})-[e:KNOWS]->+(b)
+RETURN b.name, [r IN e | r.since]
+
 MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
-RETURN [n IN nodes(p) | n.name], length(p)
+RETURN [n IN nodes(p) | n.name], length(p), reduce(t = 0, r IN relationships(p) | t + r.since)
 ```
 
 - Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
 - Each edge is used at most once per path. Bound the length on large graphs.
 
-## WITH, ORDER BY, SKIP, LIMIT, UNION
+## WITH, ORDER BY, SKIP, LIMIT, UNION, NEXT, WHEN
 
 [Results and aggregation](/query/aggregation)
 
@@ -192,9 +210,20 @@ RETURN p.name AS name
 UNION
 MATCH (c:Company)
 RETURN c.name AS name
+
+MATCH (n:Person)
+RETURN n.city AS city, count(*) AS c
+NEXT
+RETURN max(c) AS biggest
+
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+WHEN age > 30 THEN RETURN nm, 'senior' AS band
+ELSE RETURN nm, 'junior' AS band
 ```
 
-- Expressions in `WITH` must be aliased.
+- Expressions in `WITH`, and in a `RETURN` followed by `NEXT`, must be aliased.
 - Nulls sort last ascending and first descending.
 
 ## Aggregation
@@ -212,10 +241,12 @@ RETURN count(DISTINCT n.city)
 MATCH ()-[r]->()
 RETURN type(r) AS t, count(*) AS c
 ORDER BY c DESC
+
+MATCH (n:Person)
+RETURN stDev(n.age), percentileCont(n.age, 0.5) AS median
 ```
 
 - Grouping is implicit. To filter on an aggregate, compute it in a `WITH` and filter afterwards.
-- `stdev` and `percentile*` aggregates are not yet available.
 
 ## UNWIND, lists, CASE
 
@@ -260,6 +291,9 @@ MATCH (p:Person)
 RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
 
 MATCH (p:Person)
+RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+
+MATCH (p:Person)
 CALL (p) {
   MATCH (p)-[:KNOWS]->(f)
   RETURN f.name AS friend LIMIT 1
@@ -280,14 +314,14 @@ RETURN p.name, co
 
 | Category | Functions |
 | -------- | --------- |
-| Entity | `id`, `labels`, `type`, `startNode`, `endNode` |
+| Entity | `id`, `labels`, `type`, `startNode`, `endNode`, `keys`, `properties` |
 | Path and list | `nodes`, `relationships`, `length`, `size`, `head`, `last`, `tail`, `reverse`, `range`, `reduce` |
-| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `coalesce` |
-| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `reverse` |
-| Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi`, `e`, `sin`, `cos`, `tan` |
+| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, their `...OrNull` forms, `coalesce` |
+| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `split`, `replace`, `reverse`, `char_length`, `normalize` |
+| Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi`, `e`, `sin`, `cos`, `tan`, and more |
 | Temporal | `datetime`, `duration` |
 | Embedding | `cosine_similarity`, `euclidean_distance` |
-| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max` |
+| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc` |
 
 ```cypher
 MATCH (n)-[e]->(m)
@@ -299,8 +333,9 @@ MATCH (n:Document)
 RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 ```
 
-- Function names are case-sensitive, except `count` and `collect`.
+- Function names are case-insensitive.
 - Use `type(e)` for an edge's type (it replaces `edgeType()`).
+- Read map keys with `m.key` or `m[k]`, including maps stored as properties.
 
 ## Data types
 
@@ -348,13 +383,22 @@ DETACH DELETE n
 MATCH (n:Person)-[e:KNOWS]->(m)
 DELETE e
 
+FOREACH (i IN [1, 2, 3] | CREATE (:Num {v: i}))
+
+UNWIND [[0, 1], [2, 3]] AS p
+MATCH (a)
+WHERE a = p[0]
+MATCH (b)
+WHERE b = p[1]
+CREATE (a)-[:KNOWS]->(b)
+
 CHANGE SUBMIT
 ```
 
 - Every node needs at least one label and every edge exactly one type. Labels are set at creation.
-- Run `COMMIT` after creating entities that a later query must match. `CHANGE SUBMIT` commits for you.
+- Run `COMMIT` after creating entities that a later query must `MATCH`. `MERGE` sees them without it, and `CHANGE SUBMIT` commits for you.
 - In the Python SDK, call `client.checkout()` after `CHANGE SUBMIT`.
-- For more than a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet).
+- To build a new graph from more than a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet). To add edges between existing nodes, `UNWIND` pairs of node IDs as above.
 
 ## Procedures
 
@@ -403,4 +447,4 @@ See [Shortest path](/shortest-path) and [Vector search](/vector-search).
 | `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index |
 | `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes |
 | `INSTALL <ext>` / `SHOW EXTENSIONS` / `SHOW PROCEDURES` | Load a procedure extension / list extensions / list procedures |
-| `EXPLAIN <query>` | Show the query plan without running it |
+| `EXPLAIN <query>` / `EXPLAIN (db) <query>` | Show the query plan without running it / only the database plan |

@@ -1,7 +1,7 @@
 ---
 title: "Subqueries"
 sidebarTitle: "Subqueries"
-description: "Use EXISTS, COUNT and CALL subqueries to filter, count and compute per-row results in TuringDB."
+description: "Use EXISTS, COUNT, COLLECT and CALL subqueries to filter, count, collect and compute per-row results in TuringDB."
 ---
 
 These examples use the [sample graph](/query/matching) from the matching page.
@@ -47,6 +47,19 @@ WHERE COUNT {
 RETURN p.name
 ```
 
+## COLLECT
+
+`COLLECT { ... }` returns the single column of its body as a list, for each row:
+
+```cypher
+MATCH (p:Person)
+RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+
+MATCH (p:Person)
+WHERE size(COLLECT { MATCH (p)-[:KNOWS]-(f) RETURN f.name }) >= 2
+RETURN p.name
+```
+
 ## CALL subqueries
 
 A `CALL { ... }` subquery runs once per incoming row. It is the way to compute a per-row top-k or a per-row aggregate. Import the outer variables either in the `CALL (p)` header or with a `WITH p` as the first clause of the body:
@@ -63,6 +76,13 @@ RETURN p.name, friend
 MATCH (p:Person)
 CALL {
   WITH p
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN count(f) AS deg
+}
+RETURN p.name, deg
+
+MATCH (p:Person)
+CALL (*) {
   MATCH (p)-[:KNOWS]->(f)
   RETURN count(f) AS deg
 }
@@ -86,10 +106,11 @@ RETURN nm
 ORDER BY nm
 ```
 
+- **Importing variables.** `CALL (p)` imports the listed variables, and `CALL (*)` imports every variable in scope.
 - **Dropped rows.** A non-optional `CALL` drops the outer rows for which its body returns nothing. Use `OPTIONAL CALL` to keep them with `null` values.
-- **Imported variables.** To return an imported variable from a `CALL` body, give it an alias: `RETURN p AS me`.
-- A `CALL` body can contain `UNION`, aggregation, `ORDER BY` and `LIMIT`. Write-only subqueries also work inside a [change](/query/writing).
+- **Returning an imported variable.** Give it an alias in the `CALL` body: `RETURN p AS me`.
+- A `CALL` body can contain `UNION`, aggregation, `ORDER BY` and `LIMIT`, or be a [conditional query](/query/aggregation#conditional-queries-with-when). Write-only subqueries also work inside a [change](/query/writing).
 
 <Note>
-  `COLLECT { ... }`, `CALL (*) { }`, `CALL { } IN TRANSACTIONS` and `OPTIONAL CALL` on a procedure are not yet available. To collect values, use `collect()` in a `CALL` body or a [pattern comprehension](/query/aggregation#list-comprehensions).
+  `CALL { } IN TRANSACTIONS`, `OPTIONAL CALL` on a procedure, and `WHEN` inside an `EXISTS`, `COUNT` or `COLLECT` body are not yet available.
 </Note>

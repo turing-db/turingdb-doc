@@ -4,7 +4,7 @@ sidebarTitle: "Overview"
 description: "TuringDB v3 runs Cypher on a new engine and supports most of openCypher: OPTIONAL MATCH, WITH, UNWIND, UNION, MERGE, variable-length paths, subqueries and more."
 ---
 
-TuringDB v3 (`turingdb` 3.0 on PyPI) runs every query on a new MLIR-based engine and supports **most of openCypher**, extended with versioning, vector search and fast lookup by native node ID.
+TuringDB v3 (`turingdb` 3.0.2 on PyPI) runs every query on a new MLIR-based engine and supports **most of openCypher**, extended with versioning, vector search and fast lookup by native node ID.
 
 If you know Cypher from Neo4j, you can write the queries you are used to. This page covers the basics and the handful of places where TuringDB differs. The rest of the language is documented in the pages that follow.
 
@@ -13,11 +13,14 @@ If you know Cypher from Neo4j, you can write the queries you are used to. This p
 | Area | Supported |
 | ---- | --------- |
 | Reading | `MATCH`, `OPTIONAL MATCH`, `WHERE`, `WITH`, `RETURN [DISTINCT]`, `ORDER BY`, `SKIP`, `LIMIT`, `UNWIND`, `UNION [ALL]`, `LOAD CSV` |
-| Patterns | Multiple labels, edge type alternatives (`[:A\|B]`), inline `WHERE`, variable-length paths (`*1..3`, `->+`, `{2,4}`), quantified path patterns, named paths, pattern predicates |
-| Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps |
-| Aggregation | `count`, `sum`, `avg`, `min`, `max`, `collect`, `DISTINCT`, implicit grouping, aggregates inside expressions |
-| Subqueries | `EXISTS { }`, `COUNT { }`, `CALL { }` and `OPTIONAL CALL { }` |
-| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE` |
+| Composing queries | `NEXT` to chain queries, `WHEN ... THEN ... ELSE` conditional queries |
+| Patterns | Multiple labels, label expressions (`:A\|B`, `:!A`, `:A&B`), edge type alternatives (`[:A\|B]`), inline `WHERE`, variable-length paths (`*1..3`, `->+`, `{2,4}`), quantified path patterns, named paths, pattern predicates |
+| Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps and map access |
+| Functions | String (`substring`, `split`, `replace`, `left`, `right`, `normalize`, ...), math, conversion, `keys`, `properties` |
+| Aggregation | `count`, `sum`, `avg`, `min`, `max`, `collect`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc`, `DISTINCT`, implicit grouping, aggregates inside expressions |
+| Subqueries | `EXISTS { }`, `COUNT { }`, `COLLECT { }`, `CALL { }`, `CALL (*) { }` and `OPTIONAL CALL { }` |
+| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE`, `FOREACH` |
+| Parameters | Labels and edge types (`MATCH (n:$label)`) |
 | Types | String, Integer, Double, Boolean, List, Map, `DateTime`, `Duration`, Embedding |
 | TuringDB extras | Changes, commits and time travel, `shortestPath`, `VECTOR SEARCH`, `gnn.graphSAGE`, lookup by native node ID |
 
@@ -61,25 +64,36 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFram
 ```
 
 <Tip>
-  `EXPLAIN <query>` returns the compiled query plan without running the query. It is the easiest way to check that a lookup uses a constant node scan.
+  `EXPLAIN <query>` returns the compiled query plan without running the query, and `EXPLAIN (db) <query>` shows only the database plan. It is the easiest way to check how a lookup runs.
 </Tip>
+
+### Query parameters
+
+`client.query()` takes an optional dictionary of parameters. A `$name` parameter can stand for a **label or an edge type**, anywhere a label or type is written:
+
+```python
+client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
+client.query("MATCH (n:$labels) RETURN n.name", {"labels": ["Person", "Employee"]})   # every label in the list
+client.query("MATCH (a)-[r:$type]->(b) RETURN a.name, b.name", {"type": "WORKS_AT"})
+client.query("CREATE (n:$label {name: 'Zoe'})", {"label": "Person"})                 # inside a change
+```
+
+Put values directly in the query text for now: value parameters, such as `WHERE n.name = $name`, are not yet supported. In the [interactive shell](/commands#interactive-shell), set parameters with `:param`.
 
 ## Coming from Neo4j
 
 TuringDB follows openCypher closely, so the queries you know carry over. These are the TuringDB specifics worth knowing:
 
-- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or use [`db.getNodes`](/query/procedures#inspecting-nodes-and-edges) to see every property of a few nodes.
-- **Values go in the query text.** Queries are plain strings, so put literal values directly in the text and escape quotes in your application. Query parameters such as `$name` are not yet supported.
-- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine).
+- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or all of them with `RETURN properties(n)`.
+- **Values go in the query text.** [Parameters](#query-parameters) name labels and edge types. Put literal values directly in the text and escape quotes in your application.
+- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine), or chain steps in one request with [`NEXT`](/query/aggregation#next).
 - **Labels are set at creation.** Every node has at least one label and every edge exactly one edge type, chosen when it is created.
 - **Property types are global.** A property name has a single value type across the whole graph: if `age` is an Integer, it is an Integer on every node.
-- **Typed numeric equality.** Compare Integers with Integers, and match Doubles with a range (`n.score > 1.99 AND n.score < 2.01`) or convert with `toInteger`. `<`, `>` and arithmetic work across numeric types.
+- **Comparing Doubles.** Integers and Doubles compare by value (`n.age = 30.0` matches 30). Match one Double against another with a range (`n.score > 1.99 AND n.score < 2.01`).
 - **Forgiving names.** An unknown label matches nothing and a misspelled property reads as `null`. Check names with [`CALL db.labels()` and `CALL db.propertyTypes()`](/query/procedures).
-- **Label alternatives.** Write `WHERE n:A OR n:B` or `WHERE NOT n:A`. Edge type alternatives (`[:A|B]`) work directly in patterns.
-- **String matching.** Use `STARTS WITH`, `ENDS WITH` and `CONTAINS`. Regular expressions (`=~`) are not yet supported.
-- **Loops and uniqueness.** Use `UNWIND` for loops and `MERGE` to avoid duplicates.
+- **String matching.** Use `STARTS WITH`, `ENDS WITH`, `CONTAINS` and the [string functions](/query/functions). Regular expressions (`=~`) are not yet supported.
+- **Uniqueness.** Use `MERGE` to avoid duplicates.
 - **Shortest paths** use a TuringDB statement, see [Shortest path](/shortest-path).
-- **Function names are case-sensitive** (`toInteger`, not `TOINTEGER`), except `count` and `collect`.
 
 <Note>
   Coming from TuringDB 1.x? The v3 engine replaces the previous one, and many earlier limits are gone: `OPTIONAL MATCH`, `WITH`, `DISTINCT`, `UNION`, `MERGE`, `DELETE`, aggregates in any position, `UNWIND` over any list, `LOAD CSV` followed by `MATCH`, and `CREATE ... SET` all work now. One function changed name: `edgeType(e)` is now `type(e)`.

@@ -36,13 +36,16 @@ RETURN b.name
 
 MATCH (a {name: 'Alice'})-[e:KNOWS]->+(b)
 RETURN b.name, size(e)
+
+MATCH (a {name: 'Alice'})-[e:KNOWS]->+(b)
+RETURN b.name, [r IN e | r.since] AS sinces
 ```
 
 - **Edge type alternatives** (`[:KNOWS|WORKS_AT]`) work on variable-length hops.
 - **A predicate or property map applies to every hop.** `-[e:KNOWS WHERE e.since > 2012]->+` only follows edges that satisfy it, and `-[:KNOWS*1..3 {since: 2010}]->` requires every edge on the path to have that property value.
 - **Trail semantics.** Each edge is used at most once within a path, while nodes may repeat. Each distinct path is its own row, so use `DISTINCT` or an aggregate to collapse them.
 - **One quantifier per edge.** Choose either `[*1..3]` or `{1,3}` for an edge.
-- **The edge variable of a variable-length hop is a list of edge IDs.** `size(e)`, `e[0]`, `e[-1]` and `UNWIND e` work on it. To read edge properties along a path, name the path and use `relationships(p)` (below).
+- **The edge variable of a variable-length hop is a list of edges.** `size(e)`, `e[0]`, `e[-1]`, `UNWIND e` and comprehensions such as `[r IN e | r.since]` work on it.
 
 <Warning>
   Variable-length matching **enumerates** paths. On dense graphs the number of paths can grow very quickly, so always bound the length (`*1..6` or `{1,6}`). For weighted shortest paths on large graphs, use the [`shortestPath` statement](/shortest-path).
@@ -50,7 +53,7 @@ RETURN b.name, size(e)
 
 ## Quantified path patterns
 
-A quantified path pattern repeats a one-hop sub-pattern, with its own `WHERE`, a number of times:
+A quantified path pattern repeats a sub-pattern, with its own `WHERE`, a number of times:
 
 ```cypher
 MATCH (a:Person {name: 'Alice'}) ((x)-[r:KNOWS]->(y) WHERE r.since > 2009){1,3} (b)
@@ -58,9 +61,15 @@ RETURN b.name
 
 MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
 RETURN b.name
+
+MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y)-[:KNOWS]->(z)){1,2} (b)
+RETURN b.name
+
+MATCH (a:Person {name: 'Alice'}) ((x)-[r:KNOWS]->(y)){1,3} (b)
+RETURN b.name, [n IN y | n.name] AS via, size(r) AS hops
 ```
 
-The second query follows `KNOWS` edges only while ages strictly increase. Inside the parentheses only a **single hop** of the form `(node)-[edge]->(node) [WHERE ...]` is allowed, and the inner variables (`x`, `r`) become lists.
+The second query follows `KNOWS` edges only while ages strictly increase, and the third repeats a two-hop sub-pattern. The inner variables (`x`, `y`, `r`) are **group variables**: each becomes a list with one element per repetition, which you can use in comprehensions, `size()` and `UNWIND`.
 
 ## Named paths
 
@@ -77,7 +86,7 @@ ORDER BY hops
 - `nodes(p)` and `relationships(p)` return **lists of IDs**. Read properties through a [list comprehension](/query/aggregation#list-comprehensions).
 - `length(p)` is the number of hops.
 - A bare `RETURN p` comes back as a list of `{"type": "node" | "edge", "id": ...}` dictionaries.
-- `count(p)` counts paths.
+- `count(p)` counts paths, and `RETURN DISTINCT p` groups on whole paths.
 - `OPTIONAL MATCH p = ... RETURN p IS NULL` works.
 
 ## Finding routes
@@ -98,19 +107,15 @@ MATCH (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
 RETURN count(DISTINCT b)
 ```
 
-To sum a property along a route, build a list with a comprehension and aggregate over its elements:
+To sum a property along a route, fold the path's edges with `reduce`:
 
 ```cypher
 MATCH p = (a:Person {name: 'Alice'})-[:KNOWS*1..6]->(b:Person {name: 'Dave'})
-WITH [n IN nodes(p) | n.name] AS route, [r IN relationships(p) | r.since] AS years
-UNWIND years AS y
-WITH route, sum(y) AS total
-RETURN route, total
+RETURN [n IN nodes(p) | n.name] AS route,
+  reduce(total = 0, r IN relationships(p) | total + r.since) AS total
 ORDER BY total LIMIT 1
 ```
 
-<Note>
-  To sum a property along a route, compute the list with a comprehension first, as above.
-</Note>
+To aggregate over the edges of every matched path at once, `UNWIND relationships(p) AS r` and aggregate `r.since`.
 
 For a true weighted shortest path, see [Shortest path](/shortest-path).
