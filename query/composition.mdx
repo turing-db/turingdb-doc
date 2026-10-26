@@ -1,0 +1,218 @@
+---
+title: "Chaining and Conditional Queries"
+sidebarTitle: "NEXT and WHEN"
+description: "Chain queries in one request with NEXT, and choose which query runs with WHEN ... THEN ... ELSE."
+---
+
+These examples use the [sample graph](/query/matching) from the matching page.
+
+## NEXT
+
+`NEXT` runs the query before it, then hands the columns it returns to the query after it, as that query's incoming rows. Use it to run several steps in one request, or to start a new stage from a smaller set of rows.
+
+```cypher
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+RETURN nm
+ORDER BY nm LIMIT 2
+
+MATCH (n:Person)
+RETURN n.city AS city, count(*) AS people
+NEXT
+RETURN max(people) AS biggestCity
+```
+
+### Passing nodes on
+
+A returned node is still a node in the next step, so you can match from it:
+
+```cypher
+MATCH (n:Person)
+WHERE n.age > 30
+RETURN n AS p
+NEXT
+MATCH (p)-[:KNOWS]->(f)
+RETURN p.name, f.name
+```
+
+### Longer chains
+
+A chain can have as many steps as you need, and each step is a full query:
+
+```cypher
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+WITH nm, age
+WHERE age > 28
+RETURN nm, age
+NEXT
+RETURN count(*) AS over28
+```
+
+### After a UNION
+
+A step can be a `UNION`, and the next step reads the combined rows:
+
+```cypher
+MATCH (p:Person)
+RETURN p.name AS name
+UNION
+MATCH (c:Company)
+RETURN c.name AS name
+NEXT
+RETURN count(*) AS total
+```
+
+A whole chain in braces can also be one side of a `UNION`:
+
+```cypher
+{ MATCH (p:Person) RETURN p.age AS v NEXT RETURN max(v) AS v }
+UNION
+{ MATCH (c:Company) RETURN c.founded AS v NEXT RETURN max(v) AS v }
+```
+
+### Inside subqueries
+
+`NEXT` works inside [`CALL`, `EXISTS` and `COUNT`](/query/subqueries) subqueries, where the chain runs once for each outer row:
+
+```cypher
+MATCH (c:Company)
+CALL (c) {
+  MATCH (p:Person)-[:WORKS_AT]->(c)
+  RETURN p.age AS age
+  NEXT
+  RETURN avg(age) AS avgAge
+}
+RETURN c.name, avgAge
+
+MATCH (p:Person)
+RETURN p.name, COUNT {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN f AS friend
+  NEXT
+  MATCH (friend)-[:KNOWS]->(fof)
+  RETURN fof
+} AS friendsOfFriends
+```
+
+### Writes
+
+Inside a [change](/query/writing), a later step sees what an earlier step wrote:
+
+```cypher
+CREATE (t:Tag {name: 'new'})
+RETURN t
+NEXT
+MATCH (x:Tag)
+RETURN count(x) AS tags
+```
+
+### Rules
+
+- **Aliases.** Every expression in a `RETURN` followed by `NEXT` needs an alias. Without one: `Expression in a RETURN followed by NEXT must be aliased (use AS)`.
+- **Scope.** Only the returned columns carry over. `MATCH (n:Person) RETURN n.name AS nm NEXT RETURN n.age` reports `Variable 'n' not found`, because the first step did not return `n`.
+- `NEXT` is not yet available inside a `COLLECT { }` body.
+
+## WHEN
+
+`WHEN <condition> THEN <query>` runs a query when the condition holds. Add more `WHEN ... THEN ...` branches and an `ELSE <query>` as needed: the first branch whose condition holds is the one that runs.
+
+```cypher
+WHEN true THEN RETURN 1 AS x ELSE RETURN 2 AS x
+```
+
+### Conditions on the data
+
+Conditions can be subqueries over the graph:
+
+```cypher
+WHEN EXISTS { MATCH (:Company {name: 'Acme'}) } THEN RETURN 'has Acme' AS result
+ELSE RETURN 'no Acme' AS result
+
+WHEN COUNT { MATCH (n:Person) } > 3 THEN RETURN 'big' AS size
+ELSE RETURN 'small' AS size
+```
+
+### For each row, after NEXT
+
+After `NEXT`, the conditions are checked for each incoming row, and each row takes the first branch that matches:
+
+```cypher
+MATCH (n:Person)
+RETURN n.name AS nm, n.age AS age
+NEXT
+WHEN age > 35 THEN RETURN nm, 'over 35' AS band
+WHEN age > 29 THEN RETURN nm, '30 to 35' AS band
+ELSE RETURN nm, 'under 30' AS band
+```
+
+### For each row, in a CALL subquery
+
+As the body of a [`CALL` subquery](/query/subqueries#call-subqueries), a conditional runs once per outer row, and a branch can match more data:
+
+```cypher
+MATCH (n:Person)
+CALL (n) {
+  WHEN n.city = 'London' THEN
+    MATCH (n)-[:WORKS_AT]->(c)
+    RETURN c.name AS employer
+  ELSE RETURN 'elsewhere' AS employer
+}
+RETURN n.name, employer
+```
+
+### Without ELSE
+
+When no branch matches and there is no `ELSE`, the conditional returns no rows, so `WHEN false THEN RETURN 1 AS x` returns nothing. In a `CALL`, rows that match no branch are dropped. Use `OPTIONAL CALL` to keep them with `null` values:
+
+```cypher
+MATCH (n:Person)
+OPTIONAL CALL (n) {
+  WHEN n.age >= 40 THEN RETURN 'senior' AS band
+}
+RETURN n.name, band
+```
+
+### Several steps in a branch
+
+Put a `NEXT` chain in braces:
+
+```cypher
+WHEN true THEN {
+  MATCH (n:Person)
+  RETURN n.city AS city, count(*) AS people
+  NEXT
+  RETURN max(people) AS biggest
+}
+ELSE RETURN 0 AS biggest
+```
+
+### Combining with UNION
+
+Conditionals in braces combine with `UNION`. Each one names its columns with `AS`:
+
+```cypher
+{ WHEN true THEN RETURN 'a' AS x }
+UNION
+{ WHEN false THEN RETURN 'b' AS x ELSE RETURN 'c' AS x }
+```
+
+### Writes
+
+Branches can write, inside a change. See [Conditional writes](/query/writing#conditional-writes):
+
+```cypher
+MATCH (n:Person)
+CALL (n) {
+  WHEN n.age > 30 THEN CREATE (:Senior {name: n.name})
+}
+RETURN count(*)
+```
+
+### Rules
+
+- **Same columns.** All branches return the same column names. Otherwise: `All branches of a conditional query must return the same column names`.
+- **Where it goes.** A `WHEN` starts a query, follows `NEXT`, forms a `CALL` body, or is a braced side of a `UNION`. To branch on the results of a `MATCH`, return them and continue after `NEXT`, as above.
+- **Not yet available:** `UNION` inside a branch, and `WHEN` inside an `EXISTS`, `COUNT` or `COLLECT` body.
