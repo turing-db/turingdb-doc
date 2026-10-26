@@ -54,6 +54,43 @@ RETURN keys(n), properties(n)
 RETURN toIntegerOrNull('x'), toString(datetime('2024-03-15T10:30:00Z'))
 ```
 
+### String functions
+
+Positions are 0-based, and `substring` without a length runs to the end of the string:
+
+```cypher
+RETURN substring('hello', 1, 3) AS s, substring('hello', 2) AS rest
+
+RETURN left('hello', 2) AS l, right('hello', 3) AS r
+
+RETURN split('a.b.c', '.') AS parts, replace('banana', 'a', 'o') AS swapped
+
+RETURN char_length('héllo') AS chars, size('héllo') AS alsoChars
+
+MATCH (n:Person)
+RETURN toUpper(left(n.name, 1)) + toLower(substring(n.name, 1)) AS display
+```
+
+`normalize` converts a string to a Unicode normal form (`NFC` by default, or `NFD`, `NFKC`, `NFKD`), and `IS NORMALIZED` tests for one:
+
+```cypher
+RETURN normalize('ﬁ', NFKC) AS plain, 'café' IS NFC NORMALIZED AS composed
+```
+
+### Conversions
+
+The strict conversions return `null` for a string they cannot read, and reject other values they cannot convert. The `OrNull` forms return `null` instead of rejecting:
+
+```cypher
+RETURN toInteger('12') AS i, toInteger('x') AS bad, toInteger(true) AS fromBool, toBoolean(1) AS b
+
+RETURN toIntegerOrNull('12') AS a, toFloatOrNull('2.5') AS c, toBooleanOrNull('yes') AS d, toStringOrNull(3.5) AS e
+
+RETURN toString(duration({days: 2, hours: 3})) AS iso
+```
+
+`toString` writes a `Duration` in ISO 8601 form, so the last query returns `PT51H`.
+
 <Note>
   In v3, `type(e)` returns an edge's type as a string. It replaces `edgeType()` from earlier versions.
 </Note>
@@ -142,7 +179,8 @@ MATCH (n:Person {name: 'Alice'})
 RETURN properties(n).name, keys(n)
 ```
 
-- `m.key` reads a key written in the query, and `m[k]` a key held in a variable. A map stored as a property reads the same way: `n.meta.level`.
+- `m.key` reads a key written in the query, and `m[k]` a key held in a variable. A map stored as a property reads the same way: `n.meta.level`, `keys(n.meta)`.
+- Keys can be any word, keywords included: `WITH {count: 3, order: 'x'} AS m RETURN m.count, m.order`.
 - Write a fixed key as `m.key`: the bracket form with a literal (`m['key']`) is reported with that hint.
 - Map projection (`n {.name, .age}`) is not yet supported. Build the map you need (`{name: n.name, age: n.age}`) or use `properties(n)`.
 - Values read from a map can hold any type. To store one as a property, convert it first, for example `toString(row.name)` or `toInteger(row.pop)` (see [Bulk writes](/query/writing#bulk-writes)).

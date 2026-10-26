@@ -67,6 +67,7 @@
               "query/matching",
               "query/paths",
               "query/aggregation",
+              "query/composition",
               "query/subqueries",
               "query/functions",
               "query/writing",
