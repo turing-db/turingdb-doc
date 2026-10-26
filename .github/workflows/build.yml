@@ -1,0 +1,54 @@
+name: Build
+
+# Railway deploys main itself, through its GitHub integration. This workflow checks that
+# every pull request and every push to main builds.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push supersedes an in-flight check on the same branch.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Railway builds from the Dockerfile too, but a red check here points at the actual
+  # error rather than at a remote build log.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The route table and search index are generated and gitignored, so they must exist
+      # before tsc runs — a fresh checkout has neither.
+      - name: Generate routes and search index
+        run: npm run gen
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Heading anchors match the previously published site
+        run: node scripts/test-slug.mjs
+
+      - name: Build
+        run: npm run build
+
+      - name: Every page prerendered
+        run: |
+          count=$(find dist -name index.html | wc -l)
+          echo "prerendered $count pages"
+          test "$count" -ge 35

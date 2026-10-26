@@ -61,9 +61,9 @@ Images go in `public/images/` and are referenced from `.mdx` as `/images/…`.
 - **Netlify / Cloudflare Pages** — the generated `dist/_redirects` is already correct
 - **S3 + CloudFront** — index document `index.html`, error document `404.html`, plus a rule
   mapping `/path` to `/path/index.html`
-- **Railway** — pushes to `main` deploy automatically via
-  `.github/workflows/deploy.yml`; `railway up` from this directory does it by hand.
-  `railway.json` selects the Dockerfile.
+- **Railway** — pushes to `main` deploy automatically through Railway's GitHub
+  integration; `railway up` from this directory does it by hand. `railway.json` selects the
+  Dockerfile.
 
 Assets under `/assets/` and `/fonts/` are content-hashed or never edited in place and are served
 `immutable`; HTML revalidates.
@@ -121,17 +121,12 @@ smears every stem.
 
 ## CI
 
-`.github/workflows/deploy.yml`:
+`.github/workflows/build.yml` runs on pull requests to `main` and on pushes to `main`:
+`npm run gen`, `tsc --noEmit`, the anchor test, `npm run build`, and an assertion that at
+least 35 pages prerendered.
 
-- **pull requests to `main`** — build check only: `npm run gen`, `tsc --noEmit`,
-  the anchor test, `npm run build`, and an assertion that all 35 pages prerendered.
-- **pushes to `main`** — the same check, then `railway up`, then it waits until the live
-  `index.html` byte-matches this commit's build and smoke-tests four routes plus a 404.
-  Deploys never run from a pull request.
-
-Requires one repository secret, **`RAILWAY_TOKEN`** — a Railway *project* token for the
-`production` environment (Railway dashboard → project → Settings → Tokens). Without it the
-deploy job fails immediately with a message saying so, rather than half-deploying.
+Deploying is not part of CI. Railway's GitHub integration builds the Dockerfile and deploys
+every push to `main`.
 
 ## Verifying the rendering
 
