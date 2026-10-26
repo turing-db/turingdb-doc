@@ -1,10 +1,10 @@
 ---
 title: "Writing Data"
 sidebarTitle: "Writing Data"
-description: "CREATE, MERGE, SET, REMOVE and DELETE in TuringDB, and the change workflow that every write goes through."
+description: "CREATE, MERGE, SET, REMOVE, DELETE and FOREACH in TuringDB, bulk edges by node ID, and the change workflow that every write goes through."
 ---
 
-All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`) must run **inside a change**. A change is TuringDB's equivalent of a git branch: you write in an isolated copy and then submit it to the main graph. A write sent outside a change returns a clear message such as `Cannot perform CREATE outside of a write transaction.`
+All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`, `FOREACH`) must run **inside a change**. A change is TuringDB's equivalent of a git branch: you write in an isolated copy and then submit it to the main graph. A write sent outside a change returns a clear message such as `Cannot perform CREATE outside of a write transaction.`
 
 ## The change workflow
 
@@ -31,12 +31,12 @@ See [Create a change](/graph_dev/create_change), [Submit a change](/graph_dev/su
 
 | An earlier query in the same change did... | Visible to later queries before `COMMIT`? |
 | ------------------------------------------ | ----------------------------------------- |
-| `CREATE` nodes or edges | **After `COMMIT`.** Run `COMMIT` so that a later `MATCH`, `MATCH ... CREATE` or `MERGE` sees the new entities |
+| `CREATE` or `MERGE` nodes or edges | **To `MERGE`, yes. To `MATCH`, after `COMMIT`.** Run `COMMIT` so that a later `MATCH` or `MATCH ... CREATE` sees the new entities |
 | `SET`, `REMOVE` or `DELETE` on entities that already existed | Yes, immediately |
 | anything, followed by `COMMIT` | Yes |
-| writes earlier in the **same query** | Yes |
+| writes earlier in the **same query**, including earlier `NEXT` steps | Yes |
 
-**Rule of thumb: run `COMMIT` after any query that creates entities that a later query must `MATCH` or `MERGE`.** You can use several `COMMIT`s in one change. `CHANGE SUBMIT` commits whatever is still pending, so no `COMMIT` is needed right before it.
+**Rule of thumb: run `COMMIT` after any query that creates entities that a later query must `MATCH`.** You can use several `COMMIT`s in one change. `CHANGE SUBMIT` commits whatever is still pending, so no `COMMIT` is needed right before it.
 
 ```python
 client.new_change()
@@ -89,7 +89,7 @@ CREATE (a)-[:KNOWS {since: 2021}]->(b)
 RETURN a.name, b.name
 ```
 
-If you know their [native node IDs](/query/matching#look-up-nodes-by-native-node-id), address them directly. That is the fastest option, but the IDs must be **constants** written in the query, one pair per query:
+If you know their [native node IDs](/query/matching#look-up-nodes-by-native-node-id), address them directly. That is the fastest option:
 
 ```cypher
 MATCH (a)
@@ -99,18 +99,16 @@ WHERE b = 1
 CREATE (a)-[:KNOWS {since: 2021}]->(b)
 ```
 
+To create many edges at once, put the ID pairs in one `UNWIND` (see [Edges between existing nodes](#edges-between-existing-nodes)).
+
 **Rules:**
 
-- **Labels and edge types.** Create nodes with a label, `CREATE (n:Label)`, and give each edge a single type, `[:TYPE]`.
+- **Labels and edge types.** Create nodes with a label, `CREATE (n:Label)`, and give each edge a single type, `[:TYPE]`. Several labels are joined with `:` or `&`, and a label or edge type can come from a [query parameter](/query/cypher_subset#query-parameters): `CREATE (n:$label)`.
 - **Labels are set at creation** and cannot be changed afterwards.
 - **Property types are global.** Each property name has **one value type across the whole graph** (see `CALL db.propertyTypes()`). If `age` is an Integer, `CREATE (:X {age: 'old'})` and `SET n.age = 2.5` are both reported as type incompatibilities, and values are not widened from Integer to Double automatically.
-- **Nulls.** Leave a key out of `CREATE` when it has no value, rather than writing `{name: null}`.
+- **Nulls.** A key set to `null` in `CREATE` is skipped, so `{name: null}` simply leaves `name` unset.
 - **Write patterns use single hops.** Variable-length edges are for reading, and a matched edge variable is not reused in `CREATE`.
-- **Parallel edges and self-loops are allowed.** An undirected `CREATE (a)-[:R]-(b)` is accepted and creates `a->b`.
-
-<Warning>
-  Match the two endpoints of an edge with separate `MATCH` clauses and constant IDs. Taking both from one `UNWIND` row (`a = p[0] AND b = p[1]`) plans as a Cartesian product of two full node scans, which is expensive on large graphs. For thousands of edges, use [`LOAD PARQUET`](/import_data/parquet).
-</Warning>
+- **Edges are directed.** Write the arrow, `CREATE (a)-[:R]->(b)`. Parallel edges and self-loops are allowed.
 
 ## MERGE
 
@@ -140,9 +138,9 @@ RETURN t.k
 
 `MERGE` deduplicates within one query, so the last example creates two `Key` nodes, not three.
 
-<Note>
-  Run `COMMIT` before a `MERGE` that should find nodes created by an earlier query in the same change, otherwise `MERGE` creates them again. `MERGE` is the way to avoid duplicates.
-</Note>
+- `MERGE` also finds the nodes and edges that earlier queries of the same change wrote, before any `COMMIT`, so running the same `MERGE` twice creates one node.
+- A `MERGE` key must have a value. A key that is `null` when the query runs is reported (`MERGE cannot match on property 'k', which is null`), so filter nulls out first with `WHERE k IS NOT NULL`.
+- `MERGE` is the way to avoid duplicates.
 
 ## SET and REMOVE
 
@@ -232,13 +230,68 @@ DELETE e, n
 - Use `DETACH DELETE` for a node that still has edges. A plain `DELETE` reports `Cannot delete a node with relationships; use DETACH DELETE`.
 - To delete a path, delete its nodes or edges.
 
+## FOREACH
+
+`FOREACH` runs write clauses once for each element of a list, without producing rows:
+
+```cypher
+FOREACH (i IN [1, 2, 3] | CREATE (:Num {v: i}))
+
+FOREACH (nm IN ['x', 'y', 'x'] | MERGE (:Tag {name: nm}))
+
+MATCH (n:Person)
+WITH collect(n) AS people
+FOREACH (p IN people | SET p.reviewed = true)
+
+FOREACH (i IN [1, 2] | FOREACH (j IN [10, 20] | CREATE (:Cell {v: i * j})))
+```
+
+The second example creates two `Tag` nodes, since `MERGE` deduplicates. `FOREACH` blocks nest.
+
+### Conditional writes
+
+The branches of a [conditional query](/query/aggregation#conditional-queries-with-when) can write:
+
+```cypher
+MATCH (n:Person)
+CALL (n) {
+  WHEN n.age > 30 THEN CREATE (:Senior {name: n.name})
+}
+RETURN count(*)
+```
+
 ## Bulk writes
 
 <Tip>
-  **Beyond a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet) rather than Cypher writes.** Above roughly 5,000 nodes or 1,000 edges, write your data to Parquet and load it into a new graph. It loads 100,000 nodes and 200,000 edges in about 0.2 seconds, while Cypher-driven loads that `MATCH` both endpoints of every edge take minutes at a few thousand edges. Use Cypher writes for small, incremental changes.
+  **Building a new graph?** Beyond a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet). It loads 100,000 nodes and 200,000 edges in about 0.2 seconds.
+
+  **Adding edges between nodes that already exist?** Send their [native node IDs](/query/matching#look-up-nodes-by-native-node-id) in pairs, as below: about 10,000 edges in 45 ms.
 </Tip>
 
-For small volumes, inline the data with `UNWIND`:
+### Edges between existing nodes
+
+Read each node's ID once together with your own key, map your edge list to ID pairs in your application, and create the edges in batches of about 10,000 pairs:
+
+```python
+ids = client.query("MATCH (n:Person) RETURN n.pid AS pid, id(n) AS id")
+key_to_id = dict(zip(ids["pid"].tolist(), ids["id"].tolist()))   # .tolist() gives plain ints
+pairs = [[key_to_id[src], key_to_id[dst]] for src, dst in edge_list]
+
+client.new_change()
+for i in range(0, len(pairs), 10_000):
+    batch = pairs[i:i + 10_000]
+    client.query(f"UNWIND {batch} AS p "
+                 "MATCH (a) WHERE a = p[0] MATCH (b) WHERE b = p[1] "
+                 "CREATE (a)-[:KNOWS]->(b)")
+client.query("CHANGE SUBMIT")
+client.checkout()
+```
+
+Edge properties ride along in each row: `UNWIND [[12, 34, 2021], ...] AS p ... CREATE (a)-[:KNOWS {since: p[2]}]->(b)`. Use IDs rather than matching both endpoints by a key property (`MATCH (a:Person {pid: p[0]})`), which reads every `Person` node for each row.
+
+### Small volumes
+
+For a few thousand rows, inline the data with `UNWIND`:
 
 ```cypher
 UNWIND range(1, 1000) AS i
@@ -251,12 +304,14 @@ UNWIND [['Brest', 'FR-29'], ['Rennes', 'FR-35']] AS row
 CREATE (:City {name: row[0], code: row[1]})
 ```
 
-For rows with mixed types, such as `['Brest', 139000]`, use parallel lists:
+Rows can also be maps, or lists of mixed types. Their values can hold any type, so convert each one as you store it:
 
 ```cypher
-WITH ['Brest', 'Rennes'] AS names, [139000, 220000] AS pops
-UNWIND range(0, size(names) - 1) AS i
-CREATE (:City {name: names[i], pop: pops[i]})
+UNWIND [{name: 'Brest', pop: 139000}, {name: 'Rennes', pop: 220000}] AS row
+CREATE (:City {name: toString(row.name), pop: toInteger(row.pop)})
+
+UNWIND [['Brest', 139000], ['Rennes', 220000]] AS row
+CREATE (:City {name: toString(row[0]), pop: toInteger(row[1])})
 ```
 
 `LOAD CSV` can drive writes too. Create the nodes, `COMMIT`, then create the edges (see [CSV import](/import_data/csv)). Alternatively `MERGE` both endpoints in a single pass, which deduplicates across the rows of one query so no `COMMIT` is needed:
@@ -268,9 +323,9 @@ LOAD CSV 'knows.csv' WITH HEADERS AS row
   CREATE (a)-[:KNOWS {since: toInteger(row.since)}]->(b)
 ```
 
-Use `UNWIND` to loop over a list.
+Use `UNWIND` or [`FOREACH`](#foreach) to loop over a list.
 
-**Building the query text in Python.** Queries are plain text, so escape quotes in your application:
+**Building the query text in Python.** Values go in the query text, so escape quotes in your application:
 
 ```python
 def lit(v):
@@ -284,4 +339,4 @@ names = ["Alice", "O'Brien"]
 client.query(f"UNWIND [{', '.join(lit(n) for n in names)}] AS nm MERGE (:Person {{name: nm}})")
 ```
 
-Keep each query to a few thousand rows at most.
+Keep each request under 1 MiB, the server's limit. A larger one is refused with `REQUEST_TOO_BIG`.

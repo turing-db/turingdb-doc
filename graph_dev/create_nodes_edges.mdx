@@ -73,9 +73,9 @@ description: "Once you have a valid change, you can start adding new nodes and e
 
 ## Merge, delete and bulk loading
 
-- Use `MERGE` instead of `CREATE` to avoid duplicates: `MERGE (n:Person {name: 'Jane'})`. Run `COMMIT` first when `MERGE` should find nodes created earlier in the same change.
+- Use `MERGE` instead of `CREATE` to avoid duplicates: `MERGE (n:Person {name: 'Jane'})`. `MERGE` also finds nodes created earlier in the same change.
 - Remove data with `DELETE` (edges, or nodes without edges) and `DETACH DELETE` (a node and all its edges).
 - Every node needs at least one label, and every edge exactly one edge type.
-- For more than a few thousand nodes or edges, build the graph with [`LOAD PARQUET`](/import_data/parquet) instead of Cypher writes.
+- For more than a few thousand nodes or edges, build the graph with [`LOAD PARQUET`](/import_data/parquet) instead of Cypher writes. To add many edges between existing nodes, [`UNWIND` pairs of node IDs](/query/writing#edges-between-existing-nodes).
 
 See [Writing data](/query/writing) for the full reference.

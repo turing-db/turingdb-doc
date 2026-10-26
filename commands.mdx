@@ -1,7 +1,7 @@
 ---
 title: "CLI Commands"
 sidebarTitle: "Commands"
-description: "Reference for TuringDB CLI commands: start, UI, and stop."
+description: "Reference for TuringDB CLI commands (start, UI and stop), the interactive shell, environment variables and the HTTP API."
 ---
 
 ## Start
@@ -26,7 +26,9 @@ turingdb start [options]
 | `-ui` | Launch the built-in visualizer proxy | off |
 | `-ui-port <port>` | Visualizer proxy port | `8080` |
 | `-auth-on` | Require a bearer token on every request. The token is read from the `TURINGDB_AUTH_TOKEN` environment variable, and must be set when you use this flag | off |
-| `-start-timeout <ms>` | Time to wait for daemon readiness | `500` |
+| `-no-vector-mmap` | Read HNSW [vector indexes](/vector-search) into memory at startup instead of memory-mapping their files | off |
+
+With `-demon`, `turingdb start` returns once the server is ready. If the server cannot start, it exits with an error that says why, for example `Could not start the server on 127.0.0.1:6666: bind: Address already in use`, or `TuringDB is already running` when another instance uses the same `-turing-dir`.
 
 ### Examples
 
@@ -79,6 +81,8 @@ Without `-demon`, `turingdb start` serves HTTP **and** opens an interactive Cyph
 | `cd <graph>` | Switch the active graph |
 | `checkout change-<id>` | Work on a change. `checkout <commit>` opens a past commit, and `checkout` returns to the latest commit of main |
 | `read <file>` | Run the queries in a file |
+| `:param <name> => <value>` | Set a [query parameter](/query/cypher_subset#query-parameters), with the value written as JSON: `:param label => "Person"`. `:param clear` removes them all |
+| `SHOW PARAMETERS` | List the parameters set in the shell |
 | `help` | List the available commands |
 | `quit` / `exit` | Leave the shell |
 
@@ -160,14 +164,17 @@ turingdb stop -turing-dir /data/myturing
 
 ## HTTP API
 
-The Python SDK is a thin client over a single endpoint, so you can query a server from any language. With the default (JSON) server:
+The Python SDK is a thin client over a single endpoint, so you can query a server from any language. With the default (JSON) server, send the query as a JSON object:
 
 ```bash
-curl -s -X POST 'http://localhost:6666/query?graph=mygraph' -d "MATCH (n) RETURN count(n)"
+curl -s -X POST 'http://localhost:6666/query?graph=mygraph' \
+     -d '{"query": "MATCH (n:$label) RETURN count(n)", "parameters": {"label": "Person"}}'
 ```
 
-- The request body is the query text. The optional query-string parameters `change=<hex change id>` and `commit=<hash>` target a change or a past commit.
+- The request body is a JSON object with a `query` string and an optional `parameters` object (see [query parameters](/query/cypher_subset#query-parameters)).
+- The optional query-string parameters `change=<change id>` and `commit=<hash>` target a change or a past commit. The change ID is the decimal number that `CHANGE NEW` returns.
 - With `-auth-on`, send `Authorization: Bearer <token>`. A missing or incorrect token returns HTTP `401` with an empty body.
-- A successful response is `{"header": {"column_names": [...], "column_types": [...]}, "data": [chunk, ...], "time": <ms>}`, where each chunk is a list of columns.
-- An error response is `{"error": "PARSE_ERROR", "error_details": "...", "time": <ms>}`. The code is one of `PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `CHANGE_NOT_FOUND` or `COMMIT_NOT_FOUND`.
+- A request, headers included, can be up to 1 MiB. A larger one returns HTTP `413` with the code `REQUEST_TOO_BIG`.
+- A successful response is `{"header": {"column_names": [...], "column_types": [...]}, "data": [chunk, ...], "time": <ms>}`, where each chunk is a list of columns. Doubles are written with full precision.
+- An error response is `{"error": "PARSE_ERROR", "error_details": "...", "time": <ms>}`. The code is one of `PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `GRAPH_NOT_FOUND`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND` or `REQUEST_TOO_BIG`, and the details name the graph, change or commit that was not found.
 - Queries on a non-HEAD commit need `LOAD COMMIT '<hash>'` first when you talk to the API directly. The CLI and the SDK do this for you.

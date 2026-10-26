@@ -175,10 +175,10 @@ shortestPath(a, b, distance, dist, path)
 RETURN dist, path
 """).iloc[0]
 
-node_ids = sorted({int(i) for i in row["path"][0::2]})
-names = client.query(f"UNWIND {node_ids} AS x MATCH (n) WHERE n = x RETURN id(n) AS id, n.name AS name")
+node_ids = [int(i) for i in row["path"][0::2]]     # the stations, from source to target
+names = client.query(f"UNWIND {node_ids} AS x MATCH (n) WHERE n = x RETURN x AS id, n.name AS name")
 ```
 
-The `UNWIND` list is a literal of distinct IDs and `x` is not returned, so this is a constant scan (see [lookup by node ID](/query/matching#look-up-nodes-by-native-node-id)).
+Each station is looked up directly by its ID (see [lookup by node ID](/query/matching#look-up-nodes-by-native-node-id)).
 
 For large graphs prefer `shortestPath` over variable-length paths: variable-length matching enumerates every path.

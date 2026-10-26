@@ -6,20 +6,20 @@ description: "Built-in functions, how values come back to the Python SDK, dates 
 
 ## Built-in functions
 
-Function names are **case-sensitive** (`toInteger`, not `TOINTEGER`), except `count` and `collect`.
+Function names are case-insensitive, like keywords: `toInteger`, `TOINTEGER` and `ToInteger` are the same function.
 
 | Category | Functions | Notes |
 | -------- | --------- | ----- |
-| Entity | `id(x)`, `labels(n)`, `type(r)`, `startNode(r)`, `endNode(r)` | `labels` returns a **list**. `type` returns a string. `startNode(r).name` works |
+| Entity | `id(x)`, `labels(n)`, `type(r)`, `startNode(r)`, `endNode(r)`, `keys(x)`, `properties(x)` | `labels` and `keys` return **lists**. `properties` returns a map of a node's, an edge's or a map's properties. `type` returns a string. `startNode(r).name` works |
 | Path | `nodes(p)`, `relationships(p)`, `length(p)` | Lists of IDs. Read properties through a [comprehension](/query/aggregation#list-comprehensions) |
 | List | `size`, `length`, `head`, `last`, `tail`, `reverse`, `range(start, end[, step])`, `reduce` | `size`, `length` and `reverse` also work on strings. `range` bounds are inclusive |
 | Predicates | `all`, `any`, `none`, `single` `(x IN list WHERE ...)` | |
-| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `coalesce(a, b, ...)` | `toInteger` and `toFloat` accept strings, integers and doubles, and return `null` for a bad string. `toBoolean` accepts strings. `coalesce` arguments must share one type |
-| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `reverse` | Plus the operators `STARTS WITH`, `ENDS WITH`, `CONTAINS` and `\|\|` |
+| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `toIntegerOrNull`, `toFloatOrNull`, `toStringOrNull`, `toBooleanOrNull`, `coalesce(a, b, ...)` | `toInteger` accepts strings, numbers and booleans, and `toFloat` strings and numbers. Both return `null` for a bad string. `toBoolean` accepts strings and integers. `toString` formats `DateTime` and `Duration` values. The `OrNull` forms return `null` for any value they cannot convert. `coalesce` arguments may mix types |
+| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `substring(s, start[, length])`, `left(s, n)`, `right(s, n)`, `split(s, delimiter)`, `replace(s, search, replacement)`, `reverse`, `char_length` (or `character_length`), `normalize(s[, NFC\|NFD\|NFKC\|NFKD])` | Positions start at 0. Plus the operators `STARTS WITH`, `ENDS WITH`, `CONTAINS`, `IS NORMALIZED` and `\|\|` |
 | Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi()`, `e()` | Trigonometry: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`, `degrees`, `radians`, `haversin` |
 | Temporal | `datetime(isoString)`, `datetime(epochSeconds)`, `datetime()`, `duration({days: 2, hours: 3})`, `duration(micros)` | See [Dates and durations](#dates-and-durations) |
 | Embedding | `cosine_similarity(a, b)`, `euclidean_distance(a, b)` | Arguments must be Embeddings, not lists. See [Vector search](/vector-search) |
-| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max` | See [Aggregation](/query/aggregation#aggregation) |
+| Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc` | See [Aggregation](/query/aggregation#aggregation) |
 
 ```cypher
 MATCH (n)-[e]->(m)
@@ -41,13 +41,24 @@ RETURN abs(-3), round(2.5), sqrt(16.0), pi()
 
 MATCH (n:Person)
 RETURN n.name, coalesce(n.nickname, n.name)
+
+RETURN substring('hello', 1, 3), left('hello', 2), split('a,b,c', ','), replace('aXbX', 'X', '-')
+
+MATCH (n:Person)
+WHERE toLower(n.name) STARTS WITH 'a'
+RETURN n.name
+
+MATCH (n:Person {name: 'Alice'})
+RETURN keys(n), properties(n)
+
+RETURN toIntegerOrNull('x'), toString(datetime('2024-03-15T10:30:00Z'))
 ```
 
 <Note>
   In v3, `type(e)` returns an edge's type as a string. It replaces `edgeType()` from earlier versions.
 </Note>
 
-The function library keeps growing. Some functions, such as `substring`, `split`, `rand()`, `keys` and `properties`, are not yet available. For now, filter strings with `STARTS WITH`, `ENDS WITH` and `CONTAINS`, and do any other post-processing in your application.
+The function library keeps growing. `rand()`, `date()`, `timestamp()`, `elementId()`, `atan2()`, `isNaN()` and the two-argument `round(x, digits)` are not yet available, so compute those in your application.
 
 ## Arithmetic in `RETURN` and `SET`
 
@@ -65,7 +76,7 @@ WHERE r.since > 0
 RETURN r.since / 10 * 100
 ```
 
-`+ - * / % ^` are supported. Integer `/` truncates, and `^` returns a Double. `+` and `||` concatenate strings and lists, and `'x' + 1` gives `'x1'`.
+`+ - * / % ^` are supported. Integer `/` truncates, and `^` returns a Double. `+` and `||` concatenate strings and lists, `'x' + 1` gives `'x1'`, and `[1, 2] + 3` gives `[1, 2, 3]`.
 
 ## Dates and durations
 
@@ -109,7 +120,7 @@ RETURN duration({hours: 1}) > duration({minutes: 30}) AS longer
 
 ## Maps
 
-Map literals can be built, returned, compared with `=`, and stored as node or edge properties:
+Maps can be built, returned, compared, sorted and stored as node or edge properties, and their keys can be read anywhere in a query:
 
 ```cypher
 RETURN {name: 'Alice', tags: ['a', 'b']} AS m
@@ -117,15 +128,24 @@ RETURN {name: 'Alice', tags: ['a', 'b']} AS m
 WITH {a: 1, b: 'x'} AS m
 RETURN m.a, m.b
 
+WITH {a: 1, b: 2} AS m
+UNWIND keys(m) AS k
+RETURN k, m[k]
+
 UNWIND [{a: 1}, {a: 2}] AS m
 RETURN m.a
+
+WITH [{a: 1}, {a: 2}] AS ms
+RETURN ms[1].a, [m IN ms | m.a]
+
+MATCH (n:Person {name: 'Alice'})
+RETURN properties(n).name, keys(n)
 ```
 
-You can read a key from a map **value** that is in scope, for example one bound by `WITH` or `UNWIND`, with `m.key`.
-
-<Note>
-  To read individual values from a map stored as a property, return the property as a whole or store the values as separate properties. Dereferencing a stored map inside a query (`n.meta.level`, `m['key']`) and map projection (`n {.name, .age}`) are not yet supported.
-</Note>
+- `m.key` reads a key written in the query, and `m[k]` a key held in a variable. A map stored as a property reads the same way: `n.meta.level`.
+- Write a fixed key as `m.key`: the bracket form with a literal (`m['key']`) is reported with that hint.
+- Map projection (`n {.name, .age}`) is not yet supported. Build the map you need (`{name: n.name, age: n.age}`) or use `properties(n)`.
+- Values read from a map can hold any type. To store one as a property, convert it first, for example `toString(row.name)` or `toInteger(row.pop)` (see [Bulk writes](/query/writing#bulk-writes)).
 
 ## How results come back
 
@@ -143,12 +163,10 @@ You can read a key from a map **value** that is in scope, for example one bound 
 | Embedding | `Embedding` | object (list over HTTP, numpy `float32` array over the native and embedded backends) |
 | DateTime | `DateTime` | `datetime64[us, UTC]` |
 | Duration | `Duration` | `timedelta64[us]` |
-| Node or edge (`RETURN n`) | `UInt64` | `UInt64` (internal ID) |
+| Node or edge (`RETURN n`) | `UInt64` | `UInt64` (internal ID, `null` when an `OPTIONAL MATCH` found nothing) |
 | Named path (`RETURN p`) | `EntityList` | object (list of `{type, id}` dicts) |
 
-<Note>
-  Over the default HTTP/JSON backend, Doubles are serialised with **6 decimal places** (`3.14159265` becomes `3.141593`). If you need full precision, scale the value in the query, or use the [native or embedded backend](/pythonsdk/reference#client-backends).
-</Note>
+Doubles keep their full precision on every backend (`0.1 + 0.2` comes back as `0.30000000000000004`). `NaN` and infinities come back as the floats `nan` and `inf`, and `NaN` sorts after every number.
 
 ## Embeddings
 

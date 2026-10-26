@@ -1,7 +1,7 @@
 ---
 title: "Matching Patterns"
 sidebarTitle: "Matching"
-description: "Read data with MATCH, OPTIONAL MATCH and WHERE, join patterns, and look up nodes quickly by native node ID."
+description: "Read data with MATCH, OPTIONAL MATCH and WHERE, combine labels with label expressions, join patterns, and look up nodes quickly by native node ID."
 ---
 
 Read queries run directly against the current graph, with no change to open first.
@@ -63,7 +63,7 @@ RETURN b.name
 ```
 
 - `(n:Person:Employee)` matches nodes that have **both** labels.
-- `(a)-[e]-(b)` (or `(a)--(b)`) ignores direction.
+- `(a)-[e]-(b)` (or `(a)--(b)`, `(a)<-[e]->(b)`, `(a)<-->(b)`) ignores direction.
 - `[:KNOWS|WORKS_AT]` matches either edge type. An edge has exactly one type, so each edge pattern takes a single type or a list of alternatives.
 - `type(r)` returns the edge type as a string.
 - Several `MATCH` clauses in a row are allowed, and a later one can reuse variables from an earlier one.
@@ -72,6 +72,29 @@ RETURN b.name
 <Tip>
   `RETURN n` returns the node's internal ID, not its properties. Return the properties you need (`RETURN n.name, n.age`). This is different from Neo4j, where `RETURN n` returns the whole node.
 </Tip>
+
+### Label expressions
+
+Label expressions combine labels with `|` (or), `&` (and) and `!` (not), on nodes and on edge types:
+
+```cypher
+MATCH (n:Person|Company)
+RETURN n.name
+
+MATCH (n:!Person)
+RETURN n.name
+
+MATCH (n:Person&Employee)
+RETURN n.name
+
+MATCH (n:(Person&!Employee)|Company)
+RETURN n.name
+
+MATCH (a)-[r:!KNOWS]->(b)
+RETURN type(r), count(*)
+```
+
+The same expressions work as tests in `WHERE`: `WHERE n:Person|Company`. A label or an edge type can also come from a [query parameter](/query/cypher_subset#query-parameters): `MATCH (n:$label)`.
 
 ### Filtering inside the pattern
 
@@ -112,7 +135,7 @@ RETURN a.name, count(b)
 
 The second query returns `0` for people who know nobody. A `WHERE` attached to an `OPTIONAL MATCH` belongs to the optional part, so rows are kept, as in Neo4j.
 
-Return a property (`c.name`) or `id(c)` from an optional node, rather than the bare variable.
+An unmatched node or edge returned on its own (`RETURN c`) is `null`, like its properties.
 
 
 ## WHERE and operators
@@ -161,7 +184,7 @@ WHERE NOT (p)-[:KNOWS]->()
 RETURN p.name
 ```
 
-- **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type. Combine them with `AND`, `OR` and `NOT`.
+- **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type. Combine them with `AND`, `OR` and `NOT`, or write a [label expression](#label-expressions) such as `n:Person|Company`.
 - **Pattern predicates:** `WHERE (p)-[:LIKES]->()` keeps the nodes for which the pattern exists. For richer conditions see [`EXISTS` subqueries](/query/subqueries).
 
 | Operators | |
@@ -169,9 +192,9 @@ RETURN p.name
 | Comparison | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, and chained comparisons such as `1 < x < 3` |
 | Null tests | `IS NULL`, `IS NOT NULL` |
 | Boolean | `AND`, `OR`, `XOR`, `NOT`, with three-valued logic for `null` as in Neo4j |
-| Membership and strings | `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS` |
+| Membership and strings | `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, `IS [NFC\|NFD\|NFKC\|NFKD] NORMALIZED` |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, `^`. Integer `/` truncates and `^` returns a Double |
-| Concatenation | `+` and `\|\|` join strings and lists |
+| Concatenation | `+` and `\|\|` join strings and lists, and `list + x` appends an element |
 
 Property constraints in a pattern, `MATCH (n {name: 'Matt', age: 20})`, are exactly equivalent to the same equality tests in `WHERE`.
 
@@ -181,26 +204,27 @@ Property constraints in a pattern, `MATCH (n {name: 'Matt', age: 20})`, are exac
 
 ### Comparing numbers
 
-Equality compares numbers of the same kind. An Integer compared with a Double using `=`, or two Doubles compared with `=`, is reported when the query is analysed:
-
-```text
-MATCH (n:Person) WHERE n.age = 30.0 RETURN n.name
-ANALYZE_ERROR: Operands are not valid or compatible types
-```
-
-Use range comparisons for Doubles, or convert the value:
+Integers and Doubles compare by value, so an Integer `30` equals the Double `30.0`:
 
 ```cypher
 MATCH (n:Person)
-WHERE n.age > 29.5 AND n.age < 30.5
+WHERE n.age = 30.0
 RETURN n.name
 
 MATCH (n:Person)
-WHERE n.age = toInteger(30.0)
+WHERE n.age IN [30.0, 35]
 RETURN n.name
 ```
 
-Mixed-type `<`, `>` and arithmetic work as expected. Division by zero returns an execution error, and Int64 arithmetic wraps around on overflow.
+To match one Double against another, use a range. `=` between two Doubles is reported when the query is analysed, because of rounding:
+
+```cypher
+MATCH (n:Person)
+WHERE n.age * 1.1 > 32.9 AND n.age * 1.1 < 33.1
+RETURN n.name
+```
+
+Mixed-type `<`, `>` and arithmetic work as expected, and an ordering between values with no common order, such as `1 < 'a'`, is `null`. Division by zero returns an execution error, for Doubles too, and Int64 arithmetic wraps around on overflow.
 
 ## Joins and Cartesian products
 
@@ -240,7 +264,7 @@ RETURN a.name, i.name, c.name
 
 ## Look up nodes by native node ID
 
-Every node has a **native node ID**, the integer you get from `RETURN n` or `id(n)`. When you already know which nodes you want, **compare the node variable itself with the ID**, written as a literal. The planner turns this into a constant scan of exactly those nodes:
+Every node has a **native node ID**, the integer you get from `RETURN n` or `id(n)`. When you already know which nodes you want, compare the node with its ID, `WHERE n = 123` or `WHERE id(n) = 123`. TuringDB then looks those nodes up directly instead of scanning the graph:
 
 ```cypher
 MATCH (n)
@@ -248,16 +272,23 @@ WHERE n = 0
 RETURN n.name
 
 MATCH (n)-[:KNOWS]->(m)
-WHERE n = 0
+WHERE id(n) = 0
 RETURN m.name
 
 UNWIND [0, 1, 2] AS x
 MATCH (n)
 WHERE n = x
-RETURN id(n), n.name
+RETURN x, n.name
+
+UNWIND [[0, 1], [2, 3]] AS p
+MATCH (a)
+WHERE a = p[0]
+MATCH (b)
+WHERE b = p[1]
+RETURN a.name, b.name
 ```
 
-`EXPLAIN` shows whether it worked. The plan should contain `const_scan_nodes` rather than `scan_nodes`:
+`EXPLAIN` shows the lookup: the plan contains `const_scan_nodes` for IDs written in the query, or `fetch_nodes` for IDs read from a row, rather than `scan_nodes`:
 
 ```cypher
 EXPLAIN MATCH (n)
@@ -265,16 +296,9 @@ WHERE n = 0
 RETURN n.name
 ```
 
-On large graphs this is orders of magnitude faster than looking nodes up again through a key property such as `n.uuid`. The rules that keep it fast:
-
-- **Compare the variable, not the function.** `WHERE n = 123` is a direct seek. `WHERE id(n) = 123` scans every node. Use `id(n)` only to *return* the ID.
-- **Use `UNWIND` for batches, not `IN`.** `WHERE n IN [...]` and `WHERE id(n) IN [...]` scan every node. The `UNWIND [<ids>] AS x MATCH (n) WHERE n = x` form is rewritten at plan time into one constant scan, which costs roughly a microsecond per node.
-- **The batch form needs an exact shape:**
-  - the list is a **literal written in the query text** (build it in Python: `f"UNWIND {ids} AS x ..."`), not a variable, `collect(...)`, `range(...)` or a list property;
-  - its elements are **distinct** integers, so deduplicate first;
-  - `x` is used **only** in `n = x`. Return `id(n)` rather than `x`.
-- **Fetch IDs once and reuse them.** Look nodes up with whatever filter you need (`MATCH (n:Person {name: 'Alice'}) RETURN id(n)`), keep the IDs in your application, and address the nodes by ID from then on.
-- **Keep IDs constant.** Use literal IDs rather than IDs computed per row, and match one node per `MATCH`. Forms such as `WHERE a = p[0] AND b = p[1]` are not rewritten into a constant scan, so they run as a Cartesian product of two full node scans, which is expensive on large graphs. To connect two known nodes, put both IDs in as literals, one pair per query: `MATCH (a) WHERE a = 5 MATCH (b) WHERE b = 7`. For bulk edges, see [Parquet import](/import_data/parquet).
+- **Batches.** `UNWIND` a list of IDs and compare each one: `UNWIND <ids> AS x MATCH (n) WHERE n = x`. The list can be written in the query (`f"UNWIND {ids} AS x ..."` in Python), held in a variable, or built with `collect()` or `range()`, and each ID costs a few microseconds. Use this form rather than `WHERE n IN [...]`, which checks every node.
+- **Several IDs per row.** Two IDs from the same row work too, which is the fast way to [create many edges between existing nodes](/query/writing#edges-between-existing-nodes).
+- **Fetch IDs once and reuse them.** Look nodes up with whatever filter you need (`MATCH (n:Person {name: 'Alice'}) RETURN id(n)`), keep the IDs in your application, and address the nodes by ID from then on. Looking each row's node up through a key property such as `n.uuid` reads every node with that label instead, and is about 100 times slower on a large graph.
 - **Vector search results are already nodes.** `VECTOR SEARCH ... YIELD ids` binds `ids` as nodes, so use `ids.title` or `MATCH (ids)-[...]->(...)` directly. See [Vector search](/vector-search).
 
 **Stability.** The native IDs of existing nodes are stable across queries, change submits and server restarts, so it is safe to cache them. Two exceptions:
