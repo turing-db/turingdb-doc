@@ -13,7 +13,7 @@ If you know Cypher from Neo4j, you can write the queries you are used to. This p
 | Area | Supported |
 | ---- | --------- |
 | Reading | `MATCH`, `OPTIONAL MATCH`, `WHERE`, `WITH`, `RETURN [DISTINCT]`, `ORDER BY`, `SKIP`, `LIMIT`, `UNWIND`, `UNION [ALL]`, `LOAD CSV` |
-| Composing queries | `NEXT` to chain queries, `WHEN ... THEN ... ELSE` conditional queries |
+| Composing queries | [`NEXT`](/query/composition#next) to chain queries, [`WHEN ... THEN ... ELSE`](/query/composition#when) conditional queries |
 | Patterns | Multiple labels, label expressions (`:A\|B`, `:!A`, `:A&B`), edge type alternatives (`[:A\|B]`), inline `WHERE`, variable-length paths (`*1..3`, `->+`, `{2,4}`), quantified path patterns, named paths, pattern predicates |
 | Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps and map access |
 | Functions | String (`substring`, `split`, `replace`, `left`, `right`, `normalize`, ...), math, conversion, `keys`, `properties` |
@@ -74,11 +74,22 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFram
 ```python
 client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
 client.query("MATCH (n:$labels) RETURN n.name", {"labels": ["Person", "Employee"]})   # every label in the list
+client.query("MATCH (n:Person|$other) RETURN n.name", {"other": "Company"})           # inside a label expression
+client.query("MATCH (n) WHERE n:$label RETURN n.name", {"label": "Company"})          # in a label test
 client.query("MATCH (a)-[r:$type]->(b) RETURN a.name, b.name", {"type": "WORKS_AT"})
-client.query("CREATE (n:$label {name: 'Zoe'})", {"label": "Person"})                 # inside a change
+client.query("MATCH (n:$0) RETURN n.name", {"0": "Company"})                          # numbered parameter
+
+# inside a change
+client.query("CREATE (n:$label {name: 'Zoe'})", {"label": "Person"})
+client.query("MERGE (t:$label {name: 'x'})", {"label": "Tag"})
+client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) MERGE (a)-[:$type]->(b)", {"type": "FOLLOWS"})
 ```
 
-Put values directly in the query text for now: value parameters, such as `WHERE n.name = $name`, are not yet supported. In the [interactive shell](/commands#interactive-shell), set parameters with `:param`.
+- A parameter holds a string, or a list of strings to require several labels.
+- A parameter used in the query but missing from the dictionary is reported when the query runs: `Parameter $label is not defined`.
+- Put values directly in the query text for now: value parameters, such as `WHERE n.name = $name`, are reported as `Not implemented: Parameters`.
+
+In the [interactive shell](/commands#interactive-shell), set parameters with `:param`. Over [HTTP](/commands#http-api), send them in the `parameters` field of the request.
 
 ## Coming from Neo4j
 
@@ -86,7 +97,7 @@ TuringDB follows openCypher closely, so the queries you know carry over. These a
 
 - **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or all of them with `RETURN properties(n)`.
 - **Values go in the query text.** [Parameters](#query-parameters) name labels and edge types. Put literal values directly in the text and escape quotes in your application.
-- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine), or chain steps in one request with [`NEXT`](/query/aggregation#next).
+- **One statement per request.** Send each statement as its own request (a single trailing `;` is fine), or chain steps in one request with [`NEXT`](/query/composition#next).
 - **Labels are set at creation.** Every node has at least one label and every edge exactly one edge type, chosen when it is created.
 - **Property types are global.** A property name has a single value type across the whole graph: if `age` is an Integer, it is an Integer on every node.
 - **Comparing Doubles.** Integers and Doubles compare by value (`n.age = 30.0` matches 30). Match one Double against another with a range (`n.score > 1.99 AND n.score < 2.01`).

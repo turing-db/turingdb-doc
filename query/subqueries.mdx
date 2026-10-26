@@ -28,7 +28,19 @@ RETURN p.name
 
 MATCH (p:Person)
 RETURN p.name, EXISTS { (p)-[:LIKES]->() } AS likesSomething
+
+MATCH (p:Person)
+WHERE EXISTS {
+  MATCH (p)-[:LIKES]->(x)
+  RETURN x
+  UNION
+  MATCH (p)-[:WORKS_AT]->(x:Company {name: 'Globex'})
+  RETURN x
+}
+RETURN p.name
 ```
+
+The full form can hold a `UNION`, as in the last example, or a [`NEXT`](/query/composition#next) chain.
 
 ## COUNT
 
@@ -45,20 +57,87 @@ WHERE COUNT {
   RETURN x
 } >= 2
 RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, COUNT {
+  MATCH (p)-[:KNOWS]->(x)
+  RETURN x
+  UNION
+  MATCH (p)-[:LIKES]->(x)
+  RETURN x
+} AS links
 ```
+
+Like `EXISTS`, the body of `COUNT` can hold a `UNION` or a [`NEXT`](/query/composition#next) chain.
 
 ## COLLECT
 
-`COLLECT { ... }` returns the single column of its body as a list, for each row:
+`COLLECT { ... }` runs a query for each row and returns its single column as a list. The list is empty when the query finds nothing:
 
 ```cypher
 MATCH (p:Person)
 RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+```
 
+The body is a full query, so it can filter, deduplicate, sort and limit:
+
+```cypher
+MATCH (p:Person)
+RETURN p.name, COLLECT {
+  MATCH (p)-[:KNOWS]->(f)
+  WHERE f.age > 30
+  RETURN f.name
+} AS olderFriends
+
+MATCH (c:Company)
+RETURN c.name, COLLECT {
+  MATCH (p:Person)-[:WORKS_AT]->(c)
+  RETURN DISTINCT p.city
+} AS cities
+
+MATCH (c:Company)
+RETURN c.name, COLLECT {
+  MATCH (p:Person)-[:WORKS_AT]->(c)
+  RETURN p.name
+  ORDER BY p.age DESC LIMIT 1
+} AS oldestEmployee
+```
+
+It can also combine queries with `UNION`, or collect nodes to use later:
+
+```cypher
+MATCH (p:Person)
+RETURN p.name, COLLECT {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN f.name AS link
+  UNION
+  MATCH (p)-[:WORKS_AT]->(c)
+  RETURN c.name AS link
+} AS links
+
+MATCH (p:Person {name: 'Alice'})
+WITH COLLECT { MATCH (p)-[:KNOWS]->+(f) RETURN f } AS reachable
+RETURN [x IN reachable | x.name] AS names
+```
+
+A `COLLECT` is an ordinary list value, so it works anywhere a list does: in `WHERE`, `ORDER BY`, `UNWIND` or `SET`.
+
+```cypher
 MATCH (p:Person)
 WHERE size(COLLECT { MATCH (p)-[:KNOWS]-(f) RETURN f.name }) >= 2
 RETURN p.name
+
+MATCH (p:Person {name: 'Bob'})
+UNWIND COLLECT { MATCH (p)-[:KNOWS]-(f) RETURN f.name } AS friend
+RETURN friend
+
+MATCH (p:Person {name: 'Alice'})
+SET p.friendNames = COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name }
 ```
+
+- **One column.** The body returns exactly one column. Two columns are reported: `A COLLECT subquery must return exactly one column, not 2`. To collect several values per match, use a [pattern comprehension](/query/aggregation#list-comprehensions) or `collect()` in a `CALL` body.
+- **A full query.** The body is `MATCH ... RETURN ...`, not a bare pattern.
+- **Not yet available:** collecting map values, and a `NEXT` chain or `WHEN` inside the body.
 
 ## CALL subqueries
 
@@ -106,10 +185,29 @@ RETURN nm
 ORDER BY nm
 ```
 
-- **Importing variables.** `CALL (p)` imports the listed variables, and `CALL (*)` imports every variable in scope.
+- **Importing variables.** `CALL (p)` imports the listed variables, and `CALL (*)` imports every variable in scope, including values computed in an earlier `WITH`.
 - **Dropped rows.** A non-optional `CALL` drops the outer rows for which its body returns nothing. Use `OPTIONAL CALL` to keep them with `null` values.
 - **Returning an imported variable.** Give it an alias in the `CALL` body: `RETURN p AS me`.
-- A `CALL` body can contain `UNION`, aggregation, `ORDER BY` and `LIMIT`, or be a [conditional query](/query/aggregation#conditional-queries-with-when). Write-only subqueries also work inside a [change](/query/writing).
+- A `CALL` body can contain `UNION`, aggregation, `ORDER BY`, `LIMIT` and a [`NEXT`](/query/composition#next) chain, or be a [conditional query](/query/composition#when).
+- **Writing.** Inside a [change](/query/writing), a `CALL` body can write and return what it wrote, and the branches of a `UNION` can mix `CREATE` and `MERGE`:
+
+```cypher
+UNWIND ['x', 'y', 'x'] AS k
+CALL (k) {
+  MERGE (t:Tag {name: k})
+  RETURN t AS tag
+}
+RETURN tag.name
+
+CALL {
+  CREATE (a:Tag {name: 'p'})
+  RETURN a AS t
+  UNION
+  MERGE (b:Tag {name: 'q'})
+  RETURN b AS t
+}
+RETURN t.name
+```
 
 <Note>
   `CALL { } IN TRANSACTIONS`, `OPTIONAL CALL` on a procedure, and `WHEN` inside an `EXISTS`, `COUNT` or `COLLECT` body are not yet available.

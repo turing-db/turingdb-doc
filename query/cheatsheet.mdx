@@ -190,7 +190,7 @@ RETURN [n IN nodes(p) | n.name], length(p), reduce(t = 0, r IN relationships(p) 
 
 ## WITH, ORDER BY, SKIP, LIMIT, UNION, NEXT, WHEN
 
-[Results and aggregation](/query/aggregation)
+[Results and aggregation](/query/aggregation), [NEXT and WHEN](/query/composition)
 
 ```cypher
 MATCH (n:Person)
@@ -221,9 +221,20 @@ RETURN n.name AS nm, n.age AS age
 NEXT
 WHEN age > 30 THEN RETURN nm, 'senior' AS band
 ELSE RETURN nm, 'junior' AS band
+
+MATCH (n:Person)
+WHERE n.age > 30
+RETURN n AS p
+NEXT
+MATCH (p)-[:KNOWS]->(f)
+RETURN p.name, f.name
+
+WHEN COUNT { MATCH (n:Person) } > 3 THEN RETURN 'big' AS size
+ELSE RETURN 'small' AS size
 ```
 
-- Expressions in `WITH`, and in a `RETURN` followed by `NEXT`, must be aliased.
+- Expressions in `WITH`, and in a `RETURN` followed by `NEXT`, must be aliased. Only the returned columns carry over a `NEXT`.
+- `WHEN` branches return the same columns. Without `ELSE`, a conditional with no matching branch returns no rows.
 - Nulls sort last ascending and first descending.
 
 ## Aggregation
@@ -292,6 +303,16 @@ RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
 
 MATCH (p:Person)
 RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+
+MATCH (c:Company)
+RETURN c.name, COLLECT { MATCH (p:Person)-[:WORKS_AT]->(c) RETURN p.name ORDER BY p.age DESC LIMIT 1 } AS oldest
+
+MATCH (p:Person)
+CALL (*) {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN count(f) AS deg
+}
+RETURN p.name, deg
 
 MATCH (p:Person)
 CALL (p) {

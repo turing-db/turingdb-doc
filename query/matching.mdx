@@ -92,9 +92,20 @@ RETURN n.name
 
 MATCH (a)-[r:!KNOWS]->(b)
 RETURN type(r), count(*)
+
+MATCH (p:Person)
+OPTIONAL MATCH (p)-[:WORKS_AT]->(c:Company|Interest)
+RETURN p.name, c.name
+
+MATCH (n)
+WHERE NOT n:Person|Company
+RETURN n.name
 ```
 
-The same expressions work as tests in `WHERE`: `WHERE n:Person|Company`. A label or an edge type can also come from a [query parameter](/query/cypher_subset#query-parameters): `MATCH (n:$label)`.
+- Label expressions work in `MATCH` and `OPTIONAL MATCH` patterns and as tests in `WHERE` (`WHERE n:Person|Company`).
+- For edges, `[:KNOWS|WORKS_AT]` also works on variable-length hops: `-[:KNOWS|LIKES]->+`.
+- A label or an edge type can come from a [query parameter](/query/cypher_subset#query-parameters), on its own or inside an expression: `MATCH (n:Person|$other)`.
+- In `CREATE` and `MERGE`, labels are joined with `:` or `&` only, since a new node needs definite labels.
 
 ### Filtering inside the pattern
 
