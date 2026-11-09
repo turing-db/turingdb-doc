@@ -29,7 +29,7 @@ The SDK targets TuringDB v3: pin `turingdb>=3.1` in your project (older projects
 ```python
 from turingdb import TuringDB
 
-# Connect to a TuringDB server running on this machine (localhost:6666)
+# Connect to a server running on this machine (localhost:6666)
 client = TuringDB()
 
 # or name the host and the port
@@ -84,7 +84,9 @@ A missing or incorrect token raises `TuringDBException: Protocol error from serv
 ```python
 import os
 
-client = TuringDB(type="embedded", data_dir=os.path.expanduser("~/.turing"))
+client = TuringDB(
+    type="embedded", data_dir=os.path.expanduser("~/.turing")
+)
 ```
 
 - `data_dir` is the TuringDB root directory (the one that holds `graphs/`, `data/` and `vector/`). Omit it to use `~/.turing`.
@@ -136,8 +138,13 @@ Runs a Cypher query on the current graph.
 
 ```python
 df = client.query("MATCH (n:Person) RETURN n.name, n.age")
-df = client.query("MATCH (n:Person) WHERE n.age >= $min RETURN n.name", {"min": 30})
-df = client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
+df = client.query(
+    "MATCH (n:Person) WHERE n.age >= $min RETURN n.name",
+    {"min": 30},
+)
+df = client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
 ```
 
 Returns results as a `pandas.DataFrame`, with automatic typing and parsing. `query_parameters` fills the query's `$name` [parameters](/query/cypher_subset#query-parameters), which stand for values, labels and edge types. Parameter values can be:
@@ -258,8 +265,12 @@ client.s3_connect("my-bucket", region="eu-west-1")
 Transfer data between a local path, an `s3://…` URI, or a `turingdb://…` path. The direction and mechanism are inferred from the URI schemes.
 
 ```python
-client.transfer("s3://graphs/data.jsonl", "turingdb://data.jsonl")  # S3 → server
-client.transfer("./local.gml", "turingdb://local.gml")               # local → server (via scratch)
+# S3 → server
+client.transfer(
+    "s3://graphs/data.jsonl", "turingdb://data.jsonl"
+)
+# local → server (via scratch)
+client.transfer("./local.gml", "turingdb://local.gml")
 ```
 
 The equivalent engine commands (issued directly via `query`) are `S3 CONNECT "<key>" "<secret>" "<region>"`, `S3 PULL "<s3-url>" "<dst>"`, and `S3 PUSH "<src>" "<s3-url>"`.
@@ -330,13 +341,18 @@ client.checkout(change=change)
 
 # Multiple nodes and edges can be created at the same time
 # using the following syntax
-client.query("""CREATE (apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
-(apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
-(alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
-(cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
-(apoe_gene)-[:ENCODES]->(apoe_protein),
-(apoe_protein)-[:BINDS]->(cholesterol),
-(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
+client.query("""
+CREATE
+  (apoe_gene:Gene {name: 'APOE', chromosome: '19',
+    location: '19q13.32'}),
+  (apoe_protein:Protein {name: 'Apolipoprotein E',
+    function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
+  (alzheimers:Disease {name: 'Alzheimers_Disease',
+    type: 'Neurodegenerative'}),
+  (cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
+  (apoe_gene)-[:ENCODES]->(apoe_protein),
+  (apoe_protein)-[:BINDS]->(cholesterol),
+  (apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
 """)
 
 # Commit the change
@@ -347,7 +363,10 @@ client.query("CHANGE SUBMIT")
 client.checkout()
 
 # Query graph, with the gene name as a parameter
-df = client.query("MATCH (n:Gene {name: $name}) RETURN n.name, n.chromosome", {"name": "APOE"})
+df = client.query(
+    "MATCH (n:Gene {name: $name}) RETURN n.name, n.chromosome",
+    {"name": "APOE"},
+)
 print(df)
 ```
 

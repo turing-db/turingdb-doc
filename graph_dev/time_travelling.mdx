@@ -73,7 +73,8 @@ await client.query("LOAD COMMIT 'be9643a1c03f8e2b'");
 
 // Step 2: Now you can query at that commit
 const rows = await client.queryData(
-    "MATCH (n:Person)-[e:KNOWS]->(m:Person) RETURN n.name, m.name",
+    "MATCH (n:Person)-[e:KNOWS]->(m:Person) " +
+    "RETURN n.name, m.name",
     { commit: "be9643a1c03f8e2b" },
 );
 ```

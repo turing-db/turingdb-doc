@@ -68,9 +68,17 @@ RETURN count(*) AS total
 A whole chain in braces can also be one side of a `UNION`:
 
 ```cypher
-{ MATCH (p:Person) RETURN p.age AS v NEXT RETURN max(v) AS v }
+{
+  MATCH (p:Person) RETURN p.age AS v
+  NEXT
+  RETURN max(v) AS v
+}
 UNION
-{ MATCH (c:Company) RETURN c.founded AS v NEXT RETURN max(v) AS v }
+{
+  MATCH (c:Company) RETURN c.founded AS v
+  NEXT
+  RETURN max(v) AS v
+}
 ```
 
 ### Inside subqueries
@@ -136,7 +144,8 @@ WHEN true THEN RETURN 1 AS x ELSE RETURN 2 AS x
 Conditions can be subqueries over the graph:
 
 ```cypher
-WHEN EXISTS { MATCH (:Company {name: 'Acme'}) } THEN RETURN 'has Acme' AS result
+WHEN EXISTS { MATCH (:Company {name: 'Acme'}) }
+  THEN RETURN 'has Acme' AS result
 ELSE RETURN 'no Acme' AS result
 
 WHEN COUNT { MATCH (n:Person) } > 3 THEN RETURN 'big' AS size
@@ -184,7 +193,8 @@ RETURN p.name
 
 MATCH (p:Person)
 RETURN p.name, COUNT {
-  WHEN p.city = 'London' THEN MATCH (p)-[:KNOWS]->(f) RETURN f AS x
+  WHEN p.city = 'London'
+    THEN MATCH (p)-[:KNOWS]->(f) RETURN f AS x
   ELSE MATCH (p)-[:LIKES]->(x) RETURN x
 } AS links
 

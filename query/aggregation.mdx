@@ -105,13 +105,15 @@ Grouping is implicit, as in Neo4j: the non-aggregated items in the `RETURN` are 
 
 ```cypher
 MATCH (a:Person)-[:WORKS_AT]->(c:Company)
-RETURN c.name, count(a) AS employees, collect(a.name) AS who, avg(a.age) AS avgAge
+RETURN c.name, count(a) AS employees, collect(a.name) AS who,
+  avg(a.age) AS avgAge
 ORDER BY employees DESC
 ```
 
 ```cypher
 MATCH (n:Person)
-RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
+RETURN count(*), count(n.age), sum(n.age),
+  avg(n.age), min(n.age), max(n.age)
 
 MATCH (a)-[w:WORKS_AT]->(c)
 RETURN w.role, count(DISTINCT c) AS companies
@@ -134,7 +136,9 @@ RETURN labels(n) AS l, count(*) AS c
 ORDER BY c DESC
 
 MATCH (n:Person)
-RETURN stDev(n.age) AS sd, percentileCont(n.age, 0.5) AS median, percentileDisc(n.age, 0.9) AS p90
+RETURN stDev(n.age) AS sd,
+  percentileCont(n.age, 0.5) AS median,
+  percentileDisc(n.age, 0.9) AS p90
 
 MATCH (n:Person)
 RETURN stDev(n.age) AS sample, stDevP(n.age) AS population
@@ -207,15 +211,21 @@ RETURN t, count(*)
 To unwind a list from your application, pass it as a [parameter](/query/cypher_subset#query-parameters):
 
 ```python
-client.query("UNWIND $names AS nm MATCH (n:Person {name: nm}) RETURN nm, n.age", {"names": ["Alice", "Bob"]})
+client.query(
+    "UNWIND $names AS nm MATCH (n:Person {name: nm}) "
+    "RETURN nm, n.age",
+    {"names": ["Alice", "Bob"]},
+)
 ```
 
 ## Lists
 
 ```cypher
-RETURN [1, 2, 3, 4, 5][0], [1, 2, 3, 4, 5][-1], [1, 2, 3, 4, 5][1..3], [1, 2, 3][10]
+RETURN [1, 2, 3, 4, 5][0], [1, 2, 3, 4, 5][-1],
+  [1, 2, 3, 4, 5][1..3], [1, 2, 3][10]
 
-RETURN size([1, 2]), head([1, 2]), last([1, 2]), tail([1, 2]), reverse([1, 2, 3])
+RETURN size([1, 2]), head([1, 2]), last([1, 2]),
+  tail([1, 2]), reverse([1, 2, 3])
 
 MATCH (n:Person {name: 'Alice'})
 RETURN n.tags[0], size(n.tags)
@@ -242,7 +252,7 @@ RETURN n.name
 
 RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
 
-RETURN allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 10)
+RETURN allReduce(t = 0, x IN [1, 2, 3] | t + x, t < 10)
 ```
 
 - `[x IN list WHERE condition | expression]` filters and maps a list.
@@ -256,8 +266,16 @@ RETURN allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 10)
 ```cypher
 MATCH (n:Person)
 RETURN n.name,
-  CASE WHEN n.age >= 35 THEN 'senior' WHEN n.age IS NULL THEN 'unknown' ELSE 'junior' END AS band,
-  CASE n.city WHEN 'London' THEN 'UK' WHEN 'Paris' THEN 'FR' ELSE 'other' END AS country
+  CASE
+    WHEN n.age >= 35 THEN 'senior'
+    WHEN n.age IS NULL THEN 'unknown'
+    ELSE 'junior'
+  END AS band,
+  CASE n.city
+    WHEN 'London' THEN 'UK'
+    WHEN 'Paris' THEN 'FR'
+    ELSE 'other'
+  END AS country
 ```
 
 The simple form (`CASE n.city WHEN 'London' THEN ...`) and the searched form (`CASE WHEN condition THEN ...`) both work. TuringDB also accepts comparison tests in the simple form, such as `CASE n.age WHEN > 30 THEN 'old' WHEN IS NULL THEN '?' END`.

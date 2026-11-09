@@ -63,14 +63,20 @@ Queries run through the [Python SDK](/pythonsdk/reference), the [JavaScript SDK]
 from turingdb import TuringDB
 
 client = TuringDB(host="localhost", port=6666)
-df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFrame
+# a pandas DataFrame
+df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 ```
 
 ```js JavaScript
 import { TuringClient } from "turingdb";
 
-const client = new TuringClient({ url: "http://localhost:6686/query" });
-const chunks = await client.queryData("MATCH (n:Person) RETURN n.name, n.age");   // chunks of columns
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+});
+// chunks of columns
+const chunks = await client.queryData(
+    "MATCH (n:Person) RETURN n.name, n.age",
+);
 ```
 
 </CodeGroup>
@@ -84,32 +90,77 @@ const chunks = await client.queryData("MATCH (n:Person) RETURN n.name, n.age"); 
 `client.query()` takes an optional dictionary of parameters. A `$name` parameter stands for a **value** anywhere an expression goes, so values travel next to the query text and need no quoting or escaping:
 
 ```python
-client.query("MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name", {"minAge": 30})
-client.query("MATCH (n:Person {name: $name}) RETURN n.age", {"name": "O'Brien"})
-client.query("MATCH (n:Person) WHERE n.name IN $names RETURN n.name", {"names": ["Alice", "Bob"]})
-client.query("UNWIND $rows AS row RETURN row.name, row.age", {"rows": [{"name": "Alice", "age": 30}]})
-client.query("WITH $filter AS f MATCH (n:Person) WHERE n.city = f.city RETURN n.name", {"filter": {"city": "London"}})
-client.query("RETURN $0 + 1 AS next", {"0": 41})                                       # numbered parameter
+client.query(
+    "MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name",
+    {"minAge": 30},
+)
+client.query(
+    "MATCH (n:Person {name: $name}) RETURN n.age",
+    {"name": "O'Brien"},
+)
+client.query(
+    "MATCH (n:Person) WHERE n.name IN $names RETURN n.name",
+    {"names": ["Alice", "Bob"]},
+)
+client.query(
+    "UNWIND $rows AS row RETURN row.name, row.age",
+    {"rows": [{"name": "Alice", "age": 30}]},
+)
+client.query(
+    "WITH $filter AS f MATCH (n:Person) WHERE n.city = f.city "
+    "RETURN n.name",
+    {"filter": {"city": "London"}},
+)
+# numbered parameter
+client.query("RETURN $0 + 1 AS next", {"0": 41})
 
 # inside a change
-client.query("CREATE (n:Person {name: $name, age: $age})", {"name": "Zoe", "age": 27})
-client.query("MATCH (n:Person {name: 'Alice'}) SET n += $props", {"props": {"city": "Berlin"}})
+client.query(
+    "CREATE (n:Person {name: $name, age: $age})",
+    {"name": "Zoe", "age": 27},
+)
+client.query(
+    "MATCH (n:Person {name: 'Alice'}) SET n += $props",
+    {"props": {"city": "Berlin"}},
+)
 ```
 
 A parameter can also stand for a **label or an edge type**, anywhere a label or type is written:
 
 ```python
-client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
-client.query("MATCH (n:$labels) RETURN n.name", {"labels": ["Person", "Employee"]})   # every label in the list
-client.query("MATCH (n:Person|$other) RETURN n.name", {"other": "Company"})           # inside a label expression
-client.query("MATCH (n) WHERE n:$label RETURN n.name", {"label": "Company"})          # in a label test
-client.query("MATCH (a)-[r:$type]->(b) RETURN a.name, b.name", {"type": "WORKS_AT"})
-client.query("MATCH (n:$0) RETURN n.name", {"0": "Company"})                          # numbered parameter
+client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
+# every label in the list
+client.query(
+    "MATCH (n:$labels) RETURN n.name",
+    {"labels": ["Person", "Employee"]},
+)
+# inside a label expression
+client.query(
+    "MATCH (n:Person|$other) RETURN n.name", {"other": "Company"}
+)
+# in a label test
+client.query(
+    "MATCH (n) WHERE n:$label RETURN n.name", {"label": "Company"}
+)
+client.query(
+    "MATCH (a)-[r:$type]->(b) RETURN a.name, b.name",
+    {"type": "WORKS_AT"},
+)
+# numbered parameter
+client.query("MATCH (n:$0) RETURN n.name", {"0": "Company"})
 
 # inside a change
-client.query("CREATE (n:$label {name: 'Zoe'})", {"label": "Person"})
+client.query(
+    "CREATE (n:$label {name: 'Zoe'})", {"label": "Person"}
+)
 client.query("MERGE (t:$label {name: 'x'})", {"label": "Tag"})
-client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) MERGE (a)-[:$type]->(b)", {"type": "FOLLOWS"})
+client.query(
+    "MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'})"
+    " MERGE (a)-[:$type]->(b)",
+    {"type": "FOLLOWS"},
+)
 ```
 
 - **Values.** From Python, a parameter can hold a string, a number, a boolean, `None`, a list, a dict, a time-zone-aware `datetime` (a DateTime) or a `timedelta` (a Duration). See [`query()`](/pythonsdk/reference#core-methods) for the full list, and [Parameters](/jssdk/reference#parameters) for JavaScript values.

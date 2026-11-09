@@ -74,10 +74,12 @@ LIMIT 5
 The procedures `db.getNodes` and `db.listNodes` also return the properties, as a JSON string, together with edge counts:
 
 ```cypher
-CALL db.getNodes([0, 1, 2]) YIELD id, labels, inEdgeCount, outEdgeCount, properties
+CALL db.getNodes([0, 1, 2])
+YIELD id, labels, inEdgeCount, outEdgeCount, properties
 RETURN id, labels, inEdgeCount, outEdgeCount, properties
 
-CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
+CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10)
+YIELD id, labels, properties
 ```
 
 `db.listNodes(labels, properties, skip, limit)` does a case-insensitive substring search on property values.
@@ -85,7 +87,9 @@ CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
 ```python
 import json
 
-df = client.query("CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties")
+df = client.query(
+    "CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties"
+)
 df["properties"] = df["properties"].map(json.loads)
 ```
 
@@ -97,7 +101,8 @@ RETURN labels(n) AS labels, count(*) AS n
 ORDER BY n DESC
 
 MATCH (a)-[r]->(b)
-RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst, count(*) AS n
+RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst,
+  count(*) AS n
 ORDER BY n DESC
 
 MATCH (n:Person)

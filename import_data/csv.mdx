@@ -11,7 +11,8 @@ The file must live in the `data` subdirectory of the TuringDB working directory 
 ## Syntax
 
 ```
-LOAD CSV "<file>" [WITH HEADERS] [ON ERROR SKIP | ON ERROR FAIL] AS <row>
+LOAD CSV "<file>" [WITH HEADERS]
+  [ON ERROR SKIP | ON ERROR FAIL] AS <row>
 ```
 
 | Clause | Description |
@@ -60,8 +61,12 @@ Because `LOAD CSV` yields rows, you can drive `CREATE` from it inside a change:
 
 ```python
 client.new_change()
-client.query('LOAD CSV "people.csv" WITH HEADERS AS row CREATE (:Person {name: row.name, age: toInteger(row.age)})')
-client.query("COMMIT")   # make the new nodes visible to the next query
+client.query(
+    'LOAD CSV "people.csv" WITH HEADERS AS row '
+    'CREATE (:Person {name: row.name, age: toInteger(row.age)})'
+)
+# make the new nodes visible to the next query
+client.query("COMMIT")
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```

@@ -29,7 +29,9 @@ A web page reaches the server through its own origin instead, so in the browser 
 ```js
 import { TuringClient } from "turingdb";
 
-const client = new TuringClient({ url: "http://localhost:6686/query" });
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+});
 
 await client.query("CREATE GRAPH people");
 client.setGraph("people");
@@ -43,13 +45,17 @@ Writes run inside a change, as with the Python SDK (see [Writing data](/query/wr
 
 ```js
 const { chunks } = await client.query("CHANGE NEW");
-const change = chunks[0].columns[0].get(0);   // the change ID, a bigint
+// the change ID, a bigint
+const change = chunks[0].columns[0].get(0);
 client.setChange(change);
 
 await client.query("CREATE (:Person {name: $name, age: $age})", {
     parameters: { name: "Marie", age: 33 },
 });
-await client.query("CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})");
+await client.query(
+    "CREATE (:Person {name: 'Jane'})" +
+    "-[:KNOWS]->(:Person {name: 'John'})",
+);
 
 await client.query("CHANGE SUBMIT");
 client.setChange("main");   // back to main
@@ -73,7 +79,10 @@ console.log(ages);    // [ null, null, 33 ]
 Results are column-oriented: `names` holds the first column for every row. A result streams in chunks of up to 65,536 rows, so loop over the chunks when a query can return more:
 
 ```js
-for (const [names, ages] of await client.queryData("MATCH (p:Person) RETURN p.name, p.age")) {
+const result = await client.queryData(
+    "MATCH (p:Person) RETURN p.name, p.age",
+);
+for (const [names, ages] of result) {
     // one chunk: names[i] and ages[i] belong to the same row
 }
 ```
@@ -87,11 +96,15 @@ The declarations ship with the package, so no `@types` package is needed:
 ```ts
 import { TuringClient, TuringQueryError } from "turingdb";
 
-const client = new TuringClient({ url: "http://localhost:6686/query", graph: "people" });
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+    graph: "people",
+});
 
 async function namesOlderThan(age: number): Promise<string[]> {
     const chunks = await client.queryData(
-        "MATCH (p:Person) WHERE p.age > $age RETURN p.name ORDER BY p.name",
+        "MATCH (p:Person) WHERE p.age > $age " +
+        "RETURN p.name ORDER BY p.name",
         { parameters: { age } },
     );
     return chunks.flatMap(([names]) => names as string[]);
@@ -101,7 +114,8 @@ try {
     console.log(await namesOlderThan(30));   // [ 'Marie' ]
 } catch (e) {
     if (e instanceof TuringQueryError) {
-        console.error(e.status, e.message);   // for example PARSE_ERROR and where the query failed
+        // for example PARSE_ERROR, and where the query failed
+        console.error(e.status, e.message);
     } else {
         throw e;
     }
@@ -123,11 +137,13 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
     optimizeDeps: {
-        exclude: ["turingdb"],   // keep the client next to its .wasm decoder
+        // keep the client next to its .wasm decoder
+        exclude: ["turingdb"],
     },
     server: {
         proxy: {
-            "/query": "http://localhost:6666",   // the TuringDB server
+            // the TuringDB server
+            "/query": "http://localhost:6666",
         },
     },
 });
@@ -137,12 +153,16 @@ export default defineConfig({
 // src/main.ts
 import { TuringClient } from "turingdb";
 
-const client = new TuringClient({ graph: "people" });   // url defaults to /query
+// url defaults to /query
+const client = new TuringClient({ graph: "people" });
 
 async function showPeople(): Promise<void> {
-    const chunks = await client.queryData("MATCH (p:Person) RETURN p.name ORDER BY p.name");
+    const chunks = await client.queryData(
+        "MATCH (p:Person) RETURN p.name ORDER BY p.name",
+    );
     const names = chunks.flatMap(([column]) => column);
-    document.querySelector("#people")!.textContent = names.join(", ");
+    const list = document.querySelector("#people")!;
+    list.textContent = names.join(", ");
 }
 
 showPeople();

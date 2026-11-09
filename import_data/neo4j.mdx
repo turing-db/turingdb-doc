@@ -21,7 +21,8 @@ If your database was created with Neo4j 4.x, you need to migrate it to the 5.x f
 
 ```bash
 # Load your v4 dump
-neo4j-admin database load --from-stdin neo4j --overwrite-destination=true < mydb.dump
+neo4j-admin database load --from-stdin neo4j \
+  --overwrite-destination=true < mydb.dump
 
 # Migrate to v5 format
 neo4j-admin database migrate neo4j --force-btree-indexes-to-range

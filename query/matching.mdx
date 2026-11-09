@@ -10,10 +10,14 @@ The examples on this page use a small graph of people, companies and interests. 
 
 ```cypher
 CREATE
-  (alice:Person {name: 'Alice', age: 30, city: 'London', active: true, tags: ['admin', 'vip']}),
-  (bob:Person {name: 'Bob', age: 35, city: 'London', active: true, tags: ['dev']}),
-  (carol:Person {name: 'Carol', age: 28, city: 'Paris', active: false, tags: ['dev', 'vip']}),
-  (dave:Person {name: 'Dave', age: 41, city: 'Paris', active: true}),
+  (alice:Person {name: 'Alice', age: 30, city: 'London',
+    active: true, tags: ['admin', 'vip']}),
+  (bob:Person {name: 'Bob', age: 35, city: 'London',
+    active: true, tags: ['dev']}),
+  (carol:Person {name: 'Carol', age: 28, city: 'Paris',
+    active: false, tags: ['dev', 'vip']}),
+  (dave:Person {name: 'Dave', age: 41, city: 'Paris',
+    active: true}),
   (acme:Company {name: 'Acme', founded: 1999}),
   (globex:Company {name: 'Globex', founded: 2010}),
   (music:Interest {name: 'Music'}),
@@ -112,7 +116,8 @@ RETURN n.name
 A `WHERE` can sit inside a node or edge pattern. The variable must be named:
 
 ```cypher
-MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+MATCH (a:Person WHERE a.age > 30)
+  -[r:KNOWS WHERE r.since > 2012]->(b)
 RETURN b.name
 ```
 
@@ -161,7 +166,9 @@ WHERE n.age >= 18 AND n.city = 'London'
 RETURN n.name
 
 MATCH (n:Person)
-WHERE n.name STARTS WITH 'A' OR n.name ENDS WITH 'e' OR n.name CONTAINS 'ro'
+WHERE n.name STARTS WITH 'A'
+  OR n.name ENDS WITH 'e'
+  OR n.name CONTAINS 'ro'
 RETURN n.name
 
 MATCH (n:Person)
@@ -197,7 +204,8 @@ WHERE NOT (p)-[:KNOWS]->()
 RETURN p.name
 
 MATCH (p:Person)
-RETURN p.name, exists((p)-[:WORKS_AT]->(:Company {name: 'Acme'})) AS atAcme
+RETURN p.name,
+  exists((p)-[:WORKS_AT]->(:Company {name: 'Acme'})) AS atAcme
 ```
 
 - **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type, and `n IS Person` is the same test written with `IS`. Combine them with `AND`, `OR` and `NOT`, or write a [label expression](#label-expressions) such as `n:Person|Company` or `n IS Person|Company`. Negate an `IS` test with `NOT n IS Person`.
@@ -321,7 +329,10 @@ RETURN n.name
 
 ```python
 client.query("MATCH (n) WHERE n = $id RETURN n.name", {"id": 0})
-client.query("UNWIND $ids AS x MATCH (n) WHERE n = x RETURN x, n.name", {"ids": [0, 1, 2]})
+client.query(
+    "UNWIND $ids AS x MATCH (n) WHERE n = x RETURN x, n.name",
+    {"ids": [0, 1, 2]},
+)
 ```
 
 - **Batches.** `UNWIND` a list of IDs and compare each one: `UNWIND $ids AS x MATCH (n) WHERE n = x`. The list can be a parameter, written in the query, held in a variable, or built with `collect()` or `range()`, and each ID costs a few microseconds. A list written in the query also works as `WHERE n IN [0, 1, 2]`.

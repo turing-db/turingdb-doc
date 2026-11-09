@@ -654,10 +654,13 @@ The benchmark script generates a timestamped report and optionally updates the R
   ### Property-Based Filtering
 
   ```
-  MATCH (p:Person {name: 'John'})-[:PARTY_TO]->(c:Crime) RETURN p, c
+  MATCH (p:Person {name: 'John'})-[:PARTY_TO]->(c:Crime)
+    RETURN p, c
   MATCH (p:Person {surname: 'Smith'})-[r]->(n) RETURN p
   MATCH (p:Person)-[r]->(n) WHERE p.surname = 'Smith' RETURN p
-  MATCH (p1:Person)-[:PARTY_TO]->(c:Crime)<-[:PARTY_TO]-(p2:Person) WHERE p1 <> p2 RETURN p1.name, p2.name, c.type
+  MATCH (p1:Person)-[:PARTY_TO]->(c:Crime)
+    <-[:PARTY_TO]-(p2:Person)
+    WHERE p1 <> p2 RETURN p1.name, p2.name, c.type
   ```
 
   ### Aggregations
@@ -671,8 +674,10 @@ The benchmark script generates a timestamped report and optionally updates the R
   ### Relationship Type Traversal
 
   ```
-  MATCH (p:Person)-[:PARTY_TO]->(c:Crime) RETURN p.name, p.surname, c.type
-  MATCH (p1:Person)-[:KNOWS]->(p2:Person)-[:PARTY_TO]->(c:Crime) RETURN p1.name, p2.name
+  MATCH (p:Person)-[:PARTY_TO]->(c:Crime)
+    RETURN p.name, p.surname, c.type
+  MATCH (p1:Person)-[:KNOWS]->(p2:Person)
+    -[:PARTY_TO]->(c:Crime) RETURN p1.name, p2.name
   MATCH (c:Crime)-[:OCCURRED_AT]->(l:Location) RETURN l.postcode
   ```
 
@@ -689,10 +694,14 @@ The benchmark script generates a timestamped report and optionally updates the R
   ### Property-Based Filtering
 
   ```
-  MATCH (n{displayName:"Autophagy"}) RETURN n
-  MATCH (n{displayName:"Autophagy"})-->(m) RETURN m
-  MATCH (n{displayName:"APOE-4 [extracellular region]"}) RETURN n
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m) RETURN m
+  MATCH (n{displayName:"Autophagy"})
+    RETURN n
+  MATCH (n{displayName:"Autophagy"})
+    -->(m) RETURN m
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    RETURN n
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m) RETURN m
   MATCH (n:DatabaseObject{isChimeric:false}) RETURN n
   MATCH (n:DatabaseObject{isChimeric:true}) RETURN n
   ```
@@ -700,18 +709,30 @@ The benchmark script generates a timestamped report and optionally updates the R
   ### Multi-Hop Traversals
 
   ```
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p) RETURN p
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p)-->(q) RETURN q
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p)-->(q)-->(r) RETURN r
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p)-->(q)-->(r)-->(s) RETURN s
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p)-->(q)-->(r)-->(s)-->(t) RETURN t
-  MATCH (n{displayName:"Autophagy"})-->(m)-->(p)-->(q)-->(r)-->(s)-->(t)-->(v) RETURN v
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p) RETURN p
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p)-->(q) RETURN q
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p)-->(q)-->(r) RETURN r
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p)-->(q)-->(r)-->(s) RETURN s
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p)-->(q)-->(r)-->(s)-->(t) RETURN t
-  MATCH (n{displayName:"APOE-4 [extracellular region]"})-->(m)-->(p)-->(q)-->(r)-->(s)-->(t)-->(v) RETURN v
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p) RETURN p
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p)-->(q) RETURN q
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p)-->(q)-->(r) RETURN r
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p)-->(q)-->(r)-->(s) RETURN s
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p)-->(q)-->(r)-->(s)-->(t) RETURN t
+  MATCH (n{displayName:"Autophagy"})
+    -->(m)-->(p)-->(q)-->(r)-->(s)-->(t)-->(v) RETURN v
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p) RETURN p
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p)-->(q) RETURN q
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p)-->(q)-->(r) RETURN r
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p)-->(q)-->(r)-->(s) RETURN s
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p)-->(q)-->(r)-->(s)-->(t) RETURN t
+  MATCH (n{displayName:"APOE-4 [extracellular region]"})
+    -->(m)-->(p)-->(q)-->(r)-->(s)-->(t)-->(v) RETURN v
   ```
 
   ### Relationship Type Traversal
@@ -721,8 +742,10 @@ The benchmark script generates a timestamped report and optionally updates the R
   MATCH (n)-[e:interactor]->(m) RETURN n,m
   MATCH (n)-[e:surroundedBy]->(m) RETURN n,m
   MATCH (n)-[:hasEvent]->(m) RETURN n,m
-  MATCH (n:Pathway)-[:hasEvent]->(m:ReactionLikeEvent) RETURN n,m
-  MATCH (r:ReactionLikeEvent)-[:output]->(s:PhysicalEntity) RETURN r,s
+  MATCH (n:Pathway)-[:hasEvent]->(m:ReactionLikeEvent)
+    RETURN n,m
+  MATCH (r:ReactionLikeEvent)-[:output]->(s:PhysicalEntity)
+    RETURN r,s
   ```
 
   ### Complex Patterns

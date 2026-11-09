@@ -59,8 +59,10 @@ Each query takes these options:
 const controller = new AbortController();
 setTimeout(() => controller.abort(), 5000);
 
-// rejects with an AbortError if the query runs for more than 5 seconds
-await client.query("MATCH (n) RETURN count(n)", { signal: controller.signal });
+// rejects with an AbortError if it runs longer than 5 seconds
+await client.query("MATCH (n) RETURN count(n)", {
+    signal: controller.signal,
+});
 ```
 
 ## Results
@@ -77,7 +79,9 @@ await client.query("MATCH (n) RETURN count(n)", { signal: controller.signal });
 A result streams in chunks of up to 65,536 rows, and each chunk holds every column of its rows. A result with no rows is one chunk of empty columns, so `RETURN a, b` matching nothing gives `[[[], []]]` from `queryData()`.
 
 ```js
-const { chunks } = await client.query("MATCH (p:Person) RETURN p.name AS name, p.age AS age");
+const { chunks } = await client.query(
+    "MATCH (p:Person) RETURN p.name AS name, p.age AS age",
+);
 
 for (const { names, columns } of chunks) {
     const [name, age] = columns;
@@ -102,7 +106,9 @@ for (const { names, columns } of chunks) {
 `values` reads a large numeric column without building a JavaScript value per row. A row that holds null reads as `0` there, so check `validity`:
 
 ```js
-const { chunks } = await client.query("MATCH (p:Person) RETURN p.age ORDER BY p.age");
+const { chunks } = await client.query(
+    "MATCH (p:Person) RETURN p.age ORDER BY p.age",
+);
 const ages = chunks[0].columns[0];
 
 ages.values;      // BigInt64Array [ 33n, 0n, 0n ]
@@ -130,9 +136,11 @@ ages.toArray();   // [ 33n, null, null ]
 To turn a DateTime into a JavaScript `Date`, which holds milliseconds:
 
 ```js
-const { chunks } = await client.query("RETURN datetime('2024-03-15T10:30:00Z') AS d");
+const { chunks } = await client.query(
+    "RETURN datetime('2024-03-15T10:30:00Z') AS d",
+);
 const micros = chunks[0].columns[0].get(0);   // 1710498600000000n
-new Date(Number(micros / 1000n));             // 2024-03-15T10:30:00.000Z
+new Date(Number(micros / 1000n));   // 2024-03-15T10:30:00.000Z
 ```
 
 ## Parameters
@@ -140,14 +148,21 @@ new Date(Number(micros / 1000n));             // 2024-03-15T10:30:00.000Z
 `query(cypher, { parameters })` binds each `$name` in the query to `parameters.name`. A parameter can stand for a value anywhere an expression goes, or for a label or an edge type (see [Query parameters](/query/cypher_subset#query-parameters)):
 
 ```js
-await client.query("MATCH (p:Person) WHERE p.age >= $age RETURN p.name", {
-    parameters: { age: 30 },
-});
+await client.query(
+    "MATCH (p:Person) WHERE p.age >= $age RETURN p.name",
+    { parameters: { age: 30 } },
+);
 
 // a write, so inside a change (see Versioning below)
-await client.query("UNWIND $rows AS row CREATE (:City {name: row.name, pop: row.pop})", {
-    parameters: { rows: [{ name: "Brest", pop: 139000 }, { name: "Rennes", pop: 220000 }] },
-});
+const rows = [
+    { name: "Brest", pop: 139000 },
+    { name: "Rennes", pop: 220000 },
+];
+await client.query(
+    "UNWIND $rows AS row " +
+    "CREATE (:City {name: row.name, pop: row.pop})",
+    { parameters: { rows } },
+);
 ```
 
 | JavaScript value | Sent as |
@@ -188,11 +203,16 @@ client.setChange("main");
 To read a past commit, load it with `LOAD COMMIT` and then pass its hash:
 
 ```js
-const [[commits]] = await client.queryData("CALL db.history() YIELD `commit` RETURN `commit`");
-const previous = commits[1];   // newest first: commits[0] is the latest one, marked (HEAD)
+const [[commits]] = await client.queryData(
+    "CALL db.history() YIELD `commit` RETURN `commit`",
+);
+// newest first: commits[0] is the latest one, marked (HEAD)
+const previous = commits[1];
 
 await client.query(`LOAD COMMIT '${previous}'`);
-await client.queryData("MATCH (p:Person) RETURN count(p)", { commit: previous });
+await client.queryData("MATCH (p:Person) RETURN count(p)", {
+    commit: previous,
+});
 ```
 
 - Unlike the Python SDK's `checkout()`, the client does not load a past commit for you. Without `LOAD COMMIT`, a query on a commit that is not in memory fails with `COMMIT_NOT_LOADED`. `LOAD COMMIT` on a loaded commit does nothing.
@@ -211,7 +231,9 @@ try {
 } catch (e) {
     if (e instanceof TuringQueryError) {
         console.log(e.status);    // PARSE_ERROR
-        console.log(e.message);   // the query, a marker under the error, and "syntax error, unexpected RETURN"
+        // the query, a marker under the error,
+        // and "syntax error, unexpected RETURN"
+        console.log(e.message);
     }
 }
 ```

@@ -84,7 +84,10 @@ change = client.new_change()
 client.checkout(change=change)
 
 # Write, commit, and submit
-client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+client.query(
+    "CREATE (n:Person {name: 'Jane'})"
+    "-[e:KNOWS]->(m:Person {name: 'John'})"
+)
 client.query("COMMIT")
 client.query("CHANGE SUBMIT")
 
@@ -97,18 +100,24 @@ client.query("MATCH (n) RETURN n")
 import { TuringClient } from "turingdb";
 
 // Connect to a running TuringDB server (started with -p 6686)
-const client = new TuringClient({ url: "http://localhost:6686/query", graph: "mygraph" });
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+    graph: "mygraph",
+});
 
 // Query the graph, with a parameter
 const [[names]] = await client.queryData(
-    "MATCH (n:Person) WHERE n.name STARTS WITH $prefix RETURN n.name",
+    `MATCH (n:Person)
+     WHERE n.name STARTS WITH $prefix
+     RETURN n.name`,
     { parameters: { prefix: "J" } },
 );
 ```
 
 ```bash Docker
 # Run TuringDB in a container
-# (other install methods are preferred — Docker adds some performance loss)
+# (other install methods are preferred:
+#  Docker adds some performance loss)
 docker run -it turingdbai/turingdb:nightly turingdb
 ```
 

@@ -35,7 +35,8 @@ RETURN n.name
 MATCH (a:Person)-[e]-(b)
 RETURN a.name, b.name
 
-MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+MATCH (a:Person WHERE a.age > 30)
+  -[r:KNOWS WHERE r.since > 2012]->(b)
 RETURN b.name
 
 MATCH (n:Person)
@@ -145,10 +146,22 @@ RETURN n.name
 [Query parameters](/query/cypher_subset#query-parameters)
 
 ```python
-client.query("MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name", {"minAge": 30})
-client.query("MATCH (n:Person {name: $name}) RETURN n.age", {"name": "O'Brien"})
-client.query("UNWIND $rows AS row CREATE (:City {name: row.name, pop: row.pop})", {"rows": [{"name": "Brest", "pop": 139000}]})
-client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
+client.query(
+    "MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name",
+    {"minAge": 30},
+)
+client.query(
+    "MATCH (n:Person {name: $name}) RETURN n.age",
+    {"name": "O'Brien"},
+)
+client.query(
+    "UNWIND $rows AS row "
+    "CREATE (:City {name: row.name, pop: row.pop})",
+    {"rows": [{"name": "Brest", "pop": 139000}]},
+)
+client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
 ```
 
 - A parameter holds a value anywhere an expression goes, or a label or an edge type. No quoting or escaping is needed.
@@ -192,14 +205,16 @@ RETURN DISTINCT b.name
 MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b)
 RETURN DISTINCT b.name
 
-MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
+MATCH (a:Person {name: 'Alice'})
+  ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
 RETURN b.name
 
 MATCH (a:Person {name: 'Alice'})-[e:KNOWS]->+(b)
 RETURN b.name, [r IN e | r.since]
 
 MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
-RETURN [n IN nodes(p) | n.name], length(p), reduce(t = 0, r IN relationships(p) | t + r.since)
+RETURN [n IN nodes(p) | n.name], length(p),
+  reduce(t = 0, r IN relationships(p) | t + r.since)
 ```
 
 - Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
@@ -258,7 +273,8 @@ ELSE RETURN 'small' AS size
 
 ```cypher
 MATCH (n:Person)
-RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
+RETURN count(*), count(n.age), sum(n.age),
+  avg(n.age), min(n.age), max(n.age)
 
 MATCH (a:Person)-[:WORKS_AT]->(c:Company)
 RETURN c.name, count(a) AS employees, collect(a.name) AS who
@@ -303,7 +319,8 @@ RETURN n.name
 RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
 
 MATCH (n:Person)
-RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
+RETURN n.name,
+  CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
 
 MATCH (n:Person)
 RETURN n {.name, .age, nextAge: n.age + 1} AS person
@@ -327,10 +344,14 @@ MATCH (p:Person)
 RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
 
 MATCH (p:Person)
-RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+RETURN p.name,
+  COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
 
 MATCH (c:Company)
-RETURN c.name, COLLECT { MATCH (p:Person)-[:WORKS_AT]->(c) RETURN p.name ORDER BY p.age DESC LIMIT 1 } AS oldest
+RETURN c.name, COLLECT {
+  MATCH (p:Person)-[:WORKS_AT]->(c)
+  RETURN p.name ORDER BY p.age DESC LIMIT 1
+} AS oldest
 
 MATCH (p:Person)
 CALL (*) {
@@ -380,7 +401,10 @@ RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1})
 MATCH (n:Document)
 RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 
-RETURN round(point.distance(point({latitude: 51.5074, longitude: -0.1278}), point({latitude: 48.8566, longitude: 2.3522}))) AS meters
+RETURN round(point.distance(
+  point({latitude: 51.5074, longitude: -0.1278}),
+  point({latitude: 48.8566, longitude: 2.3522})
+)) AS meters
 ```
 
 - Function names are case-insensitive.
@@ -411,7 +435,8 @@ CHANGE NEW
 
 CREATE (:Person {name: 'Alice', age: 30})
 
-CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+CREATE (:Person {name: 'Mick'})
+  -[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
 
 COMMIT
 
@@ -474,11 +499,13 @@ Outputs can be chained: `CALL db.labels() YIELD label MATCH (n) WHERE label IN l
 ## Graph algorithms and search
 
 ```cypher
-MATCH (a:Station {name: 'Ashchurch'}), (b:Station {name: 'Pershore'})
+MATCH (a:Station {name: 'Ashchurch'}),
+  (b:Station {name: 'Pershore'})
 shortestPath(a, b, distance, dist, path)
 RETURN dist, path
 
-VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1) YIELD ids, score
+VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1)
+YIELD ids, score
 RETURN ids, score
 ```
 

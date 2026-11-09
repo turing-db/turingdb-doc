@@ -43,7 +43,8 @@ RETURN abs(-3), round(2.5), sqrt(16.0), pi()
 MATCH (n:Person)
 RETURN n.name, coalesce(n.nickname, n.name)
 
-RETURN substring('hello', 1, 3), left('hello', 2), split('a,b,c', ','), replace('aXbX', 'X', '-')
+RETURN substring('hello', 1, 3), left('hello', 2),
+  split('a,b,c', ','), replace('aXbX', 'X', '-')
 
 MATCH (n:Person)
 WHERE toLower(n.name) STARTS WITH 'a'
@@ -52,7 +53,8 @@ RETURN n.name
 MATCH (n:Person {name: 'Alice'})
 RETURN keys(n), properties(n), elementId(n)
 
-RETURN toIntegerOrNull('x'), toString(datetime('2024-03-15T10:30:00Z'))
+RETURN toIntegerOrNull('x'),
+  toString(datetime('2024-03-15T10:30:00Z'))
 ```
 
 ### String functions
@@ -60,18 +62,21 @@ RETURN toIntegerOrNull('x'), toString(datetime('2024-03-15T10:30:00Z'))
 Positions are 0-based, and `substring` without a length runs to the end of the string:
 
 ```cypher
-RETURN substring('hello', 1, 3) AS s, substring('hello', 2) AS rest
+RETURN substring('hello', 1, 3) AS s,
+  substring('hello', 2) AS rest
 
 RETURN left('hello', 2) AS l, right('hello', 3) AS r
 
-RETURN split('a.b.c', '.') AS parts, replace('banana', 'a', 'o') AS swapped
+RETURN split('a.b.c', '.') AS parts,
+  replace('banana', 'a', 'o') AS swapped
 
 RETURN split('a,b;c', [',', ';']) AS parts
 
 RETURN char_length('héllo') AS chars, size('héllo') AS alsoChars
 
 MATCH (n:Person)
-RETURN toUpper(left(n.name, 1)) + toLower(substring(n.name, 1)) AS display
+RETURN toUpper(left(n.name, 1)) + toLower(substring(n.name, 1))
+  AS display
 ```
 
 `split` with a list of delimiters splits on each of them, so the fourth query returns `['a', 'b', 'c']`.
@@ -79,19 +84,23 @@ RETURN toUpper(left(n.name, 1)) + toLower(substring(n.name, 1)) AS display
 `normalize` converts a string to a Unicode normal form (`NFC` by default, or `NFD`, `NFKC`, `NFKD`), and `IS NORMALIZED` tests for one:
 
 ```cypher
-RETURN normalize('ﬁ', NFKC) AS plain, 'café' IS NFC NORMALIZED AS composed
+RETURN normalize('ﬁ', NFKC) AS plain,
+  'café' IS NFC NORMALIZED AS composed
 ```
 
 ### Lists
 
 ```cypher
-RETURN isEmpty([]) AS emptyList, isEmpty('') AS emptyString, isEmpty({}) AS emptyMap
+RETURN isEmpty([]) AS emptyList, isEmpty('') AS emptyString,
+  isEmpty({}) AS emptyMap
 
 MATCH (n:Person {name: 'Carol'})
-RETURN coll.indexOf(n.tags, 'vip') AS position, coll.indexOf(n.tags, 'admin') AS missing
+RETURN coll.indexOf(n.tags, 'vip') AS position,
+  coll.indexOf(n.tags, 'admin') AS missing
 
-RETURN allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 10) AS staysUnder10,
-  allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 5) AS staysUnder5
+RETURN
+  allReduce(t = 0, x IN [1, 2, 3] | t + x, t < 10) AS under10,
+  allReduce(t = 0, x IN [1, 2, 3] | t + x, t < 5) AS under5
 ```
 
 - `coll.indexOf(list, value)` returns the position of the first element equal to `value`, or `-1`. The second query returns `1` and `-1`.
@@ -103,9 +112,11 @@ RETURN allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 10) AS staysUnde
 The strict conversions return `null` for a string they cannot read, and reject other values they cannot convert. The `OrNull` forms return `null` instead of rejecting:
 
 ```cypher
-RETURN toInteger('12') AS i, toInteger('x') AS bad, toInteger(true) AS fromBool, toBoolean(1) AS b
+RETURN toInteger('12') AS i, toInteger('x') AS bad,
+  toInteger(true) AS fromBool, toBoolean(1) AS b
 
-RETURN toIntegerOrNull('12') AS a, toFloatOrNull('2.5') AS c, toBooleanOrNull('yes') AS d, toStringOrNull(3.5) AS e
+RETURN toIntegerOrNull('12') AS a, toFloatOrNull('2.5') AS c,
+  toBooleanOrNull('yes') AS d, toStringOrNull(3.5) AS e
 
 RETURN toString(duration({days: 2, hours: 3})) AS iso
 ```
@@ -147,13 +158,18 @@ RETURN datetime('2024-03-15') AS midnight
 
 RETURN datetime(1700000000) AS fromEpoch
 
-RETURN datetime({year: 2024, month: 3, day: 15, hour: 10, minute: 30}) AS fromParts
+RETURN datetime({
+  year: 2024, month: 3, day: 15, hour: 10, minute: 30
+}) AS fromParts
 
-RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1, hours: 2}) AS later
+RETURN datetime('2024-03-15T10:30:00Z')
+  + duration({days: 1, hours: 2}) AS later
 
-RETURN datetime('2024-03-16T00:00:00Z') - datetime('2024-03-15T00:00:00Z') AS elapsed
+RETURN datetime('2024-03-16T00:00:00Z')
+  - datetime('2024-03-15T00:00:00Z') AS elapsed
 
-RETURN datetime('2024-03-15T10:30:00Z').year, datetime('2024-03-15T10:30:00Z').month
+RETURN datetime('2024-03-15T10:30:00Z').year,
+  datetime('2024-03-15T10:30:00Z').month
 
 RETURN duration({days: 2, hours: 3}).hours
 ```
@@ -163,7 +179,8 @@ Durations can be added, subtracted, scaled, compared, summed and averaged:
 ```cypher
 RETURN duration({hours: 36}) + duration({hours: 12}) AS total
 
-RETURN duration({days: 2, hours: 12}) - duration({days: 1}) AS remaining
+RETURN duration({days: 2, hours: 12}) - duration({days: 1})
+  AS remaining
 
 RETURN duration({days: 2}) * 3 AS threeTimes
 
@@ -254,18 +271,26 @@ RETURN d {.year, .month} AS parts
 A point is a location, 2D or 3D, either on a plane (cartesian) or on the Earth (WGS-84). `point()` builds one from a map:
 
 ```cypher
-RETURN point({x: 1, y: 2}) AS flat, point({x: 1, y: 2, z: 3}) AS space
+RETURN point({x: 1, y: 2}) AS flat,
+  point({x: 1, y: 2, z: 3}) AS space
 
 RETURN point({latitude: 51.5074, longitude: -0.1278}) AS london
 
 WITH point({latitude: 51.5074, longitude: -0.1278}) AS p
 RETURN p.latitude, p.longitude, p.srid, p.crs
 
-RETURN point.distance(point({x: 0, y: 0}), point({x: 3, y: 4})) AS d
+RETURN point.distance(
+  point({x: 0, y: 0}), point({x: 3, y: 4})
+) AS d
 
-RETURN round(point.distance(point({latitude: 51.5074, longitude: -0.1278}), point({latitude: 48.8566, longitude: 2.3522}))) AS londonToParis
+RETURN round(point.distance(
+  point({latitude: 51.5074, longitude: -0.1278}),
+  point({latitude: 48.8566, longitude: 2.3522})
+)) AS londonToParis
 
-RETURN point.withinBBox(point({x: 1, y: 1}), point({x: 0, y: 0}), point({x: 2, y: 2})) AS inside
+RETURN point.withinBBox(
+  point({x: 1, y: 1}), point({x: 0, y: 0}), point({x: 2, y: 2})
+) AS inside
 ```
 
 The keys of the map choose the coordinate reference system (CRS):
@@ -288,11 +313,16 @@ The keys of the map choose the coordinate reference system (CRS):
 Store a point as a property like any other value, and filter on distance:
 
 ```cypher
-CREATE (:City {name: 'Paris', at: point({latitude: 48.8566, longitude: 2.3522})}),
-  (:City {name: 'London', at: point({latitude: 51.5074, longitude: -0.1278})})
+CREATE
+  (:City {name: 'Paris',
+    at: point({latitude: 48.8566, longitude: 2.3522})}),
+  (:City {name: 'London',
+    at: point({latitude: 51.5074, longitude: -0.1278})})
 
 MATCH (c:City)
-WHERE point.distance(c.at, point({latitude: 51.5074, longitude: -0.1278})) < 400000
+WHERE point.distance(
+  c.at, point({latitude: 51.5074, longitude: -0.1278})
+) < 400000
 RETURN c.name
 ```
 
@@ -326,7 +356,8 @@ Embeddings are stored as ordinary properties (type `Embedding`) and compared wit
 
 ```cypher
 MATCH (n:Document)
-RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)) AS sim
+RETURN n.title,
+  cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1)) AS sim
 ORDER BY sim DESC LIMIT 10
 
 MATCH (n:Document)

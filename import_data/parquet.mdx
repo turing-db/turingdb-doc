@@ -13,7 +13,8 @@ To load Parquet files containing a JSON string column, which is then converted i
 `LOAD PARQUET` is the fastest way to get data into TuringDB, and the recommended path for anything beyond a few thousand entities.
 
 ```
-LOAD PARQUET '<directory>' [AS <graph name>] [WITH DURATIONS [<column>, ...]]
+LOAD PARQUET '<directory>' [AS <graph name>]
+  [WITH DURATIONS [<column>, ...]]
 ```
 
 The graph name defaults to the name of the directory. The directory is resolved inside the `data` subdirectory of the TuringDB working directory (`-turing-dir`) and must contain `nodes.parquet` and `edges.parquet`.
@@ -62,15 +63,17 @@ import pandas as pd, pyarrow as pa, pyarrow.parquet as pq
 from pathlib import Path
 
 people = pd.read_csv("people.csv")   # columns: email, name, age
-knows = pd.read_csv("knows.csv")     # columns: src, dst, since  (src and dst are emails)
+# columns: src, dst, since (src and dst are emails)
+knows = pd.read_csv("knows.csv")
 
-ids = {key: i for i, key in enumerate(people["email"])}            # natural key -> int64 __id
+# natural key -> int64 __id
+ids = {key: i for i, key in enumerate(people["email"])}
 nodes = pd.DataFrame({
     "__id": pd.Series(range(len(people)), dtype="int64"),
     "__labels": [["Person"]] * len(people),
     "email": people["email"],
     "name": people["name"],
-    "age": people["age"].astype("Int64"),                          # int64
+    "age": people["age"].astype("Int64"),   # int64
 })
 edges = pd.DataFrame({
     "__source": knows["src"].map(ids).astype("int64"),
@@ -79,10 +82,17 @@ edges = pd.DataFrame({
     "since": knows["since"].astype("int64"),
 })
 
-out = Path.home() / ".turing" / "data" / "people_graph"            # <turing-dir>/data/<directory>
+# <turing-dir>/data/<directory>
+out = Path.home() / ".turing" / "data" / "people_graph"
 out.mkdir(parents=True, exist_ok=True)
-pq.write_table(pa.Table.from_pandas(nodes, preserve_index=False), out / "nodes.parquet")
-pq.write_table(pa.Table.from_pandas(edges, preserve_index=False), out / "edges.parquet")
+pq.write_table(
+    pa.Table.from_pandas(nodes, preserve_index=False),
+    out / "nodes.parquet",
+)
+pq.write_table(
+    pa.Table.from_pandas(edges, preserve_index=False),
+    out / "edges.parquet",
+)
 
 client.query("LOAD PARQUET 'people_graph' AS people")
 client.set_graph("people")
@@ -179,7 +189,8 @@ The example below uses the [OptimusKG](https://optimuskg.ai/) biomedical knowled
 
         cd optimuskg
 
-        MATCH (n:GEN) WHERE n.symbol = 'TSPAN6' RETURN n.id, n.symbol, n.biotype
+        MATCH (n:GEN) WHERE n.symbol = 'TSPAN6'
+        RETURN n.id, n.symbol, n.biotype
         ```
       </Tab>
       <Tab title="Python SDK">

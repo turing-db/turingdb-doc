@@ -9,9 +9,13 @@ All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`, `FOREACH`) must run **
 ## The change workflow
 
 ```python
-client.new_change()                 # CHANGE NEW: the client is now on this change
+# CHANGE NEW: the client is now on this change
+client.new_change()
 
-client.query("CREATE (:Person {name: 'Alice'})-[:KNOWS]->(:Person {name: 'Bob'})")
+client.query(
+    "CREATE (:Person {name: 'Alice'})"
+    "-[:KNOWS]->(:Person {name: 'Bob'})"
+)
 # ... more writes ...
 
 client.query("CHANGE SUBMIT")       # merge the change into main
@@ -40,9 +44,15 @@ See [Create a change](/graph_dev/create_change), [Submit a change](/graph_dev/su
 
 ```python
 client.new_change()
-client.query("CREATE (:Person {name: 'Alice'}), (:Person {name: 'Bob'})")
-client.query("COMMIT")   # make the new nodes visible to the next query
-client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) CREATE (a)-[:KNOWS]->(b)")
+client.query(
+    "CREATE (:Person {name: 'Alice'}), (:Person {name: 'Bob'})"
+)
+# make the new nodes visible to the next query
+client.query("COMMIT")
+client.query(
+    "MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'})"
+    " CREATE (a)-[:KNOWS]->(b)"
+)
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```
@@ -63,14 +73,19 @@ CREATE (:Person {name: 'Alice', age: 30})
 CREATE (a:Person:Employee {name: 'Bob'})
 RETURN a.name, id(a)
 
-CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+CREATE (:Person {name: 'Mick'})
+  -[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
 
 CREATE (a:T {x: 1}), (b:T {x: 2}), (a)-[:R]->(b)
 
-CREATE p = (:City {name: 'Paris'})-[:ROAD {km: 450}]->(:City {name: 'Lyon'})
+CREATE p = (:City {name: 'Paris'})
+  -[:ROAD {km: 450}]->(:City {name: 'Lyon'})
 RETURN p
 
-CREATE (c:City {name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'], info: {zone: 1}, emb: (0.1, 0.2, 0.3)})
+CREATE (c:City {
+  name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'],
+  info: {zone: 1}, emb: (0.1, 0.2, 0.3)
+})
 
 CREATE (n:Item {sku: 'A1'})
 SET n.price = 9.99
@@ -264,9 +279,13 @@ FOREACH (nm IN ['x', 'y', 'x'] | MERGE (:Tag {name: nm}))
 
 MATCH (n:Person)
 WITH collect(n) AS people
-FOREACH (p IN people | SET p.reviewed = true, p.nextAge = p.age + 1)
+FOREACH (p IN people |
+  SET p.reviewed = true, p.nextAge = p.age + 1
+)
 
-FOREACH (i IN [1, 2] | FOREACH (j IN [10, 20] | CREATE (:Cell {v: i * j})))
+FOREACH (i IN [1, 2] |
+  FOREACH (j IN [10, 20] | CREATE (:Cell {v: i * j}))
+)
 ```
 
 The second example creates two `Tag` nodes, since `MERGE` deduplicates, and the last shows that `FOREACH` blocks nest.
@@ -290,7 +309,9 @@ The elements of a list property such as `n.tags` are stored as they are, and a n
 
 ```cypher
 MATCH (n:Person)
-FOREACH (x IN CASE WHEN n.age > 35 THEN [1] ELSE [] END | SET n.senior = true)
+FOREACH (x IN CASE WHEN n.age > 35 THEN [1] ELSE [] END |
+  SET n.senior = true
+)
 ```
 
 A `RETURN` can follow, since `FOREACH` keeps the rows: `MATCH (n:Person) FOREACH (x IN [1] | SET n.seen = true) RETURN count(*)`.
@@ -320,9 +341,14 @@ RETURN count(*)
 Read each node's ID once together with your own key, map your edge list to ID pairs in your application, and create the edges in batches of about 10,000 pairs, passed as a [parameter](/query/cypher_subset#query-parameters):
 
 ```python
-ids = client.query("MATCH (n:Person) RETURN n.pid AS pid, id(n) AS id")
-key_to_id = dict(zip(ids["pid"].tolist(), ids["id"].tolist()))   # .tolist() gives plain ints
-pairs = [[key_to_id[src], key_to_id[dst]] for src, dst in edge_list]
+ids = client.query(
+    "MATCH (n:Person) RETURN n.pid AS pid, id(n) AS id"
+)
+# .tolist() gives plain ints
+key_to_id = dict(zip(ids["pid"].tolist(), ids["id"].tolist()))
+pairs = [
+    [key_to_id[src], key_to_id[dst]] for src, dst in edge_list
+]
 
 client.new_change()
 for i in range(0, len(pairs), 10_000):
@@ -356,7 +382,10 @@ CREATE (:City {name: row[0], code: row[1]})
 Rows can also be maps, or lists of mixed types, and their values are stored as they are:
 
 ```cypher
-UNWIND [{name: 'Brest', pop: 139000}, {name: 'Rennes', pop: 220000}] AS row
+UNWIND [
+  {name: 'Brest', pop: 139000},
+  {name: 'Rennes', pop: 220000}
+] AS row
 CREATE (:City {name: row.name, pop: row.pop})
 
 UNWIND [['Brest', 139000], ['Rennes', 220000]] AS row
@@ -380,8 +409,15 @@ Use `UNWIND` or [`FOREACH`](#foreach) to loop over a list.
 **From Python, pass the rows as a parameter.** Values in a parameter need no quoting or escaping, and take less room than the same values written into the query text:
 
 ```python
-rows = [{"name": "Brest", "pop": 139000}, {"name": "O'Brien Town", "pop": 1200}]
-client.query("UNWIND $rows AS row MERGE (c:City {name: row.name}) SET c.pop = row.pop", {"rows": rows})
+rows = [
+    {"name": "Brest", "pop": 139000},
+    {"name": "O'Brien Town", "pop": 1200},
+]
+client.query(
+    "UNWIND $rows AS row MERGE (c:City {name: row.name}) "
+    "SET c.pop = row.pop",
+    {"rows": rows},
+)
 ```
 
 A request, the query text and its parameters together, can be up to 1 MiB. Split larger batches, as in the edge recipe above.

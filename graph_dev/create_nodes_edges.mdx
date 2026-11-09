@@ -24,7 +24,7 @@ description: "Once you have a valid change, you can start adding new nodes and e
     // You need to commit the changes after node creation
     COMMIT
     
-    // Match Jane and John nodes to create edge of label KNOWS between them
+    // Match Jane and John, then create a KNOWS edge between them
     MATCH (n:Person {name: 'Jane'}), (m:Person {name: 'John'})
     CREATE (n)-[e:KNOWS]->(m)
     
@@ -39,7 +39,10 @@ description: "Once you have a valid change, you can start adding new nodes and e
   <Tab title="Python SDK">
     ```python
     # Create a node Person (Jane) - Edge (knows) - node Person (John)
-    client.query("CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})")
+    client.query(
+        "CREATE (:Person {name: 'Jane'})"
+        "-[:KNOWS]->(:Person {name: 'John'})"
+    )
     
     # Commit the changes
     client.query("COMMIT")
