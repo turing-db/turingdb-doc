@@ -27,37 +27,81 @@ turingdb -reset-default -turing-dir /path/to/your/turing/dir
 
 ---
 
-## `Invalid response from the server` or `Proto header dataLen does not match chunk payload size`
+## `host must be a host name or IP address, not a URL`
 
-These two errors mean the client and the server disagree on the protocol. A TuringDB server speaks **either** JSON over HTTP **or** the binary protocol, chosen when it starts:
+Pass the host and the port separately:
 
-| Error | Cause | Fix |
-|---|---|---|
-| `Invalid response from the server: Expecting value...` from `TuringDB(host=...)` | The server was started with `USE_TURING_PROTO=1` (binary mode) but you used the default JSON client | Connect with `TuringDB(type="native", host="localhost", port=6666)`, or restart the server without `USE_TURING_PROTO` |
-| `Proto header dataLen does not match chunk payload size` from `TuringDB(type="native", ...)` | The server is a normal JSON server | Use the default `TuringDB(host="http://localhost:6666")`, or restart the server with `USE_TURING_PROTO=1` |
+```python
+client = TuringDB(host="localhost", port=6666)
+```
 
-See [client backends](/pythonsdk/reference#client-backends) for details.
-
----
-
-## `The request body must be a JSON object`
-
-The server expects each query as a JSON body, `{"query": "...", "parameters": {...}}`. Two common causes:
-
-- **An older SDK against a 3.0.2 server.** Upgrade the Python SDK to the same version as the server: `pip install 'turingdb>=3.0.2'`.
-- **A raw HTTP request with the query as plain text.** Send JSON instead, see the [HTTP API](/commands#http-api).
+`TuringDB()` alone connects to `localhost:6666`. Similarly, `Unknown type: ... (expected 'native' or 'embedded')` means the `type` argument names a backend that does not exist: leave `type` out to connect to a server. See [client backends](/pythonsdk/reference#client-backends).
 
 ---
 
-## `REQUEST_TOO_BIG`
+## `Failed to connect to localhost:6666: Connection refused`
 
-A request can be up to 1 MiB. Split a large `UNWIND` into batches, for example 10,000 node-ID pairs per request, or load bulk data from a file with [`LOAD PARQUET`](/import_data/parquet) or [`LOAD JSONL`](/import_data/jsonl).
+No server is listening at that address. Start one with `turingdb -demon`, or check the port it was started with (`-p`). The Python client connects as soon as it is created, so this error comes from `TuringDB(...)` itself.
 
 ---
 
-## `401 Unauthorized`
+## A client and a server of different versions
 
-The server was started with `-auth-on` and your client did not send a valid token. Pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. The JSON client raises this as an `httpx.HTTPStatusError`.
+A client speaks the protocol of the server version it was released with, so upgrade the SDKs and the server together. A mismatch shows up as one of these errors:
+
+| Error | Client |
+|---|---|
+| `httpx.HTTPStatusError: Client error '400 Bad Request' for url '.../query?graph=default'` | A Python SDK older than 3.1 against a 3.1 server |
+| `Proto header dataLen does not match chunk payload size` | A 3.1 Python SDK against an older server |
+| `PROTOCOL_ERROR`: `A packet payload of ... bytes is more than the 67108864 bytes the binary protocol allows` | A 3.1 JavaScript SDK against an older server |
+
+Upgrade with `pip install -U turingdb` (or `uv add 'turingdb>=3.1'`) and `npm install turingdb@latest`, then restart the server with the upgraded `turingdb`.
+
+---
+
+## `The request is over the server limit of 1048576 bytes`
+
+A request can be up to 1 MiB, the query text and its parameters together. Split a large batch into several queries, for example 10,000 node-ID pairs per request, or load bulk data from a file with [`LOAD PARQUET`](/import_data/parquet) or [`LOAD JSONL`](/import_data/jsonl). Passing a list as a [parameter](/query/cypher_subset#query-parameters) also takes far less room than writing it into the query text.
+
+When the parameters alone are too large, the Python SDK refuses them before sending: `The query parameters exceed 1048576 bytes`.
+
+---
+
+## `The client is not connected: call connect() before sending a query`
+
+The server closes the connection after refusing a request, for example one over 1 MiB or one with a wrong token, and the Python client stays disconnected. Reconnect, then set the graph again:
+
+```python
+client.reconnect()
+client.set_graph("mygraph")
+```
+
+---
+
+## `Unauthorized: missing or invalid authentication token`
+
+The server was started with `-auth-on` and your client did not send a valid token. In Python, pass `token="..."` to `TuringDB(...)`, or set the `TURINGDB_AUTH_TOKEN` environment variable. In JavaScript, pass `authToken` to `TuringClient`. The Python SDK raises it as `TuringDBException: Protocol error from server: Unauthorized: ...`, and the JavaScript SDK as a `TuringQueryError` with status `PROTOCOL_ERROR`.
+
+---
+
+## JavaScript: `fetch failed`, `bad port` or `Failed to fetch`
+
+- **`fetch failed` with the cause `bad port` in Node.js.** `fetch` refuses port 6666, the server's default. Start the server on another port, such as `turingdb -p 6686`.
+- **`fetch failed` with the cause `ECONNREFUSED`.** No server is listening at the client's `url`.
+- **`Failed to fetch` in a browser.** The page and the server are on different origins, and the server sends no CORS headers. Forward `/query` from the page's own origin to the server, see [In the browser](/jssdk/get_started#in-the-browser).
+- **`expected magic word 00 61 73 6d` with Vite's dev server.** Pre-bundling moved the client away from its `.wasm` decoder. Add `optimizeDeps: { exclude: ["turingdb"] }` to `vite.config.ts`.
+
+---
+
+## `Graph 'mygraph' is on disk but not loaded`
+
+After a restart, the server loads only the `default` graph. Load the others with `LOAD GRAPH mygraph` or `client.load_graph("mygraph")`, or start the server with `-load mygraph`.
+
+---
+
+## `Commit '...' is not loaded to memory`
+
+A past commit has to be loaded before you query it. The Python SDK's `client.checkout(commit=...)` and the shell's `checkout` do it for you. With `set_commit()` in Python or the `commit` option of the JavaScript SDK, run `LOAD COMMIT '<hash>'` first. See [Time travel](/graph_dev/time_travelling#lazy-commit-loading).
 
 ---
 
@@ -81,7 +125,7 @@ Entities created earlier in a change are visible to a later `MATCH` once you run
 
 ## `Function 'X' does not exist`
 
-A few functions are not yet available in TuringDB, such as `rand()`, `date()`, `timestamp()` and `elementId()`. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions) for the full list.
+A few functions are not yet available in TuringDB, such as `rand()`, `date()` and `timestamp()`. In v3, `type()` replaces `edgeType()`. See [Functions and data types](/query/functions) for the full list.
 
 ---
 

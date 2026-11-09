@@ -42,7 +42,8 @@ graph [
   Property names also get a **type suffix**, for example `label (String)` and `weight (String)`. Quote them with backticks in queries, and run `CALL db.propertyTypes()` to see the exact names:
 
   ```jsx
-  MATCH (n:GMLNode) RETURN n.`label (String)`, toInteger(n.`age (String)`)
+  MATCH (n:GMLNode)
+  RETURN n.`label (String)`, toInteger(n.`age (String)`)
   ```
 </Warning>
 
@@ -67,7 +68,7 @@ graph [
         ```python
         from turingdb import TuringDB
         
-        client = TuringDB(host="http://localhost:6666")
+        client = TuringDB(host="localhost", port=6666)
         client.query("LOAD GML 'mygraph.gml' AS mygraph")
         ```
       </Tab>

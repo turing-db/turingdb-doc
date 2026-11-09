@@ -1,0 +1,203 @@
+---
+title: "Get Started"
+sidebarTitle: "Get Started"
+description: "Query TuringDB from Node.js or the browser with the turingdb npm package, in JavaScript or TypeScript."
+---
+
+# QuickStart: TuringDB JavaScript SDK
+
+The `turingdb` npm package is the JavaScript client for TuringDB. It sends Cypher over TuringDB's binary protocol and decodes the results with a WebAssembly build of the engine's own decoder. It runs in Node.js 18 or later and in the browser, has no dependencies, and ships with TypeScript declarations.
+
+## 1. Install the package
+
+```bash
+npm install turingdb
+```
+
+## 2. Start a server
+
+The client queries a running TuringDB server (see [CLI commands](/commands)). Node.js refuses to connect to port 6666, the server's default, because `fetch` blocks it as an unsafe port. For Node.js, start the server on another port:
+
+```bash
+turingdb -demon -p 6686
+```
+
+A web page reaches the server through its own origin instead, so in the browser the server keeps its default port. See [In the browser](#in-the-browser).
+
+## 3. Connect and create a graph
+
+```js
+import { TuringClient } from "turingdb";
+
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+});
+
+await client.query("CREATE GRAPH people");
+client.setGraph("people");
+```
+
+Save the examples on this page as `app.mjs` and run them with `node app.mjs`. Creating a client opens no connection, and each query is a separate request to `url`.
+
+## 4. Write in a change
+
+Writes run inside a change, as with the Python SDK (see [Writing data](/query/writing)). `CHANGE NEW` returns the ID of the new change:
+
+```js
+const { chunks } = await client.query("CHANGE NEW");
+// the change ID, a bigint
+const change = chunks[0].columns[0].get(0);
+client.setChange(change);
+
+await client.query("CREATE (:Person {name: $name, age: $age})", {
+    parameters: { name: "Marie", age: 33 },
+});
+await client.query(
+    "CREATE (:Person {name: 'Jane'})" +
+    "-[:KNOWS]->(:Person {name: 'John'})",
+);
+
+await client.query("CHANGE SUBMIT");
+client.setChange("main");   // back to main
+```
+
+`$name` and `$age` are [query parameters](/query/cypher_subset#query-parameters): the values travel next to the query, so they need no quoting or escaping.
+
+## 5. Query the graph
+
+`queryData` returns plain arrays, nested as chunks, then columns, then rows:
+
+```js
+const [[names, ages]] = await client.queryData(
+    "MATCH (p:Person) RETURN p.name, p.age ORDER BY p.name",
+);
+
+console.log(names);   // [ 'Jane', 'John', 'Marie' ]
+console.log(ages);    // [ null, null, 33 ]
+```
+
+Results are column-oriented: `names` holds the first column for every row. A result streams in chunks of up to 65,536 rows, so loop over the chunks when a query can return more:
+
+```js
+const result = await client.queryData(
+    "MATCH (p:Person) RETURN p.name, p.age",
+);
+for (const [names, ages] of result) {
+    // one chunk: names[i] and ages[i] belong to the same row
+}
+```
+
+`queryData` converts 64-bit integers to `number`. Use `query` to read typed columns, with 64-bit integers and node IDs as `bigint` (see the [Reference](/jssdk/reference#results)).
+
+## TypeScript
+
+The declarations ship with the package, so no `@types` package is needed:
+
+```ts
+import { TuringClient, TuringQueryError } from "turingdb";
+
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+    graph: "people",
+});
+
+async function namesOlderThan(age: number): Promise<string[]> {
+    const chunks = await client.queryData(
+        "MATCH (p:Person) WHERE p.age > $age " +
+        "RETURN p.name ORDER BY p.name",
+        { parameters: { age } },
+    );
+    return chunks.flatMap(([names]) => names as string[]);
+}
+
+try {
+    console.log(await namesOlderThan(30));   // [ 'Marie' ]
+} catch (e) {
+    if (e instanceof TuringQueryError) {
+        // for example PARSE_ERROR, and where the query failed
+        console.error(e.status, e.message);
+    } else {
+        throw e;
+    }
+}
+```
+
+## In the browser
+
+The same package works in a web page. Two things differ from Node.js:
+
+- **Same origin.** The server sends no CORS headers, so the browser refuses a request from a page on another origin (`TypeError: Failed to fetch`). Serve `/query` from the page's own origin and let it forward to the TuringDB server. The client's `url` defaults to `/query` for this.
+- **Vite's dev server.** Exclude `turingdb` from dependency pre-bundling, so that the client still finds its `.wasm` decoder.
+
+With Vite, both fit in the config:
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+
+export default defineConfig({
+    optimizeDeps: {
+        // keep the client next to its .wasm decoder
+        exclude: ["turingdb"],
+    },
+    server: {
+        proxy: {
+            // the TuringDB server
+            "/query": "http://localhost:6666",
+        },
+    },
+});
+```
+
+```ts
+// src/main.ts
+import { TuringClient } from "turingdb";
+
+// url defaults to /query
+const client = new TuringClient({ graph: "people" });
+
+async function showPeople(): Promise<void> {
+    const chunks = await client.queryData(
+        "MATCH (p:Person) RETURN p.name ORDER BY p.name",
+    );
+    const names = chunks.flatMap(([column]) => column);
+    const list = document.querySelector("#people")!;
+    list.textContent = names.join(", ");
+}
+
+showPeople();
+```
+
+`vite build` copies the decoder into the build as an asset (`turing_wasm_decoder-<hash>.wasm`, about 440 kB, 140 kB compressed). Other bundlers that understand `new URL("…", import.meta.url)`, such as webpack 5, do the same. In production, serve the built app and forward `/query` from the same origin, for example with nginx:
+
+```nginx
+server {
+    listen 80;
+    root /var/www/people-app;   # the output of vite build
+
+    location /query {
+        proxy_pass http://127.0.0.1:6666;
+    }
+}
+```
+
+The browser only talks to the proxy, so the TuringDB server can stay on port 6666.
+
+<Warning>
+  A token passed to `authToken` in a web page is visible to anyone who can open the page. For a server started with `-auth-on`, let the proxy add the token, and leave `authToken` unset in the browser:
+
+  ```nginx
+  location /query {
+      proxy_pass http://127.0.0.1:6666;
+      proxy_set_header Authorization "Bearer <your token>";
+  }
+  ```
+
+  The proxy then forwards every query the page sends, writes included, so put your application's own access control in front of it.
+</Warning>
+
+## What's next?
+
+- The [Reference](/jssdk/reference) covers every option, the result columns, value and parameter types, versioning and errors.
+- Learn the [Query Language](/query/cypher_subset) and [query parameters](/query/cypher_subset#query-parameters).
+- Explore [Versioning and changes](/concepts/versioning_system).

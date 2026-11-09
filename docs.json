@@ -126,6 +126,20 @@
             ]
           },
           {
+            "group": "JavaScript SDK",
+            "pages": [
+              "jssdk/get_started",
+              "jssdk/reference"
+            ]
+          },
+          {
+            "group": "Release Notes",
+            "pages": [
+              "releases/overview",
+              "releases/v3-1"
+            ]
+          },
+          {
             "group": "Troubleshooting",
             "pages": [
               "troubles/troubles"

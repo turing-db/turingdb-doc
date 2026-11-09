@@ -41,7 +41,10 @@ CREATE (asch)-[:LINK {distance: 7.25}]->(cnm),
 ## Syntax
 
 ```jsx
-shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVar)
+shortestPath(
+  sourceSet, targetSet, edgePropName,
+  distanceReturnVar, pathReturnVar
+)
 ```
 
 | Parameter           | Description                                                         |
@@ -57,7 +60,8 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
+    MATCH (n{name:"Ashchurch"}),
+      (m{name:"Worcestershire Parkway"})
     shortestPath(n, m, distance, dist, path)
     RETURN dist, path
     ```
@@ -65,7 +69,8 @@ shortestPath(sourceSet, targetSet, edgePropName, distanceReturnVar, pathReturnVa
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
+    MATCH (n{name:"Ashchurch"}),
+      (m{name:"Worcestershire Parkway"})
     shortestPath(n, m, distance, dist, path)
     RETURN dist, path
     """)
@@ -88,7 +93,8 @@ Both output variables are always computed — you can choose to return one or bo
 <Tabs>
   <Tab title="Cypher">
     ```jsx
-    MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
+    MATCH (n{name:"Ashchurch"}),
+      (m{name:"Worcestershire Parkway"})
     shortestPath(n, m, distance, dist, path)
     RETURN dist
     ```
@@ -96,7 +102,8 @@ Both output variables are always computed — you can choose to return one or bo
   <Tab title="Python SDK">
     ```python
     df = client.query("""
-    MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
+    MATCH (n{name:"Ashchurch"}),
+      (m{name:"Worcestershire Parkway"})
     shortestPath(n, m, distance, dist, path)
     RETURN dist
     """)
@@ -149,7 +156,8 @@ If a set matches several source and target nodes, only the single best pair is r
   The variables in the pattern going into `shortestPath` are consumed by the statement, so `RETURN` takes `dist` and `path`. Asking for a pattern variable such as `n` is reported as an error:
 
   ```jsx
-  MATCH (n{name:"Ashchurch"}), (m{name:"Worcestershire Parkway"})
+  MATCH (n{name:"Ashchurch"}),
+    (m{name:"Worcestershire Parkway"})
   shortestPath(n, m, distance, dist, path)
   RETURN dist, path, n
   ```
@@ -170,13 +178,19 @@ To turn the IDs in `path` back into names, run a second query. The even position
 
 ```python
 row = client.query("""
-MATCH (a:Station {name: 'Bromsgrove'}), (b:Station {name: 'Worcester Shrub Hill'})
+MATCH (a:Station {name: 'Bromsgrove'}),
+  (b:Station {name: 'Worcester Shrub Hill'})
 shortestPath(a, b, distance, dist, path)
 RETURN dist, path
 """).iloc[0]
 
-node_ids = [int(i) for i in row["path"][0::2]]     # the stations, from source to target
-names = client.query(f"UNWIND {node_ids} AS x MATCH (n) WHERE n = x RETURN x AS id, n.name AS name")
+# the stations, from source to target
+node_ids = [int(i) for i in row["path"][0::2]]
+names = client.query(
+    "UNWIND $ids AS x MATCH (n) WHERE n = x "
+    "RETURN x AS id, n.name AS name",
+    {"ids": node_ids},
+)
 ```
 
 Each station is looked up directly by its ID (see [lookup by node ID](/query/matching#look-up-nodes-by-native-node-id)).

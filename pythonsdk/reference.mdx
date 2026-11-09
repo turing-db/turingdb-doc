@@ -22,111 +22,83 @@ or using `pip`:
 pip install turingdb
 ```
 
-The SDK targets TuringDB v3: pin `turingdb>=3.0.2` in your project (older projects may pin `1.x`, which uses the previous engine and a much smaller Cypher subset). Upgrade the SDK and the server together: from 3.0.2 the JSON client sends each query as a JSON body, which is what a 3.0.2 server expects. The wheel supports Python 3.10 to 3.14 on Linux (x86_64, aarch64) and macOS 15 or later (arm64). It also contains the `turingdb` command-line tool, the `turing-parquet` import tool, and the in-process engine.
+The SDK targets TuringDB v3: pin `turingdb>=3.1` in your project (older projects may pin `1.x`, which uses the previous engine and a much smaller Cypher subset). Upgrade the SDK and the server together: a 3.1 SDK speaks the binary protocol of a 3.1 server. The wheel supports Python 3.10 to 3.14 on Linux (x86_64, aarch64) and macOS 15 or later (arm64). It also contains the `turingdb` command-line tool, the `turing-parquet` import tool, and the in-process engine.
 
 ## Getting Started
 
 ```python
 from turingdb import TuringDB
 
-# Create TuringDB client
-# set host parameter to the URL (as string) on which TuringDB is running,
-# default "http://localhost:6666"
-client = TuringDB(host="http://localhost:6666")
+# Connect to a server running on this machine (localhost:6666)
+client = TuringDB()
 
-# List available graphs
+# or name the host and the port
+client = TuringDB(host="localhost", port=6666)
+
+# List the graphs on disk
 print(client.list_available_graphs())
 ```
 
 ## Client backends
 
-`TuringDB(...)` is a facade over three interchangeable backends, chosen with the `type` argument (or the `TURINGDB_TYPE` environment variable, default `"json"`):
+`TuringDB(...)` is a facade over two interchangeable backends, chosen with the `type` argument:
 
-| `type` | Encoding / transport | Constructor arguments |
-| ------ | -------------------- | --------------------- |
-| `"json"` *(default)* | JSON over HTTP against a running server | `host="http://localhost:6666"`, optional `token` |
-| `"native"` | TuringDB's binary protocol against a running server. Faster for large results | `host="localhost"`, `port=6666`, optional `token` |
-| `"embedded"` | In-process engine, no server or socket | `data_dir="/path/to/.turing"` |
+| `type` | Runs against | Constructor arguments |
+| ------ | ------------ | --------------------- |
+| `"native"` *(default)* | A running TuringDB server, over TuringDB's binary protocol | `host="localhost"`, `port=6666`, optional `token` |
+| `"embedded"` | An in-process engine, with no server or socket | `data_dir="/path/to/.turing"` |
 
 ```python
-# Default HTTP/JSON client
-client = TuringDB(host="http://localhost:6666")
-
-# Native binary protocol
-client = TuringDB(type="native", host="localhost", port=6666)
+# A running server (the default)
+client = TuringDB(host="localhost", port=6666)
 
 # Embedded, in-process: no server needed
 client = TuringDB(type="embedded", data_dir="/home/me/.turing")
 ```
 
-Use the default `json` backend unless you have a reason not to. The other two are optimisations for specific situations:
+Use a server unless you have a reason not to. Choose **`embedded`** when you want a self-contained engine with no server to start, stop or connect to.
 
-- **`native`** when you control the server and need more throughput on large results.
-- **`embedded`** when you want a self-contained engine with no server to start, stop or connect to.
+### Connecting to a server
 
-### The native binary protocol
-
-The binary protocol is a **server-side mode**, selected once when the server starts with the environment variable `USE_TURING_PROTO=1`:
-
-```bash
-USE_TURING_PROTO=1 turingdb start -demon -p 6666
-```
-
-```python
-client = TuringDB(type="native", host="localhost", port=6666)
-```
-
-A server speaks either JSON or the binary protocol on a given port:
-
-| Server started | `type="json"` client | `type="native"` client |
-| -------------- | -------------------- | ---------------------- |
-| normally (JSON, the default) | works | returns `Proto header dataLen does not match chunk payload size` |
-| with `USE_TURING_PROTO=1` | returns `Invalid response from the server` | works |
-
-A server in binary mode serves the binary protocol only, so `curl`, the JSON client and the browser visualizer (`-ui`) connect to a server running in the default mode. To use both, run two servers on different ports.
-
-- `host` accepts `"localhost"` together with `port=`, or a full URL such as `"http://localhost:6666"`. Use one of these two forms.
-- The query API is identical, and results come back as the same DataFrames. Embeddings are returned as numpy `float32` arrays instead of Python lists.
-- A [`shortestPath`](/shortest-path) `path` cannot be read over the native backend yet. Run those queries through the JSON backend.
-- To list the graphs on disk, use the JSON client. On the native backend, `list_loaded_graphs()` lists the loaded graphs.
-- `token`, `reconnect()` and the S3 helpers work as on the JSON backend.
+- `host` is a host name or an IP address, and `port` a number (default `6666`). A URL such as `"http://localhost:6666"` is refused: `host must be a host name or IP address, not a URL`.
+- The client connects as soon as it is created. If no server is listening it raises `TuringDBException: Failed to connect to localhost:6666: Connection refused`.
+- The client sends the graph, change and commit it is set to with every query, so the server keeps no session for it.
+- The query API is identical on both backends, and results come back as the same DataFrames.
 
 ### Authentication
 
-A server started with `-auth-on` requires a bearer token. Pass it with `token=` or set the `TURINGDB_AUTH_TOKEN` environment variable, which the SDK reads automatically. This works on both the `json` and `native` backends:
+A server started with `-auth-on` requires a bearer token. Pass it with `token=` or set the `TURINGDB_AUTH_TOKEN` environment variable, which the SDK reads automatically:
 
 ```bash
 TURINGDB_AUTH_TOKEN=s3cret turingdb start -demon -auth-on
 ```
 
 ```python
-client = TuringDB(host="http://localhost:6666", token="s3cret")
+client = TuringDB(host="localhost", port=6666, token="s3cret")
 ```
 
-A missing or incorrect token returns HTTP `401`, which the JSON client raises as an `httpx.HTTPStatusError`. The embedded backend runs in-process and needs no authentication, so it does not take a `token`.
+A missing or incorrect token raises `TuringDBException: Protocol error from server: Unauthorized: missing or invalid authentication token`. The embedded backend runs in-process and needs no authentication, so it does not take a `token`.
 
 ### The embedded backend
 
 ```python
 import os
 
-client = TuringDB(type="embedded", data_dir=os.path.expanduser("~/.turing"))
+client = TuringDB(
+    type="embedded", data_dir=os.path.expanduser("~/.turing")
+)
 ```
 
 - `data_dir` is the TuringDB root directory (the one that holds `graphs/`, `data/` and `vector/`). Omit it to use `~/.turing`.
 - **Use an absolute path**, for example with `os.path.expanduser("~/...")`, since a leading `~` is not expanded.
 - Writes still persist to disk when you submit a change, so your work survives the process ending.
-- The embedded backend is designed for a single process. For the browser visualizer, `list_available_graphs()`, concurrent access from several processes, the S3 helpers and `token=`, use a server.
-
-<Note>
-  `list_available_graphs()` is only supported on the default JSON backend. The S3 helpers (`s3_connect`, `transfer`) work on the JSON and native backends.
-</Note>
+- The embedded backend is designed for a single process. For the browser visualizer, concurrent access from several processes, the S3 helpers and `token=`, use a server.
 
 ## Core Methods
 
 ### `list_available_graphs() → list[str]`
 
-Returns the graphs persisted on disk in the TuringDB data directory (JSON backend only).
+Returns the graphs on disk in the TuringDB data directory, and the graphs in memory (`LIST AVAILABLE GRAPHS`).
 
 ```python
 client.list_available_graphs()
@@ -148,7 +120,7 @@ Creates a new empty graph with the specified name.
 client.create_graph("mygraph")
 ```
 
-> Internally executes `CREATE GRAPH "graph_name"`
+> Internally executes `CREATE GRAPH graph_name`
 
 ### `load_graph(graph_name: str, raise_if_loaded: bool = True)`
 
@@ -166,14 +138,30 @@ Runs a Cypher query on the current graph.
 
 ```python
 df = client.query("MATCH (n:Person) RETURN n.name, n.age")
-df = client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
+df = client.query(
+    "MATCH (n:Person) WHERE n.age >= $min RETURN n.name",
+    {"min": 30},
+)
+df = client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
 ```
 
-Returns results as a `pandas.DataFrame`, with automatic typing and parsing. `query_parameters` fills `$name` [parameters](/query/cypher_subset#query-parameters), which stand for labels and edge types.
+Returns results as a `pandas.DataFrame`, with automatic typing and parsing. `query_parameters` fills the query's `$name` [parameters](/query/cypher_subset#query-parameters), which stand for values, labels and edge types. Parameter values can be:
+
+| Python value | Cypher value |
+| ------------ | ------------ |
+| `str`, `int`, `float`, `bool`, `None` | String, Integer (64-bit), Double, Boolean, null |
+| `list`, `tuple` | List |
+| `dict` with string keys | Map |
+| `datetime.datetime` with a time zone | DateTime |
+| `datetime.timedelta` | Duration |
+
+Other values are refused before the query is sent, with a `TuringDBException` that names the type: a naive `datetime` (`A datetime parameter must carry a timezone: a naive datetime names no instant`), a `datetime.date`, `bytes`, and numpy scalars and arrays (`A parameter cannot hold a Python int64`). Convert numpy values with `.tolist()` or `int()` first.
 
 ### `query_raw(query: str, query_parameters: dict | None = None) → dict`
 
-Like `query`, but returns the raw server response as a `dict` instead of a DataFrame. Useful for inspecting result metadata or column dtypes directly.
+Like `query`, but returns the columns without building a DataFrame: `{"data": {column: values}, "dtypes": {column: type name}, "time": milliseconds}`. Each `values` is a numpy array, or a list for strings, nullable columns, lists and maps.
 
 ### `get_graph() → str` / `set_graph(graph_name: str)`
 
@@ -205,7 +193,7 @@ Use the following helpers to navigate graph history or work in isolated changes:
 
 ### `checkout(change: int | str = "main", commit: str = "HEAD")`
 
-Switches the working context to a specific change or commit.
+Switches the working context to a specific change or commit. Checking out a past commit loads it into memory first (`LOAD COMMIT`).
 
 ```python
 client.checkout(change=2, commit="abc123")
@@ -217,7 +205,7 @@ client.checkout("main")  # Reset to default
 
 ### `set_commit(commit: str)`
 
-Manually set the commit hash to use.
+Manually set the commit hash to use. Unlike `checkout()`, it does not load the commit, so run `LOAD COMMIT '<hash>'` first if it is not in memory.
 
 ```python
 client.set_commit("haax42")
@@ -245,11 +233,16 @@ You can also read the current context through the `current_graph`, `current_comm
 
 ### `reconnect()`
 
-Resets the connection. A no-op for the HTTP and embedded backends. Reopens the socket for the native backend.
+Closes the connection to the server and opens a new one. The client returns to the `default` graph, main and the latest commit, so set the graph again afterwards. A no-op for the embedded backend.
 
-### `try_reach(timeout: int = 5)` / `warmup(timeout: int = 5)`
+```python
+client.reconnect()
+client.set_graph("mygraph")
+```
 
-Probe connectivity (`try_reach`) or warm the connection with a lightweight query (`warmup`).
+### `try_reach(timeout: float = 5)` / `warmup(timeout: float = 5)`
+
+Probe connectivity (`try_reach`) or warm the connection with a lightweight query (`warmup`). Both raise `TuringDBException` when the server does not answer within `timeout` seconds.
 
 ### `get_query_exec_time() → float | None` / `get_total_exec_time() → float | None`
 
@@ -257,7 +250,7 @@ Return the server-side execution time and the full round-trip time (in milliseco
 
 ## S3 / Data Transfer
 
-These helpers move graph data between local paths, S3, and the TuringDB server. They are available on the JSON and native backends, but not on the embedded backend.
+These helpers move graph data between local paths, S3, and the TuringDB server. They need a server, so they are not available on the embedded backend.
 
 ### `s3_connect(bucket_name, access_key=None, secret_key=None, region=None, use_scratch=True)`
 
@@ -272,8 +265,12 @@ client.s3_connect("my-bucket", region="eu-west-1")
 Transfer data between a local path, an `s3://…` URI, or a `turingdb://…` path. The direction and mechanism are inferred from the URI schemes.
 
 ```python
-client.transfer("s3://graphs/data.jsonl", "turingdb://data.jsonl")  # S3 → server
-client.transfer("./local.gml", "turingdb://local.gml")               # local → server (via scratch)
+# S3 → server
+client.transfer(
+    "s3://graphs/data.jsonl", "turingdb://data.jsonl"
+)
+# local → server (via scratch)
+client.transfer("./local.gml", "turingdb://local.gml")
 ```
 
 The equivalent engine commands (issued directly via `query`) are `S3 CONNECT "<key>" "<secret>" "<region>"`, `S3 PULL "<s3-url>" "<dst>"`, and `S3 PUSH "<src>" "<s3-url>"`.
@@ -292,17 +289,20 @@ All queries return a `pandas.DataFrame`, typed according to the schema:
 | `DateTime`  | `datetime64[us, UTC]` |
 | `Duration`  | `timedelta64[us]` |
 | `List`, `Map` | object (Python list, dict) |
-| `Embedding` | object (list over HTTP, numpy `float32` array on the native and embedded backends) |
+| `Embedding` | object (numpy `float32` array) |
+| `Point`     | object (`turingdb.Point`) |
 
-Nodes and edges (`RETURN n`) come back as their internal integer IDs (`UInt64`), so project the properties you need, or return `properties(n)` as a dictionary. A named path comes back as a list of `{'type': 'node' | 'edge', 'id': ...}` dictionaries. Doubles keep their full precision on every backend. See [Functions and data types](/query/functions#how-results-come-back) for the full table.
+Nodes and edges (`RETURN n`) come back as their internal integer IDs (`UInt64`), so project the properties you need, or return `properties(n)` as a dictionary. A named path comes back as a list of IDs, node and edge alternating: `[0, 0, 1]` is node 0, edge 0, node 1. A `DateTime` or `Duration` inside a list or a map comes back as a time-zone-aware `datetime.datetime` or a `datetime.timedelta`. Doubles keep their full precision. See [Functions and data types](/query/functions#how-results-come-back) for the full table.
+
+`turingdb.Point` is a named tuple `(srid, x, y, z)`, with `z` set to `None` for a 2D point, and a `crs` property such as `'wgs-84'`.
 
 <Tip>
-  Integer columns hold numpy integers, which an f-string prints as `np.int64(5)`. Convert IDs with `.tolist()` or `int()` before writing them into a query.
+  Integer columns hold numpy integers, which an f-string prints as `np.int64(5)`. Convert them with `.tolist()` or `int()` before writing them into a query or passing them as parameters.
 </Tip>
 
 ## Error Handling
 
-Query errors raise `TuringDBException`. The message starts with the error code (`PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `GRAPH_NOT_FOUND`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND`, `REQUEST_TOO_BIG`, ...) and points at the offending part of the query, or names the graph, change or commit that was not found.
+Query errors raise `TuringDBException`. The message starts with the error code (`PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `GRAPH_NOT_FOUND`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND`, `COMMIT_NOT_LOADED`, ...) and points at the offending part of the query, or names the graph, change or commit that was not found.
 
 ```python
 from turingdb import TuringDB, TuringDBException
@@ -313,17 +313,19 @@ except TuringDBException as e:
     print("Query failed:", e)
 ```
 
-On the JSON backend, transport failures (the server is down, or HTTP 401 for a bad or missing token) surface as `httpx` exceptions instead. HTTP errors that the server explains, such as `REQUEST_TOO_BIG`, still raise `TuringDBException`.
+Connection problems raise `TuringDBException` too:
+
+- `Failed to connect to localhost:6666: Connection refused` when no server is listening.
+- `Protocol error from server: ...` when the server refuses a request: a missing or wrong token, or a request over the 1 MiB limit. The server then closes the connection, so call `client.reconnect()` and set the graph again before the next query.
+- `The query parameters exceed 1048576 bytes` when the parameters alone are over the limit. Nothing is sent, and the connection stays open.
 
 ## Example Workflow
 
 ```python
 from turingdb import TuringDB
 
-# Create TuringDB client
-# set host parameter to the URL (as string) on which TuringDB is running,
-# default "http://localhost:6666"
-client = TuringDB(host="http://localhost:6666")
+# Connect to the server running on localhost:6666
+client = TuringDB(host="localhost", port=6666)
 
 # Create a new graph called mygraph
 client.create_graph("mygraph")
@@ -339,13 +341,18 @@ client.checkout(change=change)
 
 # Multiple nodes and edges can be created at the same time
 # using the following syntax
-client.query("""CREATE (apoe_gene:Gene {name: 'APOE', chromosome: '19', location: '19q13.32'}),
-(apoe_protein:Protein {name: 'Apolipoprotein E', function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
-(alzheimers:Disease {name: 'Alzheimers_Disease', type: 'Neurodegenerative'}),
-(cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
-(apoe_gene)-[:ENCODES]->(apoe_protein),
-(apoe_protein)-[:BINDS]->(cholesterol),
-(apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
+client.query("""
+CREATE
+  (apoe_gene:Gene {name: 'APOE', chromosome: '19',
+    location: '19q13.32'}),
+  (apoe_protein:Protein {name: 'Apolipoprotein E',
+    function: 'Lipid_transport', tissue: 'Brain_and_liver'}),
+  (alzheimers:Disease {name: 'Alzheimers_Disease',
+    type: 'Neurodegenerative'}),
+  (cholesterol:Molecule {name: 'Cholesterol', type: 'Lipid'}),
+  (apoe_gene)-[:ENCODES]->(apoe_protein),
+  (apoe_protein)-[:BINDS]->(cholesterol),
+  (apoe_protein)-[:ASSOCIATED_WITH]->(alzheimers)
 """)
 
 # Commit the change
@@ -355,17 +362,19 @@ client.query("CHANGE SUBMIT")
 # Checkout into main
 client.checkout()
 
-# Query graph
-df = client.query("MATCH (n:Gene {name: 'APOE'}) RETURN n.name, n.chromosome")
+# Query graph, with the gene name as a parameter
+df = client.query(
+    "MATCH (n:Gene {name: $name}) RETURN n.name, n.chromosome",
+    {"name": "APOE"},
+)
 print(df)
 ```
 
 ## Notes
 
-- The JSON backend (`type="json"`) uses `httpx`; the `native` and `embedded` backends use a compiled extension
-- Only the graph name, change ID, and commit hash are sent with HTTP requests
-- The SDK supports the full TuringDB **Cypher dialect**, including matching by internal node ID (`WHERE n = 1234`) and versioned queries against past commits
+- Both backends use a compiled extension that ships in the wheel.
+- The SDK supports the full TuringDB **Cypher dialect**, including matching by internal node ID (`WHERE n = 1234`) and versioned queries against past commits.
 
 Need help writing queries? → See the [TuringDB Query Cheatsheet](/query/cheatsheet)
 
-You can also find the TuringDB PythonSDK in [Github](https://github.com/turing-db/turingdb-sdk-python)
+The SDK's source is in the TuringDB repository on [GitHub](https://github.com/turing-db/turingdb/tree/main/python/turingdb). To query TuringDB from JavaScript or TypeScript, see the [JavaScript SDK](/jssdk/get_started).

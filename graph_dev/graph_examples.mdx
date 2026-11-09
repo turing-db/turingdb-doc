@@ -7,10 +7,8 @@ description: "Complete example on how to create and query a graph from scratch i
 ```python
 from turingdb import TuringDB
 
-# Create TuringDB client
-# set host parameter to the URL (as string) on which TuringDB is running,
-# default "http://localhost:6666"
-client = TuringDB(host="http://localhost:6666")
+# Connect to the TuringDB server (default: localhost:6666)
+client = TuringDB(host="localhost", port=6666)
 
 # Create a new graph called my_graph
 client.create_graph("mygraph")
@@ -25,7 +23,10 @@ change = client.new_change()
 client.checkout(change=change)
 
 # Create a node Person (Jane) - Edge (knows) - node (John)
-client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+client.query(
+    "CREATE (n:Person {name: 'Jane'})"
+    "-[e:KNOWS]->(m:Person {name: 'John'})"
+)
 
 # Commit the change
 client.query("COMMIT")
@@ -35,6 +36,9 @@ client.query("CHANGE SUBMIT")
 client.checkout()
 
 # Query graph
-df = client.query("MATCH (n:Person {name:'Jane'})-[e:KNOWS]-(m:Person {name:'John'}) RETURN n, e, m")
+df = client.query(
+    "MATCH (n:Person {name:'Jane'})-[e:KNOWS]-"
+    "(m:Person {name:'John'}) RETURN n, e, m"
+)
 print(df)
 ```

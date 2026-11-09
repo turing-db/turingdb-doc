@@ -35,7 +35,8 @@ RETURN n.name
 MATCH (a:Person)-[e]-(b)
 RETURN a.name, b.name
 
-MATCH (a:Person WHERE a.age > 30)-[r:KNOWS WHERE r.since > 2012]->(b)
+MATCH (a:Person WHERE a.age > 30)
+  -[r:KNOWS WHERE r.since > 2012]->(b)
 RETURN b.name
 
 MATCH (n:Person)
@@ -47,8 +48,8 @@ RETURN n.name
 - Node labels use `:Label` and can be stacked: `(n:Person:Employee)`.
 - Edge types use `:EDGE_TYPE`: `-[:KNOWS]->`. An edge has exactly one type, and `[:A|B]` matches either.
 - Label expressions: `(n:A|B)`, `(n:!A)`, `(n:A&B)`, also on edge types and in `WHERE`.
-- Labels and edge types can be [parameters](/query/cypher_subset#query-parameters): `client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})`.
-- `RETURN n` gives the internal node ID. Return properties explicitly (`RETURN n.name`), or all of them with `properties(n)`.
+- Values, labels and edge types can be [parameters](/query/cypher_subset#query-parameters), see [Parameters](#parameters) below.
+- `RETURN n` gives the internal node ID. Return properties explicitly (`RETURN n.name`), as a map projection (`RETURN n {.name, .age}`), or all of them with `properties(n)`.
 - Unknown labels and properties are forgiving: they match nothing or read as `null`.
 
 ## OPTIONAL MATCH
@@ -75,8 +76,7 @@ WHERE n.age >= 18 AND n.city = 'London'
 RETURN n.name
 
 MATCH (n:Person)
-WHERE n.name STARTS
-WITH 'A' OR n.name CONTAINS 'ro'
+WHERE n.name STARTS WITH 'A' OR n.name CONTAINS 'ro'
 RETURN n.name
 
 MATCH (n:Person)
@@ -98,11 +98,14 @@ RETURN n.name, m.name
 MATCH (p:Person)
 WHERE NOT (p)-[:KNOWS]->()
 RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, exists((p)-[:LIKES]->()) AS likesSomething
 ```
 
-- Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, boolean `AND OR XOR NOT`.
+- Comparison: `= <> != < <= > >=`, null tests `IS NULL` / `IS NOT NULL`, label tests `n:Person` / `n IS Person`, boolean `AND OR XOR NOT`.
 - Strings and lists: `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, concatenation with `+` or `||`.
-- Use `IS NOT NULL` to test for a property (`=~` and `exists(n.prop)` are not yet supported).
+- Use `IS NOT NULL` to test for a property, and `exists()` for a pattern. `=~` is not yet supported.
 - Integers and Doubles compare by value (`n.age = 30.0`). Compare two Doubles with a range (`n.score > 1.99 AND n.score < 2.01`).
 
 ## Lookup by native node ID
@@ -135,8 +138,35 @@ WHERE n = 0
 RETURN n.name
 ```
 
-- `n = 0` and `id(n) = 0` both look the node up directly.
-- For batches, `UNWIND` a list of IDs, from the query text, a variable, `collect()` or `range()`. Prefer it to `WHERE n IN [...]`, which checks every node.
+- `n = 0`, `id(n) = 0` and `n IN [0, 1, 2]` look the nodes up directly.
+- With a parameter, compare the node itself: `WHERE n = $id`. For a list, `UNWIND $ids AS x MATCH (n) WHERE n = x`, since `WHERE n IN $ids` checks every node.
+
+## Parameters
+
+[Query parameters](/query/cypher_subset#query-parameters)
+
+```python
+client.query(
+    "MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name",
+    {"minAge": 30},
+)
+client.query(
+    "MATCH (n:Person {name: $name}) RETURN n.age",
+    {"name": "O'Brien"},
+)
+client.query(
+    "UNWIND $rows AS row "
+    "CREATE (:City {name: row.name, pop: row.pop})",
+    {"rows": [{"name": "Brest", "pop": 139000}]},
+)
+client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
+```
+
+- A parameter holds a value anywhere an expression goes, or a label or an edge type. No quoting or escaping is needed.
+- `SKIP`, `LIMIT` and the vector of a `VECTOR SEARCH` take literals.
+- In the shell: `:param minAge => 30`. In JavaScript: `client.query(cypher, { parameters: { minAge: 30 } })`.
 
 ## Joins and Cartesian products
 
@@ -175,14 +205,16 @@ RETURN DISTINCT b.name
 MATCH (a:Person {name: 'Alice'})-[:KNOWS*1..3]->(b)
 RETURN DISTINCT b.name
 
-MATCH (a:Person {name: 'Alice'}) ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
+MATCH (a:Person {name: 'Alice'})
+  ((x)-[:KNOWS]->(y) WHERE y.age > x.age)+ (b)
 RETURN b.name
 
 MATCH (a:Person {name: 'Alice'})-[e:KNOWS]->+(b)
 RETURN b.name, [r IN e | r.since]
 
 MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
-RETURN [n IN nodes(p) | n.name], length(p), reduce(t = 0, r IN relationships(p) | t + r.since)
+RETURN [n IN nodes(p) | n.name], length(p),
+  reduce(t = 0, r IN relationships(p) | t + r.since)
 ```
 
 - Postfix `->*` is **0** or more hops. Bracket `-[:KNOWS*]->` is **1** or more.
@@ -241,7 +273,8 @@ ELSE RETURN 'small' AS size
 
 ```cypher
 MATCH (n:Person)
-RETURN count(*), count(n.age), sum(n.age), avg(n.age), min(n.age), max(n.age)
+RETURN count(*), count(n.age), sum(n.age),
+  avg(n.age), min(n.age), max(n.age)
 
 MATCH (a:Person)-[:WORKS_AT]->(c:Company)
 RETURN c.name, count(a) AS employees, collect(a.name) AS who
@@ -286,8 +319,17 @@ RETURN n.name
 RETURN reduce(total = 0, x IN [1, 2, 3] | total + x)
 
 MATCH (n:Person)
-RETURN n.name, CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
+RETURN n.name,
+  CASE WHEN n.age >= 35 THEN 'senior' ELSE 'junior' END AS band
+
+MATCH (n:Person)
+RETURN n {.name, .age, nextAge: n.age + 1} AS person
+
+WITH {a: {b: 2}} AS m
+RETURN m.a.b, m['a']
 ```
+
+- Map projection: `n {.name}` picks properties, `n {.*}` takes them all, `n {key: expr}` adds computed entries.
 
 ## Subqueries
 
@@ -302,10 +344,14 @@ MATCH (p:Person)
 RETURN p.name, COUNT { (p)-[:KNOWS]->() } AS outDegree
 
 MATCH (p:Person)
-RETURN p.name, COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
+RETURN p.name,
+  COLLECT { MATCH (p)-[:KNOWS]->(f) RETURN f.name } AS friends
 
 MATCH (c:Company)
-RETURN c.name, COLLECT { MATCH (p:Person)-[:WORKS_AT]->(c) RETURN p.name ORDER BY p.age DESC LIMIT 1 } AS oldest
+RETURN c.name, COLLECT {
+  MATCH (p:Person)-[:WORKS_AT]->(c)
+  RETURN p.name ORDER BY p.age DESC LIMIT 1
+} AS oldest
 
 MATCH (p:Person)
 CALL (*) {
@@ -335,12 +381,14 @@ RETURN p.name, co
 
 | Category | Functions |
 | -------- | --------- |
-| Entity | `id`, `labels`, `type`, `startNode`, `endNode`, `keys`, `properties` |
-| Path and list | `nodes`, `relationships`, `length`, `size`, `head`, `last`, `tail`, `reverse`, `range`, `reduce` |
+| Entity | `id`, `elementId`, `labels`, `type`, `startNode`, `endNode`, `keys`, `properties` |
+| Path and list | `nodes`, `relationships`, `length`, `size`, `head`, `last`, `tail`, `reverse`, `isEmpty`, `range`, `reduce`, `allReduce`, `coll.indexOf` |
+| Predicates | `all`, `any`, `none`, `single`, `exists(pattern)` |
 | Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, their `...OrNull` forms, `coalesce` |
 | String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `substring`, `left`, `right`, `split`, `replace`, `reverse`, `char_length`, `normalize` |
 | Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi`, `e`, `sin`, `cos`, `tan`, and more |
 | Temporal | `datetime`, `duration` |
+| Spatial | `point`, `point.distance`, `point.withinBBox` |
 | Embedding | `cosine_similarity`, `euclidean_distance` |
 | Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc` |
 
@@ -352,11 +400,16 @@ RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1})
 
 MATCH (n:Document)
 RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
+
+RETURN round(point.distance(
+  point({latitude: 51.5074, longitude: -0.1278}),
+  point({latitude: 48.8566, longitude: 2.3522})
+)) AS meters
 ```
 
 - Function names are case-insensitive.
 - Use `type(e)` for an edge's type (it replaces `edgeType()`).
-- Read map keys with `m.key` or `m[k]`, including maps stored as properties.
+- Read map keys with `m.key`, `m['key']` or `m[k]`, including maps stored as properties.
 
 ## Data types
 
@@ -370,6 +423,7 @@ RETURN n.title, cosine_similarity(n.emb, (0.4, 0.3, 0.8, 0.1))
 | Map | `{a: 1}` |
 | DateTime | `datetime('2024-03-15T10:30:00Z')` |
 | Duration | `duration({days: 2})` |
+| Point | `point({x: 1, y: 2})`, `point({latitude: 51.5, longitude: -0.12})` |
 | Embedding | `(1.2, 2.0, 0.0)` (parentheses, not brackets) |
 
 ## Writing (inside a change)
@@ -381,7 +435,8 @@ CHANGE NEW
 
 CREATE (:Person {name: 'Alice', age: 30})
 
-CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+CREATE (:Person {name: 'Mick'})
+  -[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
 
 COMMIT
 
@@ -394,6 +449,9 @@ MERGE (n:Person {name: 'Alice'})
 
 MATCH (n:Person {name: 'Alice'})
 SET n.age = 31, n.position = 'Developer'
+
+MATCH (n:Person {name: 'Alice'})
+SET n += {city: 'Berlin', level: 2}
 
 MATCH (n:Person {name: 'Alice'})
 REMOVE n.position
@@ -417,6 +475,7 @@ CHANGE SUBMIT
 ```
 
 - Every node needs at least one label and every edge exactly one type. Labels are set at creation.
+- `SET n += {...}` adds and updates properties, `SET n = {...}` replaces them all.
 - Run `COMMIT` after creating entities that a later query must `MATCH`. `MERGE` sees them without it, and `CHANGE SUBMIT` commits for you.
 - In the Python SDK, call `client.checkout()` after `CHANGE SUBMIT`.
 - To build a new graph from more than a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet). To add edges between existing nodes, `UNWIND` pairs of node IDs as above.
@@ -440,11 +499,13 @@ Outputs can be chained: `CALL db.labels() YIELD label MATCH (n) WHERE label IN l
 ## Graph algorithms and search
 
 ```cypher
-MATCH (a:Station {name: 'Ashchurch'}), (b:Station {name: 'Pershore'})
+MATCH (a:Station {name: 'Ashchurch'}),
+  (b:Station {name: 'Pershore'})
 shortestPath(a, b, distance, dist, path)
 RETURN dist, path
 
-VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1) YIELD ids, score
+VECTOR SEARCH IN my_index FOR 5 (1.2, 0.5, 3.0, 0.1)
+YIELD ids, score
 RETURN ids, score
 ```
 
@@ -463,7 +524,7 @@ See [Shortest path](/shortest-path) and [Vector search](/vector-search).
 | `LIST GRAPH` / `LIST AVAILABLE GRAPHS` | Loaded graphs / graphs on disk |
 | `CHANGE NEW` / `SUBMIT` / `DELETE` / `LIST` | Create, merge, discard and list changes |
 | `COMMIT` | Seal pending writes inside a change |
-| `LOAD COMMIT '<hash>'` | Load a past commit (REST API only; the CLI and SDK do it for you) |
+| `LOAD COMMIT '<hash>'` | Load a past commit before querying it (the shell's and the Python SDK's `checkout` do it for you) |
 | `MERGE_DATAPARTS` | Compact the graph's DataParts into one (renumbers nodes) |
 | `CREATE VECTOR INDEX <name> WITH DIMENSION <n> METRIC <COSINE\|EUCLID>` | Create a vector index |
 | `SHOW VECTOR INDEXES` / `DELETE VECTOR INDEX <name>` | List / delete vector indexes |

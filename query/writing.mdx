@@ -9,9 +9,13 @@ All writes (`CREATE`, `MERGE`, `SET`, `REMOVE`, `DELETE`, `FOREACH`) must run **
 ## The change workflow
 
 ```python
-client.new_change()                 # CHANGE NEW: the client is now on this change
+# CHANGE NEW: the client is now on this change
+client.new_change()
 
-client.query("CREATE (:Person {name: 'Alice'})-[:KNOWS]->(:Person {name: 'Bob'})")
+client.query(
+    "CREATE (:Person {name: 'Alice'})"
+    "-[:KNOWS]->(:Person {name: 'Bob'})"
+)
 # ... more writes ...
 
 client.query("CHANGE SUBMIT")       # merge the change into main
@@ -40,9 +44,15 @@ See [Create a change](/graph_dev/create_change), [Submit a change](/graph_dev/su
 
 ```python
 client.new_change()
-client.query("CREATE (:Person {name: 'Alice'}), (:Person {name: 'Bob'})")
-client.query("COMMIT")   # make the new nodes visible to the next query
-client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) CREATE (a)-[:KNOWS]->(b)")
+client.query(
+    "CREATE (:Person {name: 'Alice'}), (:Person {name: 'Bob'})"
+)
+# make the new nodes visible to the next query
+client.query("COMMIT")
+client.query(
+    "MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'})"
+    " CREATE (a)-[:KNOWS]->(b)"
+)
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```
@@ -63,14 +73,19 @@ CREATE (:Person {name: 'Alice', age: 30})
 CREATE (a:Person:Employee {name: 'Bob'})
 RETURN a.name, id(a)
 
-CREATE (:Person {name: 'Mick'})-[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
+CREATE (:Person {name: 'Mick'})
+  -[:FRIEND_OF {since: 2020}]->(:Person {name: 'John'})
 
 CREATE (a:T {x: 1}), (b:T {x: 2}), (a)-[:R]->(b)
 
-CREATE p = (:City {name: 'Paris'})-[:ROAD {km: 450}]->(:City {name: 'Lyon'})
+CREATE p = (:City {name: 'Paris'})
+  -[:ROAD {km: 450}]->(:City {name: 'Lyon'})
 RETURN p
 
-CREATE (c:City {name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'], info: {zone: 1}, emb: (0.1, 0.2, 0.3)})
+CREATE (c:City {
+  name: 'Li' + 'lle', pop: 2 * 1000, tags: ['a', 'b'],
+  info: {zone: 1}, emb: (0.1, 0.2, 0.3)
+})
 
 CREATE (n:Item {sku: 'A1'})
 SET n.price = 9.99
@@ -201,12 +216,35 @@ REMOVE n.score, n.flag
 ```
 
 - `SET` creates the property if it does not exist yet. Setting a property to `null` clears it, and `REMOVE n.prop` removes it.
-- The value can be any expression, including a `CASE`, a function call or a value from another matched entity.
-- Address nodes by [native node ID](/query/matching#look-up-nodes-by-native-node-id) for the fastest updates. Batch updates use the same literal `UNWIND` form as reads.
+- The value can be any expression, including a `CASE`, a function call, a value from another matched entity or a [parameter](/query/cypher_subset#query-parameters).
+- Address nodes by [native node ID](/query/matching#look-up-nodes-by-native-node-id) for the fastest updates. Batch updates use the same `UNWIND` form as reads.
 - For a one-off embedding, `SET n.emb = (...)` is fine. To write embeddings onto many existing nodes, use [`LOAD EMBEDDING`](/vector-search#embeddings-as-node-properties) instead of a `SET` loop.
 
+### Setting properties from a map
+
+`SET n += map` adds and updates the properties in the map and keeps the others. `SET n = map` replaces all of them, so the properties missing from the map are removed:
+
+```cypher
+MATCH (n:Person {name: 'Alice'})
+SET n += {city: 'Berlin', score: 1.5}
+
+MATCH (c:Company {name: 'Acme'})
+SET c = {name: 'Acme Corp', size: 10}
+
+MATCH (a:Company {name: 'Acme'}), (b:Company {name: 'Globex'})
+SET b += a {.founded}
+
+MATCH (:Person {name: 'Alice'})-[r:WORKS_AT]->()
+SET r += {since: 2019}
+```
+
+- A key set to `null` in the map removes that property: `SET n += {city: null}`.
+- `SET n = {}` and `SET n = null` remove every property of `n`, and `SET n += null` changes nothing.
+- The map can come from a parameter, such as `SET n += $props`, from `properties(m)`, or from a [map projection](/query/functions#map-projection), as in the third query, which copies one property.
+- Each value must fit the property's type, as with `SET n.prop = ...`. A new property takes the type of its value.
+
 <Note>
-  To update several properties at once, list the assignments: `SET n.a = 1, n.b = 2`. Map forms (`SET n += {...}`, `SET n = {...}`), label changes (`SET n:Label`) and aggregates directly inside `SET` (`SET n.c = count(*)`) are not yet supported. Compute aggregates in a `WITH` first, as in the `Stats` example above.
+  Label changes (`SET n:Label`) and aggregates directly inside `SET` (`SET n.c = count(*)`) are not yet supported. Compute aggregates in a `WITH` first, as in the `Stats` example above.
 </Note>
 
 ## DELETE and DETACH DELETE
@@ -241,9 +279,13 @@ FOREACH (nm IN ['x', 'y', 'x'] | MERGE (:Tag {name: nm}))
 
 MATCH (n:Person)
 WITH collect(n) AS people
-FOREACH (p IN people | SET p.reviewed = true, p.nextAge = p.age + 1)
+FOREACH (p IN people |
+  SET p.reviewed = true, p.nextAge = p.age + 1
+)
 
-FOREACH (i IN [1, 2] | FOREACH (j IN [10, 20] | CREATE (:Cell {v: i * j})))
+FOREACH (i IN [1, 2] |
+  FOREACH (j IN [10, 20] | CREATE (:Cell {v: i * j}))
+)
 ```
 
 The second example creates two `Tag` nodes, since `MERGE` deduplicates, and the last shows that `FOREACH` blocks nest.
@@ -256,18 +298,20 @@ FOREACH (i IN range(1, 3) | CREATE (a)-[:OWNS]->(:Item {n: i}))
 
 MATCH (n:Person)
 FOREACH (t IN n.tags |
-  MERGE (tag:TagNode {name: toString(t)})
+  MERGE (tag:TagNode {name: t})
   CREATE (n)-[:TAGGED]->(tag)
 )
 ```
 
-Elements of a list property such as `n.tags` can hold any type, so convert them as you store them (`toString(t)`), as with [map and mixed rows](#small-volumes).
+The elements of a list property such as `n.tags` are stored as they are, and a new property takes the type of the values written to it (see [map and mixed rows](#small-volumes)).
 
 **Writing only when a condition holds.** Loop over a list that is empty when the condition fails:
 
 ```cypher
 MATCH (n:Person)
-FOREACH (x IN CASE WHEN n.age > 35 THEN [1] ELSE [] END | SET n.senior = true)
+FOREACH (x IN CASE WHEN n.age > 35 THEN [1] ELSE [] END |
+  SET n.senior = true
+)
 ```
 
 A `RETURN` can follow, since `FOREACH` keeps the rows: `MATCH (n:Person) FOREACH (x IN [1] | SET n.seen = true) RETURN count(*)`.
@@ -289,29 +333,36 @@ RETURN count(*)
 <Tip>
   **Building a new graph?** Beyond a few thousand entities, use [`LOAD PARQUET`](/import_data/parquet). It loads 100,000 nodes and 200,000 edges in about 0.2 seconds.
 
-  **Adding edges between nodes that already exist?** Send their [native node IDs](/query/matching#look-up-nodes-by-native-node-id) in pairs, as below: about 10,000 edges in 45 ms.
+  **Adding edges between nodes that already exist?** Send their [native node IDs](/query/matching#look-up-nodes-by-native-node-id) in pairs, as below: a batch of 10,000 edges takes a few milliseconds.
 </Tip>
 
 ### Edges between existing nodes
 
-Read each node's ID once together with your own key, map your edge list to ID pairs in your application, and create the edges in batches of about 10,000 pairs:
+Read each node's ID once together with your own key, map your edge list to ID pairs in your application, and create the edges in batches of about 10,000 pairs, passed as a [parameter](/query/cypher_subset#query-parameters):
 
 ```python
-ids = client.query("MATCH (n:Person) RETURN n.pid AS pid, id(n) AS id")
-key_to_id = dict(zip(ids["pid"].tolist(), ids["id"].tolist()))   # .tolist() gives plain ints
-pairs = [[key_to_id[src], key_to_id[dst]] for src, dst in edge_list]
+ids = client.query(
+    "MATCH (n:Person) RETURN n.pid AS pid, id(n) AS id"
+)
+# .tolist() gives plain ints
+key_to_id = dict(zip(ids["pid"].tolist(), ids["id"].tolist()))
+pairs = [
+    [key_to_id[src], key_to_id[dst]] for src, dst in edge_list
+]
 
 client.new_change()
 for i in range(0, len(pairs), 10_000):
-    batch = pairs[i:i + 10_000]
-    client.query(f"UNWIND {batch} AS p "
-                 "MATCH (a) WHERE a = p[0] MATCH (b) WHERE b = p[1] "
-                 "CREATE (a)-[:KNOWS]->(b)")
+    client.query(
+        "UNWIND $pairs AS p "
+        "MATCH (a) WHERE a = p[0] MATCH (b) WHERE b = p[1] "
+        "CREATE (a)-[:KNOWS]->(b)",
+        {"pairs": pairs[i:i + 10_000]},
+    )
 client.query("CHANGE SUBMIT")
 client.checkout()
 ```
 
-Edge properties ride along in each row: `UNWIND [[12, 34, 2021], ...] AS p ... CREATE (a)-[:KNOWS {since: p[2]}]->(b)`. Use IDs rather than matching both endpoints by a key property (`MATCH (a:Person {pid: p[0]})`), which reads every `Person` node for each row.
+In our tests a batch of 10,000 pairs takes about 6 ms as a parameter, against about 25 ms with the same list written into the query text. Edge properties ride along in each row: `UNWIND $rows AS p ... CREATE (a)-[:KNOWS {since: p[2]}]->(b)` with rows such as `[12, 34, 2021]`. Use IDs rather than matching both endpoints by a key property (`MATCH (a:Person {pid: p[0]})`), which reads every `Person` node for each row.
 
 ### Small volumes
 
@@ -328,15 +379,21 @@ UNWIND [['Brest', 'FR-29'], ['Rennes', 'FR-35']] AS row
 CREATE (:City {name: row[0], code: row[1]})
 ```
 
-Rows can also be maps, or lists of mixed types. Their values, like the elements of a list property, can hold any type, so convert each one as you store it:
+Rows can also be maps, or lists of mixed types, and their values are stored as they are:
 
 ```cypher
-UNWIND [{name: 'Brest', pop: 139000}, {name: 'Rennes', pop: 220000}] AS row
-CREATE (:City {name: toString(row.name), pop: toInteger(row.pop)})
+UNWIND [
+  {name: 'Brest', pop: 139000},
+  {name: 'Rennes', pop: 220000}
+] AS row
+CREATE (:City {name: row.name, pop: row.pop})
 
 UNWIND [['Brest', 139000], ['Rennes', 220000]] AS row
-CREATE (:City {name: toString(row[0]), pop: toInteger(row[1])})
+CREATE (:City {name: row[0], pop: row[1]})
 ```
+
+- A new property takes the type of the values written to it, here a String `name` and an Integer `pop`. One write cannot give it two types: `One write gives the new property 'v' two types: 'Integer' and 'String'`.
+- An existing property keeps its type: `Cannot set a property of type 'Int64' to a value of type 'String'`. Convert such a value first, for example with `toInteger(row.pop)`.
 
 `LOAD CSV` can drive writes too. Create the nodes, `COMMIT`, then create the edges (see [CSV import](/import_data/csv)). Alternatively `MERGE` both endpoints in a single pass, which deduplicates across the rows of one query so no `COMMIT` is needed:
 
@@ -349,18 +406,18 @@ LOAD CSV 'knows.csv' WITH HEADERS AS row
 
 Use `UNWIND` or [`FOREACH`](#foreach) to loop over a list.
 
-**Building the query text in Python.** Values go in the query text, so escape quotes in your application:
+**From Python, pass the rows as a parameter.** Values in a parameter need no quoting or escaping, and take less room than the same values written into the query text:
 
 ```python
-def lit(v):
-    if isinstance(v, str):
-        return "'" + v.replace("\\", "\\\\").replace("'", "\\'") + "'"
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    return repr(v)
-
-names = ["Alice", "O'Brien"]
-client.query(f"UNWIND [{', '.join(lit(n) for n in names)}] AS nm MERGE (:Person {{name: nm}})")
+rows = [
+    {"name": "Brest", "pop": 139000},
+    {"name": "O'Brien Town", "pop": 1200},
+]
+client.query(
+    "UNWIND $rows AS row MERGE (c:City {name: row.name}) "
+    "SET c.pop = row.pop",
+    {"rows": rows},
+)
 ```
 
-Keep each request under 1 MiB, the server's limit. A larger one is refused with `REQUEST_TOO_BIG`.
+A request, the query text and its parameters together, can be up to 1 MiB. Split larger batches, as in the edge recipe above.

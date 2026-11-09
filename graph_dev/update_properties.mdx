@@ -60,7 +60,8 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     Edge properties can be updated using the same syntax.
 
     ```jsx
-    MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
+    MATCH (n:Person {name: 'Alice'})
+      -[e:KNOWS]->(m:Person {name: 'Bob'})
     SET e.since = 2020
     ```
 
@@ -131,7 +132,10 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     Multiple properties can be updated in a single `SET` clause by separating assignments with commas.
 
     ```python
-    client.query("MATCH (n:Person {name: 'Alice'}) SET n.position = 'Developer', n.surname = 'Taylor'")
+    client.query(
+        "MATCH (n:Person {name: 'Alice'}) "
+        "SET n.position = 'Developer', n.surname = 'Taylor'"
+    )
     ```
 
     ## Setting a property from an expression
@@ -139,7 +143,9 @@ The `SET` clause is used to update property values on existing nodes and edges. 
     The value assigned can be any expression, including arithmetic operations on existing properties.
 
     ```python
-    client.query("MATCH (p:Product) SET p.discountPrice = p.price * (1 - 0.15)")
+    client.query(
+        "MATCH (p:Product) SET p.discountPrice = p.price * (1 - 0.15)"
+    )
     ```
 
     ## Setting a property from another variable
@@ -159,7 +165,8 @@ The `SET` clause is used to update property values on existing nodes and edges. 
 
     ```python
     client.query("""
-    MATCH (n:Person {name: 'Alice'})-[e:KNOWS]->(m:Person {name: 'Bob'})
+    MATCH (n:Person {name: 'Alice'})
+      -[e:KNOWS]->(m:Person {name: 'Bob'})
     SET e.since = 2020
     """)
     ```
@@ -202,7 +209,10 @@ The `SET` clause is used to update property values on existing nodes and edges. 
 
     ```python
     client.query("MATCH (n:Person {name: 'Alice'}) SET n.age = null")
-    client.query("MATCH (n:Person {name: 'Alice'}) REMOVE n.position, n.surname")
+    client.query(
+        "MATCH (n:Person {name: 'Alice'}) "
+        "REMOVE n.position, n.surname"
+    )
     ```
 
     <Warning>

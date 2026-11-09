@@ -44,8 +44,7 @@ A procedure's output columns can be renamed, filtered and used by the rest of th
 CALL db.propertyTypes() YIELD *
 
 CALL db.labels() YIELD label AS l
-WHERE l STARTS
-WITH 'P'
+WHERE l STARTS WITH 'P'
 RETURN l
 
 CALL db.labels() YIELD label
@@ -57,7 +56,7 @@ CALL db.history() YIELD `commit`, nodeCount
 RETURN `commit`, nodeCount
 ```
 
-- **Constant arguments.** Procedure arguments are constants, so pass literal values (for example `db.getNodes([0, 1, 2])`) rather than values read from a row.
+- **Constant arguments.** Procedure arguments are constants, so pass literal values (for example `db.getNodes([0, 1, 2])`) or [parameters](/query/cypher_subset#query-parameters) (`db.getNodes($ids)`) rather than values read from a row. `gnn.graphSAGE` is the exception: it reads its arguments from each row, as in `UNWIND $seedBatches AS seeds CALL gnn.graphSAGE(seeds, [10, 5, 2], 42) YIELD ...`.
 - **`commit` is a keyword.** Yield it with backticks: ``YIELD `commit` ``.
 - To filter on `valueType`, filter the resulting DataFrame in pandas.
 - `OPTIONAL CALL` is for subqueries. It is not yet available for procedures.
@@ -75,10 +74,12 @@ LIMIT 5
 The procedures `db.getNodes` and `db.listNodes` also return the properties, as a JSON string, together with edge counts:
 
 ```cypher
-CALL db.getNodes([0, 1, 2]) YIELD id, labels, inEdgeCount, outEdgeCount, properties
+CALL db.getNodes([0, 1, 2])
+YIELD id, labels, inEdgeCount, outEdgeCount, properties
 RETURN id, labels, inEdgeCount, outEdgeCount, properties
 
-CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
+CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10)
+YIELD id, labels, properties
 ```
 
 `db.listNodes(labels, properties, skip, limit)` does a case-insensitive substring search on property values.
@@ -86,7 +87,9 @@ CALL db.listNodes(['Person'], {name: 'ali'}, 0, 10) YIELD id, labels, properties
 ```python
 import json
 
-df = client.query("CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties")
+df = client.query(
+    "CALL db.getNodes([0, 1, 2]) YIELD id, labels, properties"
+)
 df["properties"] = df["properties"].map(json.loads)
 ```
 
@@ -98,7 +101,8 @@ RETURN labels(n) AS labels, count(*) AS n
 ORDER BY n DESC
 
 MATCH (a)-[r]->(b)
-RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst, count(*) AS n
+RETURN labels(a) AS src, type(r) AS rel, labels(b) AS dst,
+  count(*) AS n
 ORDER BY n DESC
 
 MATCH (n:Person)
@@ -134,7 +138,7 @@ Dropping and unloading graphs from a running server is not yet available.
 | `CHANGE DELETE` | Discard the current change |
 | `CHANGE LIST` | List the open changes on the current graph |
 | `COMMIT` | Seal the pending writes inside a change. Needed before a later query can `MATCH` newly created entities |
-| `LOAD COMMIT '<hash>'` | Load a past commit for querying. Only needed when sending queries directly to the REST API. The CLI `checkout` and the Python SDK do it for you |
+| `LOAD COMMIT '<hash>'` | Load a past commit for querying. The shell's `checkout` and the Python SDK's `checkout()` do it for you. Run it yourself before querying a past commit with the [JavaScript SDK](/jssdk/reference#versioning) or the Python SDK's `set_commit()` |
 | `MERGE_DATAPARTS` | Compact all [DataParts](/concepts/dataparts) of the graph into one. Run it on main with no change open on any graph |
 
 `MERGE_DATAPARTS` **renumbers** all nodes. Re-fetch any cached node IDs afterwards, and rebuild vector indexes keyed by node IDs.

@@ -18,7 +18,8 @@ description: "Start using TuringDB Community Version with the TuringDB python SD
   **Using Claude Code?** Install the TuringDB skill once and let Claude handle the rest of this quickstart for you:
 
   ```bash
-  npx skills add https://github.com/turing-db/turingdb-skills
+  npx skills add \
+    https://github.com/turing-db/turingdb-skills
   ```
 
   Then in Claude Code run `/turingdb install turingdb and create a first graph`. See the [Claude Code Skill](/claude-skill) page for more.
@@ -80,10 +81,8 @@ The steps below walk you through setting up a Python project, installing the Tur
     ```python
     from turingdb import TuringDB
     
-    # Create TuringDB client
-    # set host parameter to the URL (as string) on which TuringDB is running,
-    # default "http://localhost:6666"
-    client = TuringDB(host="http://localhost:6666")
+    # Connect to the TuringDB server (default: localhost:6666)
+    client = TuringDB(host="localhost", port=6666)
     
     # Create a new graph called my_graph
     client.create_graph("mygraph")
@@ -98,7 +97,10 @@ The steps below walk you through setting up a Python project, installing the Tur
     client.checkout(change=change)
     
     # Create a node Person (Jane) - Edge (knows) - node (John)
-    client.query("CREATE (n:Person {name: 'Jane'})-[e:KNOWS]->(m:Person {name: 'John'})")
+    client.query(
+        "CREATE (n:Person {name: 'Jane'})"
+        "-[e:KNOWS]->(m:Person {name: 'John'})"
+    )
     
     # Commit the change
     client.query("COMMIT")
@@ -134,3 +136,7 @@ The steps below walk you through setting up a Python project, installing the Tur
 <Check>
   You are done!
 </Check>
+
+<Tip>
+  Building a Node.js or web application? The `turingdb` npm package queries the same server from JavaScript or TypeScript: see the [JavaScript SDK](/jssdk/get_started).
+</Tip>

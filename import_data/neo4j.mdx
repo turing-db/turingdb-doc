@@ -21,7 +21,8 @@ If your database was created with Neo4j 4.x, you need to migrate it to the 5.x f
 
 ```bash
 # Load your v4 dump
-neo4j-admin database load --from-stdin neo4j --overwrite-destination=true < mydb.dump
+neo4j-admin database load --from-stdin neo4j \
+  --overwrite-destination=true < mydb.dump
 
 # Migrate to v5 format
 neo4j-admin database migrate neo4j --force-btree-indexes-to-range
@@ -61,7 +62,7 @@ Then start Neo4j 5.x and proceed with the export below.
         ```python
         from turingdb import TuringDB
         
-        client = TuringDB(host="http://localhost:6666")
+        client = TuringDB(host="localhost", port=6666)
         client.query("LOAD JSONL 'output.json' AS mygraph")
         ```
       </Tab>

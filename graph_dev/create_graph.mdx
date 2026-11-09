@@ -15,10 +15,8 @@ description: "Create a TuringDB graph"
     ```python
     from turingdb import TuringDB
     
-    # Create TuringDB client
-    # set host parameter to the URL (as string) on which TuringDB is running,
-    # default "http://localhost:6666"
-    client = TuringDB(host="http://localhost:6666")
+    # Connect to the TuringDB server (default: localhost:6666)
+    client = TuringDB(host="localhost", port=6666)
     
     # Create a new graph called my_graph
     client.create_graph("mygraph")

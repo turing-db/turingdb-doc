@@ -60,25 +60,28 @@ LOAD COMMIT 'c0a6ce3c0315be7a'
 <Check>
   **When do I need `LOAD COMMIT`?**
 
-  - **TuringDB CLI**: The `checkout` command automatically loads the commit for you — no need to call `LOAD COMMIT` manually.
-  - **Python SDK**: `client.checkout()` automatically loads the commit for you — no need to call `LOAD COMMIT` manually.
-  - **REST API (`/query` endpoint)**: If you send Cypher queries directly to the `/query` endpoint, you **must** call `LOAD COMMIT '<hash>'` explicitly before querying any commit that is not the HEAD commit at startup time.
+  - **TuringDB shell**: The `checkout` command automatically loads the commit for you — no need to call `LOAD COMMIT` manually.
+  - **Python SDK**: `client.checkout(commit=...)` automatically loads the commit for you. `client.set_commit(...)` does not, so call `LOAD COMMIT` first when you use it.
+  - **JavaScript SDK**: You **must** call `LOAD COMMIT '<hash>'` before querying a past commit with `setCommit()` or the `commit` option, unless the commit was created since the server started.
 </Check>
 
-### Example: Querying a Past Commit via the REST API
+### Example: Querying a past commit from the JavaScript SDK
 
-```jsx
+```js
 // Step 1: Load the commit into memory
-LOAD COMMIT 'be9643a1c03f8e2b'
+await client.query("LOAD COMMIT 'be9643a1c03f8e2b'");
 
 // Step 2: Now you can query at that commit
-MATCH (n:Person)-[e:KNOWS]->(m:Person)
-RETURN n.name, m.name
+const rows = await client.queryData(
+    "MATCH (n:Person)-[e:KNOWS]->(m:Person) " +
+    "RETURN n.name, m.name",
+    { commit: "be9643a1c03f8e2b" },
+);
 ```
 
 <Warning>
-  If you try to query a commit that has not been loaded, TuringDB will return an error:
-  `Commit not loaded to memory - use LOAD COMMIT '<hash>' to load a commit`
+  If you try to query a commit that has not been loaded, TuringDB will return a `COMMIT_NOT_LOADED` error:
+  `Commit 'be9643a1c03f8e2b' is not loaded to memory - use LOAD COMMIT 'be9643a1c03f8e2b' to load it`
 </Warning>
 
 `LOAD COMMIT` is **idempotent** — calling it on an already-loaded commit is a no-op and returns immediately.

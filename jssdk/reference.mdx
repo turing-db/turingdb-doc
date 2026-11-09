@@ -1,0 +1,272 @@
+---
+title: "Reference"
+sidebarTitle: "Reference"
+description: "Reference for the turingdb npm package: TuringClient options and methods, result columns, value and parameter types, versioning and errors."
+---
+
+# TuringDB JavaScript SDK
+
+The `turingdb` npm package runs in Node.js 18 or later and in the browser, and ships with TypeScript declarations. See [Get Started](/jssdk/get_started) for a first walkthrough, including the setup for a web page.
+
+```bash
+npm install turingdb
+```
+
+Install the package version that matches your server: `turingdb@3.1` for a TuringDB 3.1 server.
+
+## TuringClient
+
+```js
+import { TuringClient } from "turingdb";
+
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+    graph: "people",
+});
+```
+
+| Option | Description | Default |
+| ------ | ----------- | ------- |
+| `url` | The server's query endpoint, `http://<host>:<port>/query`, or a path on the page's own origin in a browser | `/query` |
+| `graph` | The graph to query | `default` |
+| `authToken` | The token of a server started with `-auth-on`. It is sent as `Authorization: Bearer <token>` | none |
+| `bufferCapacity` | The starting size of the decoder buffer, in bytes. It grows to fit a larger result | 1 MiB |
+| `fetch` | A `fetch` implementation to use instead of the global one | the global `fetch` |
+| `wasmUrl` | Where to load the decoder, `turing_wasm_decoder.wasm`, from | the copy next to the client |
+
+Creating a client opens no connection: each query is a separate request to `url`. The decoder is compiled on the first query and shared by every client in the process or the page.
+
+### Methods
+
+| Method | Description |
+| ------ | ----------- |
+| `query(cypher, options?)` | Runs a query. Resolves to `{ chunks, execTimeMs }`, see [Results](#results) |
+| `queryData(cypher, options?)` | Runs a query. Resolves to plain arrays, nested as chunks, then columns, then rows, with 64-bit integers as `number` |
+| `setGraph(name)` / `getGraph()` | Set or read the graph |
+| `setChange(change)` | Work on a change, by the ID `CHANGE NEW` returns, or `"main"` to return to main |
+| `setCommit(commit)` | Read a past commit by its hash, or `"head"` for the latest one |
+| `setAuthToken(token)` | Set the token, or `null` to stop sending one |
+
+Each query takes these options:
+
+| Option | Description |
+| ------ | ----------- |
+| `parameters` | Values for the query's `$name` [parameters](#parameters) |
+| `graph`, `change`, `commit` | The graph, change or commit for this query only, in place of the client's |
+| `signal` | An `AbortSignal` that cancels the query |
+
+```js
+const controller = new AbortController();
+setTimeout(() => controller.abort(), 5000);
+
+// rejects with an AbortError if it runs longer than 5 seconds
+await client.query("MATCH (n) RETURN count(n)", {
+    signal: controller.signal,
+});
+```
+
+## Results
+
+`query()` resolves to the result's chunks and the server-side execution time:
+
+```ts
+{
+    chunks: { names: string[]; columns: Column[] }[];
+    execTimeMs: number | null;
+}
+```
+
+A result streams in chunks of up to 65,536 rows, and each chunk holds every column of its rows. A result with no rows is one chunk of empty columns, so `RETURN a, b` matching nothing gives `[[[], []]]` from `queryData()`.
+
+```js
+const { chunks } = await client.query(
+    "MATCH (p:Person) RETURN p.name AS name, p.age AS age",
+);
+
+for (const { names, columns } of chunks) {
+    const [name, age] = columns;
+    for (let row = 0; row < name.length; row++) {
+        console.log(name.get(row), age.get(row));   // 'Marie' 33n
+    }
+}
+```
+
+### Column
+
+| Member | Description |
+| ------ | ----------- |
+| `get(row)` | One value, `undefined` past the last row |
+| `toArray()` | Every row |
+| `toNumberArray()` | Every row, with `bigint` values converted to `number`, inside lists, maps and paths too. Integers above 2^53 lose precision |
+| `values` | A column of fixed-width values as a typed array (`BigInt64Array`, `Float64Array`, ...), one element per row, with no per-row work. `null` for strings, lists, maps, points and constant columns |
+| `validity` | For a column with nulls, one bit per row, lowest bit first, set where the row holds a value. `null` when every row holds one |
+| `name`, `length` | The column's name and number of rows |
+| `typeCode`, `encoding`, `isConstant`, `isOptional` | How the column is stored. Compare `typeCode` with the exported `ColumnType` and `encoding` with `ColumnEncoding` |
+
+`values` reads a large numeric column without building a JavaScript value per row. A row that holds null reads as `0` there, so check `validity`:
+
+```js
+const { chunks } = await client.query(
+    "MATCH (p:Person) RETURN p.age ORDER BY p.age",
+);
+const ages = chunks[0].columns[0];
+
+ages.values;      // BigInt64Array [ 33n, 0n, 0n ]
+ages.validity;    // Uint8Array [ 1 ]: only row 0 holds a value
+ages.toArray();   // [ 33n, null, null ]
+```
+
+### Value types
+
+| Value | `get()`, `toArray()` | `queryData()`, `toNumberArray()` |
+| ----- | -------------------- | -------------------------------- |
+| Integer, `count()`, node and edge IDs (`RETURN n`) | `bigint` | `number` |
+| Double | `number` | `number` |
+| String | `string` | `string` |
+| Boolean | `boolean` | `boolean` |
+| `null`, and an unmatched `OPTIONAL MATCH` | `null` | `null` |
+| List | array | array |
+| Map, `properties(n)`, a [map projection](/query/functions#map-projection) | plain object | plain object |
+| Path (`RETURN p`) | array of IDs, node, edge, node, ... | the same, as numbers |
+| Embedding | `Float32Array` | `Float32Array` |
+| DateTime | `bigint`: microseconds since 1970-01-01T00:00:00Z | `number` |
+| Duration | `bigint`: microseconds | `number` |
+| Point | `Point`, with `x`, `y`, `z` (`undefined` in 2D), `srid` and `crs` | `Point` |
+
+To turn a DateTime into a JavaScript `Date`, which holds milliseconds:
+
+```js
+const { chunks } = await client.query(
+    "RETURN datetime('2024-03-15T10:30:00Z') AS d",
+);
+const micros = chunks[0].columns[0].get(0);   // 1710498600000000n
+new Date(Number(micros / 1000n));   // 2024-03-15T10:30:00.000Z
+```
+
+## Parameters
+
+`query(cypher, { parameters })` binds each `$name` in the query to `parameters.name`. A parameter can stand for a value anywhere an expression goes, or for a label or an edge type (see [Query parameters](/query/cypher_subset#query-parameters)):
+
+```js
+await client.query(
+    "MATCH (p:Person) WHERE p.age >= $age RETURN p.name",
+    { parameters: { age: 30 } },
+);
+
+// a write, so inside a change (see Versioning below)
+const rows = [
+    { name: "Brest", pop: 139000 },
+    { name: "Rennes", pop: 220000 },
+];
+await client.query(
+    "UNWIND $rows AS row " +
+    "CREATE (:City {name: row.name, pop: row.pop})",
+    { parameters: { rows } },
+);
+```
+
+| JavaScript value | Sent as |
+| ---------------- | ------- |
+| A number with no fraction (`30`) | Integer |
+| Any other number (`2.5`) | Double |
+| `double(30)` | Double |
+| `bigint` within the 64-bit range | Integer |
+| `string`, `boolean`, `null` | String, Boolean, null |
+| Array | List |
+| Plain object | Map |
+
+`double()`, exported by the package, sends a whole number as a Double. It matters where the type changes the result, such as division: `RETURN $x / 4` is `2` for `{ x: 10 }` and `2.5` for `{ x: double(10) }`.
+
+Any other value, such as `undefined`, a `Date`, a `Map` or a class instance, is refused before the query is sent, with a `TuringQueryError` of status `PARAMETER_ERROR`: `Parameter $when is a Date, which a query parameter cannot hold`. Send a date as an ISO 8601 string and convert it in the query:
+
+```js
+await client.query("RETURN datetime($when) AS d", {
+    parameters: { when: new Date().toISOString() },
+});
+```
+
+Parameters count towards the 1 MiB limit of a request, together with the query text.
+
+## Versioning
+
+Writes run inside a change:
+
+```js
+const { chunks } = await client.query("CHANGE NEW");
+client.setChange(chunks[0].columns[0].get(0));
+
+await client.query("CREATE (:Person {name: 'Zoe'})");
+await client.query("CHANGE SUBMIT");
+client.setChange("main");
+```
+
+To read a past commit, load it with `LOAD COMMIT` and then pass its hash:
+
+```js
+const [[commits]] = await client.queryData(
+    "CALL db.history() YIELD `commit` RETURN `commit`",
+);
+// newest first: commits[0] is the latest one, marked (HEAD)
+const previous = commits[1];
+
+await client.query(`LOAD COMMIT '${previous}'`);
+await client.queryData("MATCH (p:Person) RETURN count(p)", {
+    commit: previous,
+});
+```
+
+- Unlike the Python SDK's `checkout()`, the client does not load a past commit for you. Without `LOAD COMMIT`, a query on a commit that is not in memory fails with `COMMIT_NOT_LOADED`. `LOAD COMMIT` on a loaded commit does nothing.
+- `db.history()` marks the latest commit with a `(HEAD)` suffix. Strip it before passing that hash.
+- `setChange("main")` and `setCommit("head")` return the client to the latest state of main. See [Time travel](/graph_dev/time_travelling) for the versioning model.
+
+## Errors
+
+A failed query rejects with a `TuringQueryError`, which carries a `status` and the server's `message`:
+
+```js
+import { TuringQueryError } from "turingdb";
+
+try {
+    await client.query("MATCH (n RETURN n");
+} catch (e) {
+    if (e instanceof TuringQueryError) {
+        console.log(e.status);    // PARSE_ERROR
+        // the query, a marker under the error,
+        // and "syntax error, unexpected RETURN"
+        console.log(e.message);
+    }
+}
+```
+
+| `status` | Meaning |
+| -------- | ------- |
+| `PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR` | The query failed. The message shows where and why |
+| `GRAPH_NOT_FOUND` | No graph has that name, or it is on disk but not loaded: run `LOAD GRAPH <name>` |
+| `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND` | No change has that ID, or no commit has that hash |
+| `COMMIT_NOT_LOADED` | The commit is not in memory: run `LOAD COMMIT '<hash>'` first |
+| `PARAMETER_ERROR` | A parameter value the client cannot send. Nothing was sent |
+| `PROTOCOL_ERROR` | The server refused the request, with a message that says why: a missing or wrong token (`Unauthorized: missing or invalid authentication token`), or a request over 1 MiB. A server of another version also shows up here |
+| `HTTP_ERROR` | An error status with no TuringDB message, typically from a proxy: `Server returned HTTP 502` when the TuringDB server behind it is down |
+| `DECODE_ERROR` | The client could not decode the result |
+
+A failure to reach the server rejects with the `TypeError` that `fetch` throws instead: `fetch failed` in Node.js when no server is listening, and `Failed to fetch` in a browser, which also covers a request blocked because the page is on another origin. A cancelled query rejects with an `AbortError`.
+
+## The wasm decoder
+
+The client loads its decoder with `new URL("turing_wasm_decoder.wasm", import.meta.url)`, the file next to it in the package. Node.js, browsers and bundlers that understand that pattern find it with no configuration. With Vite's dev server, exclude the package from pre-bundling (`optimizeDeps: { exclude: ["turingdb"] }`, see [In the browser](/jssdk/get_started#in-the-browser)).
+
+To serve the file from somewhere else, such as a CDN, pass its address:
+
+```js
+const client = new TuringClient({
+    url: "/query",
+    wasmUrl: "https://cdn.example.com/turing_wasm_decoder.wasm",
+});
+```
+
+Serve the file as `application/wasm`, which most web servers already do.
+
+## Links
+
+- The package on npm: [npmjs.com/package/turingdb](https://www.npmjs.com/package/turingdb)
+- Its source, in the TuringDB repository: [github.com/turing-db/turingdb/tree/main/wasm/npm](https://github.com/turing-db/turingdb/tree/main/wasm/npm)

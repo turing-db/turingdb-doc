@@ -1,10 +1,10 @@
 ---
 title: "Query Language in TuringDB"
 sidebarTitle: "Overview"
-description: "TuringDB v3 runs Cypher on a new engine and supports most of openCypher: OPTIONAL MATCH, WITH, UNWIND, UNION, MERGE, variable-length paths, subqueries and more."
+description: "TuringDB v3 runs Cypher on a new engine and supports most of openCypher: OPTIONAL MATCH, WITH, UNWIND, UNION, MERGE, variable-length paths, subqueries, parameters and more."
 ---
 
-TuringDB v3 (`turingdb` 3.0.2 on PyPI) runs every query on a new MLIR-based engine and supports **most of openCypher**, extended with versioning, vector search and fast lookup by native node ID.
+TuringDB v3 (`turingdb` 3.1 on PyPI and npm) runs every query on a new MLIR-based engine and supports **most of openCypher**, extended with versioning, vector search and fast lookup by native node ID.
 
 If you know Cypher from Neo4j, you can write the queries you are used to. This page covers the basics and the handful of places where TuringDB differs. The rest of the language is documented in the pages that follow.
 
@@ -15,13 +15,13 @@ If you know Cypher from Neo4j, you can write the queries you are used to. This p
 | Reading | `MATCH`, `OPTIONAL MATCH`, `WHERE`, `WITH`, `RETURN [DISTINCT]`, `ORDER BY`, `SKIP`, `LIMIT`, `UNWIND`, `UNION [ALL]`, `LOAD CSV` |
 | Composing queries | [`NEXT`](/query/composition#next) to chain queries, [`WHEN ... THEN ... ELSE`](/query/composition#when) conditional queries |
 | Patterns | Multiple labels, label expressions (`:A\|B`, `:!A`, `:A&B`), edge type alternatives (`[:A\|B]`), inline `WHERE`, variable-length paths (`*1..3`, `->+`, `{2,4}`), quantified path patterns, named paths, pattern predicates |
-| Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `all` / `any` / `none` / `single`, list slicing, maps and map access |
-| Functions | String (`substring`, `split`, `replace`, `left`, `right`, `normalize`, ...), math, conversion, `keys`, `properties` |
+| Expressions | Arithmetic, string and list concatenation, `CASE`, list and pattern comprehensions, `reduce`, `allReduce`, `all` / `any` / `none` / `single`, `exists()` over a pattern, `IS` label tests, list slicing, maps, map access (`m.key`, `m['key']`) and map projection (`n {.name, .age}`) |
+| Functions | String (`substring`, `split`, `replace`, `left`, `right`, `normalize`, ...), math, conversion, `keys`, `properties`, `elementId`, `isEmpty`, `coll.indexOf`, spatial (`point`, `point.distance`, `point.withinBBox`) |
 | Aggregation | `count`, `sum`, `avg`, `min`, `max`, `collect`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc`, `DISTINCT`, implicit grouping, aggregates inside expressions |
-| Subqueries | `EXISTS { }`, `COUNT { }`, `COLLECT { }`, `CALL { }`, `CALL (*) { }` and `OPTIONAL CALL { }` |
-| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET`, `REMOVE`, `DELETE`, `DETACH DELETE`, `FOREACH` |
-| Parameters | Labels and edge types (`MATCH (n:$label)`) |
-| Types | String, Integer, Double, Boolean, List, Map, `DateTime`, `Duration`, Embedding |
+| Subqueries | `EXISTS { }`, `COUNT { }`, `COLLECT { }`, `CALL { }`, `CALL (*) { }` and `OPTIONAL CALL { }`, with `UNION`, `NEXT` and `WHEN` inside any of them |
+| Writing | `CREATE`, `MERGE` with `ON CREATE` / `ON MATCH`, `SET` (including `SET n = {...}` and `SET n += {...}`), `REMOVE`, `DELETE`, `DETACH DELETE`, `FOREACH` |
+| Parameters | Values anywhere an expression goes (`WHERE n.age > $min`, `UNWIND $rows`), labels and edge types (`MATCH (n:$label)`) |
+| Types | String, Integer, Double, Boolean, List, Map, `DateTime`, `Duration`, Point, Embedding |
 | TuringDB extras | Changes, commits and time travel, `shortestPath`, `VECTOR SEARCH`, `gnn.graphSAGE`, lookup by native node ID |
 
 ## Basics
@@ -41,27 +41,45 @@ RETURN a.name, e.since, b.name
 
 By convention, node labels are written in PascalCase (`Person`, `BankAccount`), edge types in upper case with underscores (`WORKS_AT`, `FRIENDS_WITH`), and strings use single quotes.
 
-Keywords are case-insensitive (`MATCH` and `match` are the same). Labels, edge types and property names are case-sensitive. Only `//` starts a comment:
+Keywords are case-insensitive (`MATCH` and `match` are the same), and a keyword can also be a name: `WITH n.name AS count, n.age AS order` is valid. Labels, edge types and property names are case-sensitive. `//` starts a line comment and `/* */` encloses a block comment:
 
 ```cypher
 // a line comment
-MATCH (n:Person) RETURN n.name // also fine at the end of a line
+MATCH (n:Person) /* a block comment */
+RETURN n.name // also fine at the end of a line
 ```
 
 <Note>
-  Use `//` for comments. SQL-style `--` and `/* */` comments are not yet supported.
+  SQL-style `--` comments are not supported. Use `//` instead.
 </Note>
 
 ### Running a query
 
-Queries run through the Python SDK, the interactive shell, or the HTTP endpoint. Read queries run directly against the current graph; [write queries](/query/writing) must run inside a change.
+Queries run through the [Python SDK](/pythonsdk/reference), the [JavaScript SDK](/jssdk/reference), or the [interactive shell](/commands#interactive-shell). Read queries run directly against the current graph; [write queries](/query/writing) must run inside a change.
 
-```python
+<CodeGroup>
+
+```python Python
 from turingdb import TuringDB
 
-client = TuringDB(host="http://localhost:6666")
-df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFrame
+client = TuringDB(host="localhost", port=6666)
+# a pandas DataFrame
+df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 ```
+
+```js JavaScript
+import { TuringClient } from "turingdb";
+
+const client = new TuringClient({
+    url: "http://localhost:6686/query",
+});
+// chunks of columns
+const chunks = await client.queryData(
+    "MATCH (n:Person) RETURN n.name, n.age",
+);
+```
+
+</CodeGroup>
 
 <Tip>
   `EXPLAIN <query>` returns the compiled query plan without running the query, and `EXPLAIN (db) <query>` shows only the database plan. It is the easiest way to check how a lookup runs.
@@ -69,45 +87,118 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")   # a pandas DataFram
 
 ### Query parameters
 
-`client.query()` takes an optional dictionary of parameters. A `$name` parameter can stand for a **label or an edge type**, anywhere a label or type is written:
+`client.query()` takes an optional dictionary of parameters. A `$name` parameter stands for a **value** anywhere an expression goes, so values travel next to the query text and need no quoting or escaping:
 
 ```python
-client.query("MATCH (n:$label) RETURN n.name", {"label": "Person"})
-client.query("MATCH (n:$labels) RETURN n.name", {"labels": ["Person", "Employee"]})   # every label in the list
-client.query("MATCH (n:Person|$other) RETURN n.name", {"other": "Company"})           # inside a label expression
-client.query("MATCH (n) WHERE n:$label RETURN n.name", {"label": "Company"})          # in a label test
-client.query("MATCH (a)-[r:$type]->(b) RETURN a.name, b.name", {"type": "WORKS_AT"})
-client.query("MATCH (n:$0) RETURN n.name", {"0": "Company"})                          # numbered parameter
+client.query(
+    "MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name",
+    {"minAge": 30},
+)
+client.query(
+    "MATCH (n:Person {name: $name}) RETURN n.age",
+    {"name": "O'Brien"},
+)
+client.query(
+    "MATCH (n:Person) WHERE n.name IN $names RETURN n.name",
+    {"names": ["Alice", "Bob"]},
+)
+client.query(
+    "UNWIND $rows AS row RETURN row.name, row.age",
+    {"rows": [{"name": "Alice", "age": 30}]},
+)
+client.query(
+    "WITH $filter AS f MATCH (n:Person) WHERE n.city = f.city "
+    "RETURN n.name",
+    {"filter": {"city": "London"}},
+)
+# numbered parameter
+client.query("RETURN $0 + 1 AS next", {"0": 41})
 
 # inside a change
-client.query("CREATE (n:$label {name: 'Zoe'})", {"label": "Person"})
-client.query("MERGE (t:$label {name: 'x'})", {"label": "Tag"})
-client.query("MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}) MERGE (a)-[:$type]->(b)", {"type": "FOLLOWS"})
+client.query(
+    "CREATE (n:Person {name: $name, age: $age})",
+    {"name": "Zoe", "age": 27},
+)
+client.query(
+    "MATCH (n:Person {name: 'Alice'}) SET n += $props",
+    {"props": {"city": "Berlin"}},
+)
 ```
 
-- A parameter holds a string, or a list of strings to require several labels.
-- A parameter used in the query but missing from the dictionary is reported when the query runs: `Parameter $label is not defined`.
-- Put values directly in the query text for now: value parameters, such as `WHERE n.name = $name`, are reported as `Not implemented: Parameters`.
+A parameter can also stand for a **label or an edge type**, anywhere a label or type is written:
 
-In the [interactive shell](/commands#interactive-shell), set parameters with `:param`. Over [HTTP](/commands#http-api), send them in the `parameters` field of the request.
+```python
+client.query(
+    "MATCH (n:$label) RETURN n.name", {"label": "Person"}
+)
+# every label in the list
+client.query(
+    "MATCH (n:$labels) RETURN n.name",
+    {"labels": ["Person", "Employee"]},
+)
+# inside a label expression
+client.query(
+    "MATCH (n:Person|$other) RETURN n.name", {"other": "Company"}
+)
+# in a label test
+client.query(
+    "MATCH (n) WHERE n:$label RETURN n.name", {"label": "Company"}
+)
+client.query(
+    "MATCH (a)-[r:$type]->(b) RETURN a.name, b.name",
+    {"type": "WORKS_AT"},
+)
+# numbered parameter
+client.query("MATCH (n:$0) RETURN n.name", {"0": "Company"})
+
+# inside a change
+client.query(
+    "CREATE (n:$label {name: 'Zoe'})", {"label": "Person"}
+)
+client.query("MERGE (t:$label {name: 'x'})", {"label": "Tag"})
+client.query(
+    "MATCH (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'})"
+    " MERGE (a)-[:$type]->(b)",
+    {"type": "FOLLOWS"},
+)
+```
+
+- **Values.** From Python, a parameter can hold a string, a number, a boolean, `None`, a list, a dict, a time-zone-aware `datetime` (a DateTime) or a `timedelta` (a Duration). See [`query()`](/pythonsdk/reference#core-methods) for the full list, and [Parameters](/jssdk/reference#parameters) for JavaScript values.
+- **Labels and edge types.** The parameter holds a string, or a list of strings to require several labels.
+- **Missing parameters.** A parameter used in the query but missing from the dictionary is reported when the query runs: `Parameter $label is not defined`.
+- **Where literals are still needed.** `SKIP` and `LIMIT` take a number written in the query: `LIMIT $n` is reported as `Unsupported expression in SKIP/LIMIT: PARAMETER`. The vector of a [`VECTOR SEARCH`](/vector-search) is written in the query too, and a list parameter is a List, not an Embedding.
+- **Node IDs.** Compare the node itself with an ID parameter, `WHERE n = $id`, which looks the node up directly. For a list of IDs, see [lookup by native node ID](/query/matching#look-up-nodes-by-native-node-id).
+- **Size.** Parameters count towards the 1 MiB limit of a request, but take far less room than the same values written into the query text.
+
+In the [interactive shell](/commands#interactive-shell), set parameters with `:param <name> => <value>`. In the [JavaScript SDK](/jssdk/reference#parameters), pass them as `client.query(cypher, { parameters })`.
 
 ## Coming from Neo4j
 
 TuringDB follows openCypher closely, so the queries you know carry over. These are the TuringDB specifics worth knowing:
 
-- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, or all of them with `RETURN properties(n)`.
-- **Values go in the query text.** [Parameters](#query-parameters) name labels and edge types. Put literal values directly in the text and escape quotes in your application.
+- **`RETURN n` returns the node's internal ID**, an integer. Return the properties you need with `RETURN n.name, n.age`, a [map projection](/query/functions#map-projection) such as `RETURN n {.name, .age}`, or all of them with `RETURN properties(n)`. A path comes back as the list of its node and edge IDs, and `elementId(n)` is the same integer as `id(n)`.
+- **Parameters.** [`$name` parameters](#query-parameters) hold values, labels and edge types. `SKIP`, `LIMIT` and vector search take literals.
 - **One statement per request.** Send each statement as its own request (a single trailing `;` is fine), or chain steps in one request with [`NEXT`](/query/composition#next).
 - **Labels are set at creation.** Every node has at least one label and every edge exactly one edge type, chosen when it is created.
 - **Property types are global.** A property name has a single value type across the whole graph: if `age` is an Integer, it is an Integer on every node.
 - **Comparing Doubles.** Integers and Doubles compare by value (`n.age = 30.0` matches 30). Match one Double against another with a range (`n.score > 1.99 AND n.score < 2.01`).
 - **Forgiving names.** An unknown label matches nothing and a misspelled property reads as `null`. Check names with [`CALL db.labels()` and `CALL db.propertyTypes()`](/query/procedures).
 - **String matching.** Use `STARTS WITH`, `ENDS WITH`, `CONTAINS` and the [string functions](/query/functions). Regular expressions (`=~`) are not yet supported.
+- **Testing for a property.** Write `n.prop IS NOT NULL`. As in Neo4j 5, `exists()` takes a pattern: `exists((p)-[:LIKES]->())`.
 - **Uniqueness.** Use `MERGE` to avoid duplicates.
 - **Shortest paths** use a TuringDB statement, see [Shortest path](/shortest-path).
 
 <Note>
   Coming from TuringDB 1.x? The v3 engine replaces the previous one, and many earlier limits are gone: `OPTIONAL MATCH`, `WITH`, `DISTINCT`, `UNION`, `MERGE`, `DELETE`, aggregates in any position, `UNWIND` over any list, `LOAD CSV` followed by `MATCH`, and `CREATE ... SET` all work now. One function changed name: `edgeType(e)` is now `type(e)`.
+</Note>
+
+<Note>
+  Coming from TuringDB 3.0? Version 3.1 adds value parameters, map projection, `SET n = {...}` and `SET n += {...}`, points, `exists()`, `allReduce` and more. A few results change, to follow Neo4j:
+
+  - A path comes back as a list of IDs, node and edge alternating (`[0, 0, 1]`), rather than a list of `{type, id}` dictionaries.
+  - `list + null` is `null`, and `=` between two maps is `null` when a `null` inside decides it, as between two lists: `{a: null} = {a: 1}` is `null`.
+  - `STARTS WITH`, `ENDS WITH` and `CONTAINS` bind more loosely than `+`: `'a' + 'bc' ENDS WITH 'bc'` is `true`.
+  - The Python SDK connects with `TuringDB(host="localhost", port=6666)`, see [client backends](/pythonsdk/reference#client-backends).
 </Note>
 
 ## Data types
@@ -124,6 +215,7 @@ TuringDB offers these types for node and edge properties and for values in queri
 | Map | `{a: 1, b: [1, 2]}` | See [Maps](/query/functions#maps) |
 | DateTime | `datetime('2024-03-15T10:30:00Z')` | Microsecond precision, always UTC |
 | Duration | `duration({days: 2})` | Microsecond precision, no month component |
+| Point | `point({x: 1, y: 2})`, `point({latitude: 51.5, longitude: -0.12})` | 2D or 3D, cartesian or WGS-84. See [Points](/query/functions#points) |
 | Embedding | `(1.2, 2.0, 0.0)` | Parentheses, at least 2 numbers. See [Vector search](/vector-search) |
 
 <Warning>
