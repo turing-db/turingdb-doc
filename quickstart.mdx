@@ -81,9 +81,8 @@ The steps below walk you through setting up a Python project, installing the Tur
     from turingdb import TuringDB
     
     # Create TuringDB client
-    # set host parameter to the URL (as string) on which TuringDB is running,
-    # default "http://localhost:6666"
-    client = TuringDB(host="http://localhost:6666")
+    # host and port of the running TuringDB server (default localhost:6666)
+    client = TuringDB(host="localhost", port=6666)
     
     # Create a new graph called my_graph
     client.create_graph("mygraph")
@@ -134,3 +133,7 @@ The steps below walk you through setting up a Python project, installing the Tur
 <Check>
   You are done!
 </Check>
+
+<Tip>
+  Building a Node.js or web application? The `turingdb` npm package queries the same server from JavaScript or TypeScript: see the [JavaScript SDK](/jssdk/get_started).
+</Tip>

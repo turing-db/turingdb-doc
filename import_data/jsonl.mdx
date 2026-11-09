@@ -45,12 +45,12 @@ Each line is a self-contained JSON object representing either a node or a relati
 
 - Scalars (strings, integers, doubles, booleans) become properties of the matching type, and `null` values are skipped.
 - Arrays load as **List** properties.
-- Nested objects are stored as **JSON strings**.
+- Nested objects are stored as **JSON strings**, unless you declare them as points (see below).
 - ISO date strings stay strings, and integer durations stay integers, unless you declare them (see below).
 
 Each property name has a single type across the whole graph, so use the same type for a property on every node.
 
-## Loading date, duration and embedding properties
+## Loading date, duration, point and embedding properties
 
 Typed options can be chained after the graph name:
 
@@ -59,11 +59,14 @@ LOAD JSONL 'mydata.jsonl' AS mygraph
   WITH EMBEDDINGS [{"emb", 384}, {"summary_vec", 768}]
   WITH DATETIMES [born, updatedAt]
   WITH DURATIONS [tenure]
+  WITH POINTS [location]
 ```
 
 - `WITH DATETIMES [prop, ...]` parses ISO 8601 strings into `DateTime` values.
 - `WITH DURATIONS [prop, ...]` reads integers as microseconds and stores them as `Duration` values.
+- `WITH POINTS [prop, ...]` reads JSON objects as [points](/query/functions#points), with the keys `point()` takes: `{"longitude": 2.3522, "latitude": 48.8566}` is a WGS-84 point and `{"x": 1, "y": 2}` a cartesian one. A JSON `null` leaves the property unset.
 - `WITH EMBEDDINGS [{"prop", dim}, ...]` stores arrays as `Embedding` values, see below.
+- A property can be declared with one type only.
 
 ### Loading embedding properties
 
@@ -104,7 +107,7 @@ Each spec is `{"<property name>", <dimension>}`. The dimension must be **greater
         ```python
         from turingdb import TuringDB
         
-        client = TuringDB(host="http://localhost:6666")
+        client = TuringDB(host="localhost", port=6666)
         client.query("LOAD JSONL 'mydata.jsonl' AS mygraph")
         ```
       </Tab>

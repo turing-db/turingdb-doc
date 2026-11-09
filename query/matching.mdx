@@ -161,13 +161,15 @@ WHERE n.age >= 18 AND n.city = 'London'
 RETURN n.name
 
 MATCH (n:Person)
-WHERE n.name STARTS
-WITH 'A' OR n.name ENDS
-WITH 'e' OR n.name CONTAINS 'ro'
+WHERE n.name STARTS WITH 'A' OR n.name ENDS WITH 'e' OR n.name CONTAINS 'ro'
 RETURN n.name
 
 MATCH (n:Person)
 WHERE n.name IN ['Alice', 'Bob']
+RETURN n.name
+
+MATCH (n)
+WHERE n IS Company
 RETURN n.name
 
 MATCH (n:Person)
@@ -193,15 +195,19 @@ RETURN p.name
 MATCH (p:Person)
 WHERE NOT (p)-[:KNOWS]->()
 RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, exists((p)-[:WORKS_AT]->(:Company {name: 'Acme'})) AS atAcme
 ```
 
-- **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type. Combine them with `AND`, `OR` and `NOT`, or write a [label expression](#label-expressions) such as `n:Person|Company`.
-- **Pattern predicates:** `WHERE (p)-[:LIKES]->()` keeps the nodes for which the pattern exists. For richer conditions see [`EXISTS` subqueries](/query/subqueries).
+- **Label and type tests:** `n:Person` tests a node label, `e:KNOWS` tests an edge type, and `n IS Person` is the same test written with `IS`. Combine them with `AND`, `OR` and `NOT`, or write a [label expression](#label-expressions) such as `n:Person|Company` or `n IS Person|Company`. Negate an `IS` test with `NOT n IS Person`.
+- **Pattern predicates:** `WHERE (p)-[:LIKES]->()` keeps the nodes for which the pattern exists, and `exists((p)-[:LIKES]->())` is the same test as a value you can return. For richer conditions see [`EXISTS` subqueries](/query/subqueries).
 
 | Operators | |
 | --------- | - |
 | Comparison | `=`, `<>`, `!=`, `<`, `<=`, `>`, `>=`, and chained comparisons such as `1 < x < 3` |
 | Null tests | `IS NULL`, `IS NOT NULL` |
+| Label tests | `n:Person`, `n IS Person`, label expressions such as `n:Person\|Company` |
 | Boolean | `AND`, `OR`, `XOR`, `NOT`, with three-valued logic for `null` as in Neo4j |
 | Membership and strings | `IN`, `STARTS WITH`, `ENDS WITH`, `CONTAINS`, `IS [NFC\|NFD\|NFKC\|NFKD] NORMALIZED` |
 | Arithmetic | `+`, `-`, `*`, `/`, `%`, `^`. Integer `/` truncates and `^` returns a Double |
@@ -210,7 +216,7 @@ RETURN p.name
 Property constraints in a pattern, `MATCH (n {name: 'Matt', age: 20})`, are exactly equivalent to the same equality tests in `WHERE`.
 
 <Note>
-  Use `n.prop IS NOT NULL` to test for a property, and `STARTS WITH`, `ENDS WITH` and `CONTAINS` to match strings. Regular expressions (`=~`) and `exists(n.prop)` are not yet supported.
+  Use `n.prop IS NOT NULL` to test for a property: `exists()` takes a pattern, so `exists(n.prop)` is reported with that hint, as in Neo4j 5. Use `STARTS WITH`, `ENDS WITH` and `CONTAINS` to match strings. Regular expressions (`=~`) are not yet supported.
 </Note>
 
 ### Comparing numbers
@@ -286,6 +292,10 @@ MATCH (n)-[:KNOWS]->(m)
 WHERE id(n) = 0
 RETURN m.name
 
+MATCH (n)
+WHERE n IN [0, 1, 2]
+RETURN n.name
+
 UNWIND [0, 1, 2] AS x
 MATCH (n)
 WHERE n = x
@@ -299,7 +309,7 @@ WHERE b = p[1]
 RETURN a.name, b.name
 ```
 
-`EXPLAIN` shows the lookup: the plan contains `const_scan_nodes` for IDs written in the query, or `fetch_nodes` for IDs read from a row, rather than `scan_nodes`:
+`EXPLAIN` shows the lookup: the plan contains `const_scan_nodes` for IDs written in the query, or `fetch_nodes` for IDs read from a row or a parameter, rather than `scan_nodes`:
 
 ```cypher
 EXPLAIN MATCH (n)
@@ -307,7 +317,14 @@ WHERE n = 0
 RETURN n.name
 ```
 
-- **Batches.** `UNWIND` a list of IDs and compare each one: `UNWIND <ids> AS x MATCH (n) WHERE n = x`. The list can be written in the query (`f"UNWIND {ids} AS x ..."` in Python), held in a variable, or built with `collect()` or `range()`, and each ID costs a few microseconds. Use this form rather than `WHERE n IN [...]`, which checks every node.
+**IDs in parameters.** With [query parameters](/query/cypher_subset#query-parameters), compare the node itself with the ID. `WHERE n = $id` looks the node up directly, while `WHERE id(n) = $id` and `WHERE n IN $ids` check every node. `UNWIND` a list of IDs:
+
+```python
+client.query("MATCH (n) WHERE n = $id RETURN n.name", {"id": 0})
+client.query("UNWIND $ids AS x MATCH (n) WHERE n = x RETURN x, n.name", {"ids": [0, 1, 2]})
+```
+
+- **Batches.** `UNWIND` a list of IDs and compare each one: `UNWIND $ids AS x MATCH (n) WHERE n = x`. The list can be a parameter, written in the query, held in a variable, or built with `collect()` or `range()`, and each ID costs a few microseconds. A list written in the query also works as `WHERE n IN [0, 1, 2]`.
 - **Several IDs per row.** Two IDs from the same row work too, which is the fast way to [create many edges between existing nodes](/query/writing#edges-between-existing-nodes).
 - **Fetch IDs once and reuse them.** Look nodes up with whatever filter you need (`MATCH (n:Person {name: 'Alice'}) RETURN id(n)`), keep the IDs in your application, and address the nodes by ID from then on. Looking each row's node up through a key property such as `n.uuid` reads every node with that label instead, and is about 100 times slower on a large graph.
 - **Vector search results are already nodes.** `VECTOR SEARCH ... YIELD ids` binds `ids` as nodes, so use `ids.title` or `MATCH (ids)-[...]->(...)` directly. See [Vector search](/vector-search).

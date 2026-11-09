@@ -28,7 +28,7 @@ Won 48/48 queries vs Neo4j Won 45/47 queries vs Memgraph
 
 And remember:
 
-All of this is running over plain JSON/HTTP for now, while competitors used Bolt (binary protocol), which actually makes the benchmark conservative in our case.
+These runs queried TuringDB through the Python client it shipped at the time, which exchanged JSON with the server, while competitors used Bolt (a binary protocol). That makes the benchmark conservative in our case. Since version 3.1, TuringDB's clients use its own binary protocol.
 
 We’re also running completely out-of-the-box with no manual tuning, no custom configuration, no indexes on our side.
 
@@ -133,7 +133,7 @@ All databases were run locally on the same machine, one at a time, to avoid reso
 
 ### Client Protocol
 
-TuringDB is queried over **HTTP** via its Python client, while Neo4j and Memgraph are queried over the **Bolt** binary protocol. Bolt is a more efficient wire protocol than HTTP for database communication, meaning TuringDB’s measured times include higher protocol overhead. This makes the benchmark conservative in TuringDB’s favor — with an equivalent binary protocol, TuringDB’s results would be even faster.
+These results were measured with an earlier TuringDB Python client, which exchanged JSON with the server, while Neo4j and Memgraph are queried over the **Bolt** binary protocol. JSON costs more to encode and decode than a binary wire protocol, meaning TuringDB’s measured times include higher protocol overhead. This makes the benchmark conservative in TuringDB’s favor. Since version 3.1, TuringDB’s clients use its own binary protocol.
 
 ---
 
@@ -598,7 +598,7 @@ The following **2 queries** (4% of benchmark) show a competitor outperforming Tu
 - **Single-machine benchmark.** All engines ran locally; distributed deployment characteristics are not measured.
 - **Cold-run only.** Results reflect first-execution performance. Workloads with repeated identical queries would benefit from Neo4j/Memgraph’s query caching.
 - **Import-provided configuration.** Neo4j and Memgraph use the indexes and constraints from the original dump, and Memgraph runs in in-memory analytical mode. No additional tuning was applied. Production deployments may include further optimizations.
-- **Client-side timing.** Measurements include Python client overhead and network round-trip (localhost). TuringDB uses HTTP while Neo4j and Memgraph use the more efficient Bolt protocol, giving the competitors a wire-protocol advantage.
+- **Client-side timing.** Measurements include Python client overhead and network round-trip (localhost). At the time of these runs TuringDB's client exchanged JSON with the server, while Neo4j and Memgraph use the more efficient Bolt protocol, giving the competitors a wire-protocol advantage.
 - **Two datasets.** Results may not generalize to all graph structures or query patterns. Additional datasets would strengthen conclusions.
 - **No concurrent load.** The benchmark runs queries sequentially with no simulated concurrent users.
 

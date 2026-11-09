@@ -75,7 +75,7 @@ UNION
 
 ### Inside subqueries
 
-`NEXT` works inside [`CALL`, `EXISTS` and `COUNT`](/query/subqueries) subqueries, where the chain runs once for each outer row:
+`NEXT` works inside [`CALL`, `EXISTS`, `COUNT` and `COLLECT`](/query/subqueries) subqueries, where the chain runs once for each outer row:
 
 ```cypher
 MATCH (c:Company)
@@ -95,6 +95,15 @@ RETURN p.name, COUNT {
   MATCH (friend)-[:KNOWS]->(fof)
   RETURN fof
 } AS friendsOfFriends
+
+MATCH (p:Person {name: 'Alice'})
+RETURN COLLECT {
+  MATCH (p)-[:KNOWS]->(f)
+  RETURN f AS friend
+  NEXT
+  MATCH (friend)-[:KNOWS]->(fof)
+  RETURN fof.name
+} AS namesTwoHopsAway
 ```
 
 ### Writes
@@ -113,7 +122,6 @@ RETURN count(x) AS tags
 
 - **Aliases.** Every expression in a `RETURN` followed by `NEXT` needs an alias. Without one: `Expression in a RETURN followed by NEXT must be aliased (use AS)`.
 - **Scope.** Only the returned columns carry over. `MATCH (n:Person) RETURN n.name AS nm NEXT RETURN n.age` reports `Variable 'n' not found`, because the first step did not return `n`.
-- `NEXT` is not yet available inside a `COLLECT { }` body.
 
 ## WHEN
 
@@ -163,6 +171,32 @@ CALL (n) {
 RETURN n.name, employer
 ```
 
+### Inside EXISTS, COUNT and COLLECT
+
+A conditional can also be the body of an [`EXISTS`, `COUNT` or `COLLECT`](/query/subqueries) subquery. For each row, the subquery tests, counts or collects what the chosen branch returns:
+
+```cypher
+MATCH (p:Person)
+WHERE EXISTS {
+  WHEN p.age > 30 THEN MATCH (p)-[:KNOWS]->(f) RETURN f
+}
+RETURN p.name
+
+MATCH (p:Person)
+RETURN p.name, COUNT {
+  WHEN p.city = 'London' THEN MATCH (p)-[:KNOWS]->(f) RETURN f AS x
+  ELSE MATCH (p)-[:LIKES]->(x) RETURN x
+} AS links
+
+MATCH (p:Person)
+RETURN p.name, COLLECT {
+  WHEN p.age > 30 THEN MATCH (p)-[:KNOWS]->(f) RETURN f.name AS x
+  ELSE RETURN 'under 31' AS x
+} AS friendsOrBand
+```
+
+The first query keeps Bob only: Dave is over 30 but knows nobody, and the others take no branch.
+
 ### Without ELSE
 
 When no branch matches and there is no `ELSE`, the conditional returns no rows, so `WHEN false THEN RETURN 1 AS x` returns nothing. In a `CALL`, rows that match no branch are dropped. Use `OPTIONAL CALL` to keep them with `null` values:
@@ -199,6 +233,17 @@ UNION
 { WHEN false THEN RETURN 'b' AS x ELSE RETURN 'c' AS x }
 ```
 
+A branch can hold a `UNION` too, in braces:
+
+```cypher
+WHEN COUNT { MATCH (c:Company) } > 0 THEN {
+  MATCH (p:Person) RETURN p.name AS name
+  UNION
+  MATCH (c:Company) RETURN c.name AS name
+}
+ELSE RETURN 'no companies' AS name
+```
+
 ### Writes
 
 Branches can write, inside a change. See [Conditional writes](/query/writing#conditional-writes):
@@ -213,6 +258,5 @@ RETURN count(*)
 
 ### Rules
 
-- **Same columns.** All branches return the same column names. Otherwise: `All branches of a conditional query must return the same column names`.
-- **Where it goes.** A `WHEN` starts a query, follows `NEXT`, forms a `CALL` body, or is a braced side of a `UNION`. To branch on the results of a `MATCH`, return them and continue after `NEXT`, as above.
-- **Not yet available:** `UNION` inside a branch, and `WHEN` inside an `EXISTS`, `COUNT` or `COLLECT` body.
+- **Same columns.** All branches return the same column names. Otherwise: `All branches of a conditional query must return the same column names`. A column can hold values of different types from different branches, as in `WHEN true THEN RETURN 1 AS x ELSE RETURN 'a' AS x`.
+- **Where it goes.** A `WHEN` starts a query, follows `NEXT`, forms the body of a `CALL`, `EXISTS`, `COUNT` or `COLLECT` subquery, or is a braced side of a `UNION`. To branch on the results of a `MATCH`, return them and continue after `NEXT`, as above.

@@ -212,7 +212,7 @@ This removes the index and frees the associated resources.
     ```python
     from turingdb import TuringDB
 
-    client = TuringDB(host="http://localhost:6666")
+    client = TuringDB(host="localhost", port=6666)
 
     # 1. Create a vector index for product embeddings
     client.query("CREATE VECTOR INDEX product_vectors WITH DIMENSION 384 METRIC COSINE")

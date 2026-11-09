@@ -1,7 +1,7 @@
 ---
 title: "CLI Commands"
 sidebarTitle: "Commands"
-description: "Reference for TuringDB CLI commands (start, UI and stop), the interactive shell, environment variables and the HTTP API."
+description: "Reference for TuringDB CLI commands (start, UI and stop), the interactive shell, environment variables and how clients connect."
 ---
 
 ## Start
@@ -17,8 +17,8 @@ turingdb start [options]
 | Flag | Description | Default |
 |---|---|---|
 | `-demon` | Run TuringDB as a background daemon | off |
-| `-p <port>` | HTTP server listen port | `6666` |
-| `-i <addr>` | HTTP server listen address | `127.0.0.1` |
+| `-p <port>` | Server listen port | `6666` |
+| `-i <addr>` | Server listen address | `127.0.0.1` |
 | `-turing-dir <path>` | Root Turing home directory | `~/.turing` |
 | `-load <graph>` | Load a graph at startup (can be repeated) | |
 | `-in-memory` | Run without writing graphs to disk | off |
@@ -62,10 +62,10 @@ Require authentication:
 TURINGDB_AUTH_TOKEN=s3cret turingdb start -demon -auth-on
 ```
 
-Serve the binary protocol instead of JSON (see [Environment variables](#environment-variables)):
+Serve a Node.js application, whose `fetch` refuses the default port (see [Connecting clients](#connecting-clients)):
 
 ```bash
-USE_TURING_PROTO=1 turingdb start -demon
+turingdb start -demon -p 6686
 ```
 
 <Note>
@@ -74,15 +74,16 @@ USE_TURING_PROTO=1 turingdb start -demon
 
 ### Interactive shell
 
-Without `-demon`, `turingdb start` serves HTTP **and** opens an interactive Cypher shell. Besides Cypher queries and [engine commands](/query/procedures#commands), the shell has a few local commands:
+Without `-demon`, `turingdb start` serves clients **and** opens an interactive Cypher shell. Besides Cypher queries and [engine commands](/query/procedures#commands), the shell has a few local commands:
 
 | Command | Description |
 |---|---|
 | `cd <graph>` | Switch the active graph |
 | `checkout change-<id>` | Work on a change. `checkout <commit>` opens a past commit, and `checkout` returns to the latest commit of main |
 | `read <file>` | Run the queries in a file |
-| `:param <name> => <value>` | Set a [query parameter](/query/cypher_subset#query-parameters), with the value written as JSON: `:param label => "Person"`. `:param clear` removes them all |
-| `SHOW PARAMETERS` | List the parameters set in the shell |
+| `:param <name> => <value>` | Set a [query parameter](/query/cypher_subset#query-parameters), with the value written as a Cypher expression: `:param label => 'Person'`, `:param ids => [0, 1, 2]`, `:param since => datetime('2024-01-01T00:00:00Z')`. `:param clear` removes them all |
+| `SHOW PARAMETERS` | List the parameters set in the shell, with their types |
+| `connect <addr> <port>` | Send the next queries to another TuringDB server, for example `connect 127.0.0.1 6666`. `disconnect` returns to the local engine |
 | `help` | List the available commands |
 | `quit` / `exit` | Leave the shell |
 
@@ -156,25 +157,24 @@ turingdb stop -turing-dir /data/myturing
 
 | Variable | Read by | Effect |
 |---|---|---|
-| `USE_TURING_PROTO` | server | `1` makes the server speak TuringDB's **binary protocol** instead of JSON over HTTP. The server then serves the binary protocol only: connect with `TuringDB(type="native")`, and use a server in the default mode for `curl`, the JSON client and the visualizer. See [client backends](/pythonsdk/reference#client-backends) |
-| `TURINGDB_AUTH_TOKEN` | server and Python SDK | With `-auth-on`, the token the server requires. The SDK sends it as a bearer token when set |
-| `TURINGDB_TYPE` | Python SDK | Default client backend (`json`, `native` or `embedded`) when `type` is not passed |
+| `TURINGDB_AUTH_TOKEN` | server and Python SDK | With `-auth-on`, the token the server requires. The Python SDK sends it as a bearer token when set. The JavaScript SDK takes the token as its `authToken` option |
 
 ---
 
-## HTTP API
+## Connecting clients
 
-The Python SDK is a thin client over a single endpoint, so you can query a server from any language. With the default (JSON) server, send the query as a JSON object:
+The server speaks TuringDB's binary protocol, on port 6666 unless you pass `-p`. Query it with one of these clients:
 
-```bash
-curl -s -X POST 'http://localhost:6666/query?graph=mygraph' \
-     -d '{"query": "MATCH (n:$label) RETURN count(n)", "parameters": {"label": "Person"}}'
-```
+| Client | Install | Connect |
+|---|---|---|
+| [Python SDK](/pythonsdk/reference) | `pip install turingdb` | `TuringDB(host="localhost", port=6666)` |
+| [JavaScript SDK](/jssdk/reference) | `npm install turingdb` | `new TuringClient({ url: "http://localhost:6686/query" })` |
+| Interactive shell | ships with the server | `turingdb` without `-demon`, or `connect <addr> <port>` from another shell |
+| [Visualizer](#ui) | ships with the server | `turingdb -ui` |
 
-- The request body is a JSON object with a `query` string and an optional `parameters` object (see [query parameters](/query/cypher_subset#query-parameters)).
-- The optional query-string parameters `change=<change id>` and `commit=<hash>` target a change or a past commit. The change ID is the decimal number that `CHANGE NEW` returns.
-- With `-auth-on`, send `Authorization: Bearer <token>`. A missing or incorrect token returns HTTP `401` with an empty body.
-- A request, headers included, can be up to 1 MiB. A larger one returns HTTP `413` with the code `REQUEST_TOO_BIG`.
-- A successful response is `{"header": {"column_names": [...], "column_types": [...]}, "data": [chunk, ...], "time": <ms>}`, where each chunk is a list of columns. Doubles are written with full precision.
-- An error response is `{"error": "PARSE_ERROR", "error_details": "...", "time": <ms>}`. The code is one of `PARSE_ERROR`, `ANALYZE_ERROR`, `PLAN_ERROR`, `EXEC_ERROR`, `GRAPH_NOT_FOUND`, `CHANGE_NOT_FOUND`, `COMMIT_NOT_FOUND` or `REQUEST_TOO_BIG`, and the details name the graph, change or commit that was not found.
-- Queries on a non-HEAD commit need `LOAD COMMIT '<hash>'` first when you talk to the API directly. The CLI and the SDK do this for you.
+- The protocol runs over HTTP/1.1: each query is a request to `/query`, and its result streams back as binary packets, one per HTTP chunk, on a connection kept open for the next query. Standard reverse proxies such as nginx forward it with a plain `proxy_pass`.
+- Each query carries the graph, change and commit it runs on, so the server keeps no session for a client.
+- A request can be up to 1 MiB, the query text and its parameters together. A larger one is refused with `The request is over the server limit of 1048576 bytes for the request line, headers and body together`. Split large batches, or load bulk data from a file with [`LOAD PARQUET`](/import_data/parquet) or [`LOAD JSONL`](/import_data/jsonl).
+- With `-auth-on`, every request needs the token. A missing or wrong one is refused with `Unauthorized: missing or invalid authentication token`.
+- Browsers and the `fetch` of Node.js refuse port 6666. For Node.js, start the server on another port, such as `-p 6686`. A web page reaches the server through a proxy on its own origin, see [In the browser](/jssdk/get_started#in-the-browser).
+- Upgrade the clients and the server together: a 3.1 client speaks the protocol of a 3.1 server.

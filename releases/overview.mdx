@@ -1,0 +1,36 @@
+---
+title: "Release Notes"
+sidebarTitle: "All Releases"
+description: "What changed in each TuringDB release, and how to upgrade."
+---
+
+TuringDB releases the server, the Python SDK (`turingdb` on PyPI) and the JavaScript SDK (`turingdb` on npm) together, under the same version number. Upgrade them together.
+
+## Latest release
+
+<CardGroup cols={1}>
+  <Card title="TuringDB 3.1, November 9, 2026" icon="/images/icons/pixel-bolt.png" href="/releases/v3-1">
+    Query parameters, the binary protocol over HTTP/1.1 by default, a WebAssembly-based TypeScript client on npm, `allReduce`, `COLLECT` and other subqueries that hold any query, and a point type with haversine distances.
+  </Card>
+</CardGroup>
+
+## All releases
+
+| Version | Released | Highlights |
+| ------- | -------- | ---------- |
+| [3.1](/releases/v3-1) | November 9, 2026 | Query parameters, the binary protocol over HTTP/1.1 by default, a WebAssembly-based TypeScript client on npm, `allReduce`, `COLLECT` and other subqueries, points with haversine distances |
+| [3.0.2](https://github.com/turing-db/turingdb/releases/tag/v3.0.2) | October 26, 2026 | Label expressions, `NEXT`, `COLLECT` subqueries, `FOREACH`, quantified path patterns with several hops, parameters for labels and edge types, `keys()` and `properties()`, `stDev` and percentiles |
+| [3.0.1](https://github.com/turing-db/turingdb/releases/tag/v3.0.1) | October 8, 2026 | `WHEN ... THEN ... ELSE`, map access, `reduce`, relationships with both arrow heads, the common numeric and string functions |
+| 3.0 | October 2, 2026 | TuringDB v3: every query runs on the new MLIR-based engine, which supports most of openCypher |
+| [1.37](https://github.com/turing-db/turingdb/releases/tag/v1.37) and earlier | until August 24, 2026 | The previous engine |
+
+Each GitHub release lists every change that went into that version.
+
+## Staying up to date
+
+```bash
+pip install -U turingdb          # or: uv add 'turingdb>=3.1'
+npm install turingdb@latest
+```
+
+Restart the server after upgrading, so that it runs the new `turingdb`. See the [Get Started guide](/quickstart) for a first install.

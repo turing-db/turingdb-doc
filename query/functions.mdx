@@ -1,23 +1,24 @@
 ---
 title: "Functions and Data Types"
 sidebarTitle: "Functions and Types"
-description: "Built-in functions, how values come back to the Python SDK, dates and durations, maps, and embedding comparison in TuringDB v3."
+description: "Built-in functions, how values come back to the SDKs, dates and durations, maps and map projection, points, and embedding comparison in TuringDB v3."
 ---
 
 ## Built-in functions
 
-Function names are case-insensitive, like keywords: `toInteger`, `TOINTEGER` and `ToInteger` are the same function.
+Function names are case-insensitive, like keywords: `toInteger`, `TOINTEGER` and `ToInteger` are the same function. Functions in a namespace are written with a dot, such as `coll.indexOf` and `point.distance`.
 
 | Category | Functions | Notes |
 | -------- | --------- | ----- |
-| Entity | `id(x)`, `labels(n)`, `type(r)`, `startNode(r)`, `endNode(r)`, `keys(x)`, `properties(x)` | `labels` and `keys` return **lists**. `properties` returns a map of a node's, an edge's or a map's properties. `type` returns a string. `startNode(r).name` works |
+| Entity | `id(x)`, `elementId(x)`, `labels(n)`, `type(r)`, `startNode(r)`, `endNode(r)`, `keys(x)`, `properties(x)` | `labels` and `keys` return **lists**. `properties` returns a map of a node's, an edge's or a map's properties. `type` returns a string. `elementId` returns the same integer as `id`. `startNode(r).name` works |
 | Path | `nodes(p)`, `relationships(p)`, `length(p)` | Lists of IDs. Read properties through a [comprehension](/query/aggregation#list-comprehensions) |
-| List | `size`, `length`, `head`, `last`, `tail`, `reverse`, `range(start, end[, step])`, `reduce` | `size`, `length` and `reverse` also work on strings. `range` bounds are inclusive |
-| Predicates | `all`, `any`, `none`, `single` `(x IN list WHERE ...)` | |
-| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `toIntegerOrNull`, `toFloatOrNull`, `toStringOrNull`, `toBooleanOrNull`, `coalesce(a, b, ...)` | `toInteger` accepts strings, numbers and booleans, and `toFloat` strings and numbers. Both return `null` for a bad string. `toBoolean` accepts strings and integers. `toString` formats `DateTime` and `Duration` values. The `OrNull` forms return `null` for any value they cannot convert. `coalesce` arguments may mix types |
-| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `substring(s, start[, length])`, `left(s, n)`, `right(s, n)`, `split(s, delimiter)`, `replace(s, search, replacement)`, `reverse`, `char_length` (or `character_length`), `normalize(s[, NFC\|NFD\|NFKC\|NFKD])` | Positions start at 0. Plus the operators `STARTS WITH`, `ENDS WITH`, `CONTAINS`, `IS NORMALIZED` and `\|\|` |
+| List | `size`, `length`, `head`, `last`, `tail`, `reverse`, `isEmpty`, `range(start, end[, step])`, `reduce`, `coll.indexOf(list, value)` | `size`, `length` and `reverse` also work on strings, and `isEmpty` on strings and maps. `range` bounds are inclusive. See [Lists](#lists) |
+| Predicates | `all`, `any`, `none`, `single` `(x IN list WHERE ...)`, `allReduce`, `exists(pattern)` | See [Lists](#lists) and [pattern predicates](/query/matching#where-and-operators) |
+| Conversion | `toInteger`, `toFloat`, `toString`, `toBoolean`, `toIntegerOrNull`, `toFloatOrNull`, `toStringOrNull`, `toBooleanOrNull`, `coalesce(a, b, ...)` | `toInteger` accepts strings, numbers and booleans, and `toFloat` strings and numbers. Both return `null` for a bad string. `toBoolean` accepts strings and integers. `toString` formats `DateTime`, `Duration` and Point values. The `OrNull` forms return `null` for any value they cannot convert. `coalesce` arguments may mix types |
+| String | `toUpper`, `toLower`, `trim`, `ltrim`, `rtrim`, `substring(s, start[, length])`, `left(s, n)`, `right(s, n)`, `split(s, delimiter)`, `replace(s, search, replacement)`, `reverse`, `char_length` (or `character_length`), `normalize(s[, NFC\|NFD\|NFKC\|NFKD])` | Positions start at 0. `split` also takes a list of delimiters. Plus the operators `STARTS WITH`, `ENDS WITH`, `CONTAINS`, `IS NORMALIZED` and `\|\|` |
 | Math | `abs`, `sign`, `ceil`, `floor`, `round`, `sqrt`, `exp`, `log`, `log10`, `pi()`, `e()` | Trigonometry: `sin`, `cos`, `tan`, `cot`, `asin`, `acos`, `atan`, `degrees`, `radians`, `haversin` |
-| Temporal | `datetime(isoString)`, `datetime(epochSeconds)`, `datetime()`, `duration({days: 2, hours: 3})`, `duration(micros)` | See [Dates and durations](#dates-and-durations) |
+| Temporal | `datetime(isoString)`, `datetime(epochSeconds)`, `datetime({year: 2024, month: 3, day: 15})`, `datetime()`, `duration({days: 2, hours: 3})`, `duration(micros)` | See [Dates and durations](#dates-and-durations) |
+| Spatial | `point({x, y})`, `point({latitude, longitude})`, `point.distance(a, b)`, `point.withinBBox(p, lowerLeft, upperRight)` | See [Points](#points) |
 | Embedding | `cosine_similarity(a, b)`, `euclidean_distance(a, b)` | Arguments must be Embeddings, not lists. See [Vector search](/vector-search) |
 | Aggregate | `count`, `collect`, `sum`, `avg`, `min`, `max`, `stDev`, `stDevP`, `percentileCont`, `percentileDisc` | See [Aggregation](/query/aggregation#aggregation) |
 
@@ -49,7 +50,7 @@ WHERE toLower(n.name) STARTS WITH 'a'
 RETURN n.name
 
 MATCH (n:Person {name: 'Alice'})
-RETURN keys(n), properties(n)
+RETURN keys(n), properties(n), elementId(n)
 
 RETURN toIntegerOrNull('x'), toString(datetime('2024-03-15T10:30:00Z'))
 ```
@@ -65,17 +66,37 @@ RETURN left('hello', 2) AS l, right('hello', 3) AS r
 
 RETURN split('a.b.c', '.') AS parts, replace('banana', 'a', 'o') AS swapped
 
+RETURN split('a,b;c', [',', ';']) AS parts
+
 RETURN char_length('héllo') AS chars, size('héllo') AS alsoChars
 
 MATCH (n:Person)
 RETURN toUpper(left(n.name, 1)) + toLower(substring(n.name, 1)) AS display
 ```
 
+`split` with a list of delimiters splits on each of them, so the fourth query returns `['a', 'b', 'c']`.
+
 `normalize` converts a string to a Unicode normal form (`NFC` by default, or `NFD`, `NFKC`, `NFKD`), and `IS NORMALIZED` tests for one:
 
 ```cypher
 RETURN normalize('ﬁ', NFKC) AS plain, 'café' IS NFC NORMALIZED AS composed
 ```
+
+### Lists
+
+```cypher
+RETURN isEmpty([]) AS emptyList, isEmpty('') AS emptyString, isEmpty({}) AS emptyMap
+
+MATCH (n:Person {name: 'Carol'})
+RETURN coll.indexOf(n.tags, 'vip') AS position, coll.indexOf(n.tags, 'admin') AS missing
+
+RETURN allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 10) AS staysUnder10,
+  allReduce(total = 0, x IN [1, 2, 3] | total + x, total < 5) AS staysUnder5
+```
+
+- `coll.indexOf(list, value)` returns the position of the first element equal to `value`, or `-1`. The second query returns `1` and `-1`.
+- `allReduce(acc = init, x IN list | step, predicate)` folds the list like `reduce`, and is `true` when the predicate holds for the accumulator after **every** step. The initial value is not tested, and an empty list gives `true`. It stops at the first step that fails, so later steps are not computed. Over a path, it [tests a running total at each hop](/query/paths#filtering-paths-with-allreduce). The third query returns `true` and `false`.
+- `isEmpty`, `coll.indexOf` and `allReduce` return `null` for a `null` list.
 
 ### Conversions
 
@@ -95,7 +116,7 @@ RETURN toString(duration({days: 2, hours: 3})) AS iso
   In v3, `type(e)` returns an edge's type as a string. It replaces `edgeType()` from earlier versions.
 </Note>
 
-The function library keeps growing. `rand()`, `date()`, `timestamp()`, `elementId()`, `atan2()`, `isNaN()` and the two-argument `round(x, digits)` are not yet available, so compute those in your application.
+The function library keeps growing. `rand()`, `date()`, `timestamp()`, `atan2()`, `isNaN()` and the two-argument `round(x, digits)` are not yet available, so compute those in your application.
 
 ## Arithmetic in `RETURN` and `SET`
 
@@ -113,7 +134,7 @@ WHERE r.since > 0
 RETURN r.since / 10 * 100
 ```
 
-`+ - * / % ^` are supported. Integer `/` truncates, and `^` returns a Double. `+` and `||` concatenate strings and lists, `'x' + 1` gives `'x1'`, and `[1, 2] + 3` gives `[1, 2, 3]`.
+`+ - * / % ^` are supported. Integer `/` truncates, and `^` returns a Double. `+` and `||` concatenate strings and lists, `'x' + 1` gives `'x1'`, and `[1, 2] + 3` gives `[1, 2, 3]`. A list plus `null` is `null`.
 
 ## Dates and durations
 
@@ -126,6 +147,8 @@ RETURN datetime('2024-03-15') AS midnight
 
 RETURN datetime(1700000000) AS fromEpoch
 
+RETURN datetime({year: 2024, month: 3, day: 15, hour: 10, minute: 30}) AS fromParts
+
 RETURN datetime('2024-03-15T10:30:00Z') + duration({days: 1, hours: 2}) AS later
 
 RETURN datetime('2024-03-16T00:00:00Z') - datetime('2024-03-15T00:00:00Z') AS elapsed
@@ -135,7 +158,7 @@ RETURN datetime('2024-03-15T10:30:00Z').year, datetime('2024-03-15T10:30:00Z').m
 RETURN duration({days: 2, hours: 3}).hours
 ```
 
-Durations can be added, subtracted, scaled and compared with each other and with datetimes:
+Durations can be added, subtracted, scaled, compared, summed and averaged:
 
 ```cypher
 RETURN duration({hours: 36}) + duration({hours: 12}) AS total
@@ -147,12 +170,17 @@ RETURN duration({days: 2}) * 3 AS threeTimes
 RETURN duration({hours: 36}) / 2 AS half
 
 RETURN duration({hours: 1}) > duration({minutes: 30}) AS longer
+
+UNWIND [duration({hours: 1}), duration({hours: 2})] AS d
+RETURN sum(d) AS total, avg(d) AS mean
 ```
 
 - `datetime` values are stored as microseconds since the Unix epoch, **normalised to UTC**. A date-only string means midnight, and an offset (`+02:00`) is converted to the equivalent UTC instant.
+- `datetime({...})` builds a datetime from its parts: `year`, then optionally `month`, `day`, `hour`, `minute`, `second`, `millisecond`, `microsecond` and `nanosecond`. Missing parts default to the start of the period, so `datetime({year: 2024})` is midnight on 1 January. A part needs the ones above it, as in `The datetime component month needs the component year`. A `timezone` key takes an offset, such as `'+02:00'` or `'Z'`, and `{epochSeconds: 1700000000}` also works.
 - `duration` is a signed count of microseconds. It has no month component, because a month has no fixed length. `duration(<integer>)` reads the number as microseconds.
 - Components are available as properties: `d.year`, `d.month`, `d.day`, `d.hour`, and so on. On a duration, `dur.days`, `dur.hours`, ... give the **total** in that unit, so `duration({days: 2, hours: 3}).hours` is `51`.
-- `<`, `>`, `min` and `max` work on temporal values.
+- `<`, `>`, `min` and `max` work on temporal values, and `sum` and `avg` on durations.
+- From Python, pass a time-zone-aware `datetime.datetime` as a parameter for a DateTime, and a `datetime.timedelta` for a Duration: `client.query("RETURN $since + duration({days: 1}) AS next", {"since": datetime(2024, 1, 1, tzinfo=timezone.utc)})`.
 - When you [import JSONL](/import_data/jsonl) you can declare which properties are `DateTime` or `Duration` with `WITH DATETIMES [...]` and `WITH DURATIONS [...]`.
 
 ## Maps
@@ -163,7 +191,10 @@ Maps can be built, returned, compared, sorted and stored as node or edge propert
 RETURN {name: 'Alice', tags: ['a', 'b']} AS m
 
 WITH {a: 1, b: 'x'} AS m
-RETURN m.a, m.b
+RETURN m.a, m['b']
+
+WITH {a: {b: 2}} AS m
+RETURN m.a.b
 
 WITH {a: 1, b: 2} AS m
 UNWIND keys(m) AS k
@@ -176,35 +207,118 @@ WITH [{a: 1}, {a: 2}] AS ms
 RETURN ms[1].a, [m IN ms | m.a]
 
 MATCH (n:Person {name: 'Alice'})
-RETURN properties(n).name, keys(n)
+RETURN properties(n).name, keys(n), n['age']
+
+MATCH (n:Person)
+RETURN collect({name: n.name, city: n.city}) AS people
 ```
 
-- `m.key` reads a key written in the query, and `m[k]` a key held in a variable. A map stored as a property reads the same way: `n.meta.level`, `keys(n.meta)`.
-- Keys can be any word, keywords included: `WITH {count: 3, order: 'x'} AS m RETURN m.count, m.order`.
-- Write a fixed key as `m.key`: the bracket form with a literal (`m['key']`) is reported with that hint.
-- Map projection (`n {.name, .age}`) is not yet supported. Build the map you need (`{name: n.name, age: n.age}`) or use `properties(n)`.
-- Values read from a map can hold any type. To store one as a property, convert it first, for example `toString(row.name)` or `toInteger(row.pop)` (see [Bulk writes](/query/writing#bulk-writes)).
+- `m.key` and `m['key']` read a key written in the query, and `m[k]` a key held in a variable. A chain such as `m.a.b` reads through nested maps, and a map stored as a property reads the same way: `n.meta.level`, `keys(n.meta)`.
+- A map value can be a node, a datetime or any other value, and reads through it: `WITH {p: n} AS m RETURN m.p.name`, or `m.d.year` for a datetime under `d`.
+- Keys can be any word, keywords included: `WITH {count: 3, order: 'x'} AS m RETURN m.count, m.order`. A key written twice keeps its last value: `{a: 1, a: 2}` is `{a: 2}`.
+- `collect()` gathers maps, and `collect(DISTINCT ...)` compares them entry by entry.
+- A value read from a map can be stored as a property directly, as in `CREATE (:City {name: row.name})`. The property takes the type of the value (see [Bulk writes](/query/writing#small-volumes)).
+
+### Map projection
+
+A map projection builds a map out of a node, an edge or a map, picking the entries you need:
+
+```cypher
+MATCH (n:Person {name: 'Alice'})
+RETURN n {.name, .age} AS person
+
+MATCH (n:Person {name: 'Dave'})
+RETURN n {.*} AS everything
+
+MATCH (n:Person {name: 'Alice'})
+RETURN n {.name, nextAge: n.age + 1} AS m
+
+MATCH (n:Person)-[:WORKS_AT]->(c:Company)
+RETURN c.name, collect(n {.name, .city}) AS staff
+
+MATCH (n:Person {name: 'Alice'})
+WITH n, 'x' AS extra
+RETURN n {.name, extra} AS m
+
+WITH datetime('2024-03-15T10:30:00Z') AS d
+RETURN d {.year, .month} AS parts
+```
+
+- `.key` holds the property `key`, or `null` when it is missing. `.*` holds every property, `key: expression` a computed value, and a bare variable `x` its value under the key `x`.
+- On a datetime, a duration or a point, `.key` reads a component: the last query returns `{month: 3, year: 2024}`.
+- An entry written explicitly wins over the one `.*` reads under the same key, wherever `.*` stands: `n {.*, age: n.age + 1}`.
+- A `null` node, such as an unmatched `OPTIONAL MATCH`, projects to `null`.
+
+## Points
+
+A point is a location, 2D or 3D, either on a plane (cartesian) or on the Earth (WGS-84). `point()` builds one from a map:
+
+```cypher
+RETURN point({x: 1, y: 2}) AS flat, point({x: 1, y: 2, z: 3}) AS space
+
+RETURN point({latitude: 51.5074, longitude: -0.1278}) AS london
+
+WITH point({latitude: 51.5074, longitude: -0.1278}) AS p
+RETURN p.latitude, p.longitude, p.srid, p.crs
+
+RETURN point.distance(point({x: 0, y: 0}), point({x: 3, y: 4})) AS d
+
+RETURN round(point.distance(point({latitude: 51.5074, longitude: -0.1278}), point({latitude: 48.8566, longitude: 2.3522}))) AS londonToParis
+
+RETURN point.withinBBox(point({x: 1, y: 1}), point({x: 0, y: 0}), point({x: 2, y: 2})) AS inside
+```
+
+The keys of the map choose the coordinate reference system (CRS):
+
+| Keys | CRS | SRID |
+| ---- | --- | ---- |
+| `x`, `y` | `cartesian` | 7203 |
+| `x`, `y`, `z` | `cartesian-3d` | 9157 |
+| `longitude`, `latitude` | `wgs-84` | 4326 |
+| `longitude`, `latitude`, `height` | `wgs-84-3d` | 4979 |
+
+- A `crs: 'wgs-84'` or `srid: 4326` key chooses the CRS explicitly, and `x` and `y` then hold the longitude and the latitude.
+- **Components.** `p.x`, `p.y` and `p.z` read the coordinates, and `p.longitude`, `p.latitude` and `p.height` the same ones on a WGS-84 point. `p.crs` is the CRS name and `p.srid` its SRID. Reading `p.z` on a 2D point is an error.
+- **Checks.** Coordinates must be numbers (`point() reads a number for 'x', not 'String'`), and a latitude must lie in [-90, 90]. A longitude outside [-180, 180] wraps around. A `null` map or a `null` coordinate gives `null`.
+- **`point.distance(a, b)`** is the straight-line distance between two cartesian points. Between two WGS-84 points it is the great-circle distance in metres, on a sphere of the mean Earth radius (6,371,008.8 m), so the fifth query returns about 343,557 m. It is `null` for two points of different CRSs.
+- **`point.withinBBox(p, lowerLeft, upperRight)`** tests whether `p` lies in the box, bounds included. On WGS-84, a `lowerLeft` east of `upperRight` makes a box that crosses the 180th meridian.
+- **Comparing and aggregating.** Points work with `=`, `<`, `ORDER BY`, `DISTINCT`, grouping, `count`, `collect`, `min` and `max`, ordered by SRID, then x, y and z. `avg` of points of one CRS is their centroid.
+- `toString(p)` writes `point({x: 2.3522, y: 48.8566, crs: 'wgs-84'})`.
+
+Store a point as a property like any other value, and filter on distance:
+
+```cypher
+CREATE (:City {name: 'Paris', at: point({latitude: 48.8566, longitude: 2.3522})}),
+  (:City {name: 'London', at: point({latitude: 51.5074, longitude: -0.1278})})
+
+MATCH (c:City)
+WHERE point.distance(c.at, point({latitude: 51.5074, longitude: -0.1278})) < 400000
+RETURN c.name
+```
+
+Points can also be imported: from [JSONL](/import_data/jsonl#loading-date-duration-point-and-embedding-properties) with `WITH POINTS [...]`, and from the geometry columns of [GeoParquet](/import_data/parquet#property-columns) files.
 
 ## How results come back
 
 `client.query()` returns a pandas DataFrame. The column types follow the query's value types:
 
-| Type | HTTP `column_types` | pandas dtype |
-| ---- | ------------------- | ------------ |
-| String | `String` | `string` |
-| Integer | `Int64` | `Int64` |
-| Unsigned integer (IDs, `count`, `length(p)`) | `UInt64` | `UInt64` |
-| Double | `Double` | `float64` |
-| Boolean | `Bool` | `boolean` |
-| List | `List` | object (Python list) |
-| Map | `Map` | object (dict) |
-| Embedding | `Embedding` | object (list over HTTP, numpy `float32` array over the native and embedded backends) |
-| DateTime | `DateTime` | `datetime64[us, UTC]` |
-| Duration | `Duration` | `timedelta64[us]` |
-| Node or edge (`RETURN n`) | `UInt64` | `UInt64` (internal ID, `null` when an `OPTIONAL MATCH` found nothing) |
-| Named path (`RETURN p`) | `EntityList` | object (list of `{type, id}` dicts) |
+| Type | pandas dtype |
+| ---- | ------------ |
+| String | `string` |
+| Integer | `Int64` |
+| Unsigned integer (IDs, `count`, `length(p)`) | `UInt64` |
+| Double | `float64` |
+| Boolean | `boolean` |
+| List | object (Python list) |
+| Map | object (dict) |
+| Embedding | object (numpy `float32` array) |
+| DateTime | `datetime64[us, UTC]` |
+| Duration | `timedelta64[us]` |
+| Point | object (`turingdb.Point`, with `srid`, `x`, `y`, `z` and `crs`) |
+| Node or edge (`RETURN n`) | `UInt64` (internal ID, `null` when an `OPTIONAL MATCH` found nothing) |
+| Named path (`RETURN p`) | object (list of IDs, node and edge alternating: `[0, 0, 1]`) |
 
-Doubles keep their full precision on every backend (`0.1 + 0.2` comes back as `0.30000000000000004`). `NaN` and infinities come back as the floats `nan` and `inf`, and `NaN` sorts after every number.
+A `DateTime` or a `Duration` inside a list or a map comes back as a time-zone-aware `datetime.datetime` or a `datetime.timedelta`. Doubles keep their full precision (`0.1 + 0.2` comes back as `0.30000000000000004`). `NaN` and infinities come back as the floats `nan` and `inf`, and `NaN` sorts after every number. The JavaScript SDK has its own mapping, see [Value types](/jssdk/reference#value-types).
 
 ## Embeddings
 

@@ -27,7 +27,20 @@ source .venv/bin/activate
 pip install turingdb
 ```
 
-## 2. Create a Graph:
+## 2. Connect
+
+Start a server with `turingdb -demon` (see [CLI commands](/commands)), then connect to it:
+
+```python
+from turingdb import TuringDB
+
+# Connect to the server running on localhost:6666
+client = TuringDB(host="localhost", port=6666)
+```
+
+The client connects right away, and raises `Failed to connect to localhost:6666: Connection refused` if no server is running. To run the engine inside your Python process instead, with no server, use `TuringDB(type="embedded", data_dir="/home/me/.turing")` (see [client backends](/pythonsdk/reference#client-backends)).
+
+## 3. Create a Graph:
 
 Create a graph and set active graph:
 
@@ -39,7 +52,7 @@ client.create_graph("my_first_graph")
 client.set_graph("my_first_graph")
 ```
 
-## 3. Create Nodes & Edges
+## 4. Create Nodes & Edges
 
 First of all, create a new change on the graph
 
@@ -59,6 +72,9 @@ client.query("CREATE (:Person {name: 'Marie', age: 33})")
 
 # Create two nodes and an edge
 client.query("CREATE (:Person {name: 'Jane'})-[:KNOWS]->(:Person {name: 'John'})")
+
+# Pass values as parameters: no quoting or escaping needed
+client.query("CREATE (:Person {name: $name, age: $age})", {"name": "O'Brien", "age": 41})
 ```
 
 > ⚠️ All created entities must have at least one label (:Label)
@@ -76,7 +92,7 @@ client.checkout()
 
 > You can create as many commits as you want before submitting a change
 
-## 4. Query the Graph
+## 5. Query the Graph
 
 Retrieve data using Cypher `MATCH` queries.
 
@@ -89,7 +105,7 @@ df = client.query("MATCH (n:Person) RETURN n.name, n.age")
 print(df)
 ```
 
-## 5. Version Control & Snapshots
+## 6. Version Control & Snapshots
 
 TuringDB supports versioned graphs and snapshot isolation.
 
@@ -126,8 +142,8 @@ client.checkout()
 from turingdb import TuringDB
 
 # Create TuringDB client
-# Connect to a locally running TuringDB server (default host shown):
-client = TuringDB(host="http://localhost:6666")
+# Connect to a locally running TuringDB server (default host and port shown):
+client = TuringDB(host="localhost", port=6666)
 
 # Or run the engine in-process, with no server:
 # client = TuringDB(type="embedded", data_dir="/home/me/.turing")   # use an absolute path
@@ -158,5 +174,6 @@ print(df)
 - 📘 Learn the [Query Language](/query/cypher_subset)
 - 🔀 Explore [Versioning & Changes](/concepts/versioning_system)
 - 🔎 Try [Vector Search](/vector-search)
+- 🌐 Query TuringDB from JavaScript or TypeScript with the [JavaScript SDK](/jssdk/get_started)
 
 Questions or feedback? → Join the [Discord](https://discord.gg/dMM48ns5VY) or [open an issue](https://github.com/turingdb)

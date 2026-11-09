@@ -97,9 +97,47 @@ ORDER BY hops
 
 - `nodes(p)` and `relationships(p)` return **lists of IDs**. Read properties through a [list comprehension](/query/aggregation#list-comprehensions).
 - `length(p)` is the number of hops.
-- A bare `RETURN p` comes back as a list of `{"type": "node" | "edge", "id": ...}` dictionaries.
+- A bare `RETURN p` comes back as a list of IDs, node and edge alternating: `[0, 0, 1]` is node 0, edge 0 and node 1.
 - `count(p)` counts paths, and `RETURN DISTINCT p` groups on whole paths.
 - `OPTIONAL MATCH p = ... RETURN p IS NULL` works.
+
+Paths are values like any other: `collect(p)` gathers them, lists and maps hold them, and a pattern comprehension can name its path:
+
+```cypher
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+WITH collect(p) AS routes
+RETURN size(routes) AS routeCount, reduce(total = 0, q IN routes | total + length(q)) AS totalHops
+
+MATCH (a:Person {name: 'Alice'})
+RETURN [p = (a)-[:KNOWS]->+() | length(p)] AS lengths
+
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->(b)
+RETURN {route: p, hops: length(p)} AS summary
+```
+
+A property cannot hold a path: `A property value cannot hold a path, in a list or a map or on its own`. Store the IDs or the properties you need instead.
+
+## Filtering paths with `allReduce`
+
+`allReduce(acc = init, x IN list | step, predicate)` folds a list like `reduce` and is `true` when the predicate holds for the accumulator after every step. Over the nodes or edges of a path, it tests a running total at each hop:
+
+```cypher
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+WHERE allReduce(total = 0, n IN nodes(p) | total + n.age, total <= 100)
+RETURN b.name, length(p) AS hops
+```
+
+The ages along `Alice → Bob → Carol` add up to 93, so Bob and Carol are kept. Adding Dave makes 134, so the path to Dave is dropped.
+
+A map accumulator carries more than one value from step to step. This query keeps the paths along which the `since` years of the edges increase, by comparing each edge with the one before:
+
+```cypher
+MATCH p = (a:Person {name: 'Alice'})-[:KNOWS]->+(b)
+WHERE allReduce(acc = {}, r IN relationships(p) | {prev: acc.cur, cur: r.since}, acc.prev IS NULL OR acc.prev < acc.cur)
+RETURN b.name, length(p) AS hops
+```
+
+The initial value is never tested, and an empty list gives `true`. See [Lists](/query/functions#lists) for the details.
 
 ## Finding routes
 

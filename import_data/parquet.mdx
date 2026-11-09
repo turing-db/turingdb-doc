@@ -46,9 +46,12 @@ Every other column becomes a property of the node or edge on that row. The colum
 | `BOOLEAN` | Boolean |
 | `BYTE_ARRAY` (string) | String |
 | timestamp | DateTime |
+| WKB geometry of points | [Point](/query/functions#points) |
 | list of the types above | List |
 
 Use 64-bit columns: cast `INT32` and `FLOAT` columns to `int64` / `float64` first. To load an `INT64` column of microseconds as a `Duration`, name it in `WITH DURATIONS [<column>]`.
+
+A geometry column is read as points with no extra clause: a column marked with Parquet's `GEOMETRY` or `GEOGRAPHY` logical type, or named in the `geo` metadata of a GeoParquet file, with the WKB encoding. Its values must be points, 2D or 3D. With the default CRS (`OGC:CRS84` or `EPSG:4326`) they load as WGS-84 points, and with `"crs": null` in the GeoParquet metadata as cartesian points.
 
 ## From pandas
 
@@ -183,7 +186,7 @@ The example below uses the [OptimusKG](https://optimuskg.ai/) biomedical knowled
         ```python
         from turingdb import TuringDB
 
-        client = TuringDB(host="http://localhost:6666")
+        client = TuringDB(host="localhost", port=6666)
         client.load_graph("optimuskg")
         client.set_graph("optimuskg")
 
