@@ -4,7 +4,15 @@ sidebarTitle: "TuringDB 3.1"
 description: "We released TuringDB 3.1 on November 9, 2026. With this version, you can send values with your queries as parameters and use TuringDB from TypeScript. It also adds new Cypher features."
 ---
 
-TuringDB 3.1 adds query parameters. Now you can send values with a query, and you do not have to write them into the query text. All clients now use TuringDB's binary protocol, which runs over HTTP/1.1. A new TypeScript client is available on npm. This client uses WebAssembly to read the results. For Cypher, this version adds the `allReduce` function, and subqueries can now contain any query. It also adds a point type, which you can use to calculate distances on the Earth.
+TuringDB 3.1 adds:
+
+- **Query parameters.** You can send values with a query. You do not have to write them into the query text. [See more](#query-parameters)
+- **The binary protocol for all clients.** This protocol runs over HTTP/1.1. [See more](#binary-protocol-by-default)
+- **A TypeScript client on npm.** This client uses WebAssembly to read the results. [See more](#a-typescript-client-on-npm-built-on-webassembly)
+- **The `allReduce` function** in Cypher. [See more](#allreduce)
+- **Subqueries that can contain any query.** [See more](#collect-and-other-subqueries)
+- **A point type.** You can use it to calculate distances on the Earth. [See more](#points-and-haversine-distance)
+- **Faster matches on key properties.** When each row finds nodes by a key property, as in a `LOAD CSV` that adds edges, the query now uses a hash join. On a graph of 200,000 nodes, 1,000 edges take 7 ms instead of 5.7 s. [See more](#faster-key-property-matches)
 
 Most of your queries work without changes. If you use the Python SDK, you must change how you connect to the server. Refer to [Upgrading from 3.0](#upgrading-from-3-0).
 
@@ -94,6 +102,162 @@ MATCH (n:Person) WHERE n.age >= $minAge RETURN n.name
 
 See [Query parameters](/query/cypher_subset#query-parameters) for the details, and [IDs in parameters](/query/matching#look-up-nodes-by-native-node-id) for the fastest lookups by node ID.
 
+### Example: flight connections
+
+A travel application loads the flight schedule from an operations feed, then searches for one-stop connections between two airports. The whole schedule goes in as one parameter. The search takes the departure time, the minimum and maximum time to change planes, and the size of the party as parameters:
+
+<CodeGroup>
+
+```python Python
+from datetime import datetime, timedelta, timezone
+
+def at(hhmm):
+    h, m = map(int, hhmm.split(":"))
+    return datetime(2026, 11, 12, h, m, tzinfo=timezone.utc)
+
+# Load a batch of scheduled flights from an operations feed
+schedule = [
+    # flight, from, to, departs, arrives (UTC), seats left
+    ("TA100", "CDG", "AMS", "07:15", "08:35", 12),
+    ("TA101", "AMS", "SFO", "09:40", "20:50", 4),
+    ("TA200", "CDG", "LHR", "07:00", "08:15", 20),
+    ("TA201", "LHR", "SFO", "08:45", "19:55", 9),
+    ("TA300", "CDG", "FRA", "06:30", "07:45", 10),
+    ("TA301", "FRA", "SFO", "10:15", "21:35", 7),
+    ("TA400", "CDG", "MAD", "08:00", "10:05", 3),
+    ("TA401", "MAD", "SFO", "12:10", "23:40", 1),
+]
+flights = [
+    {"number": n, "src": s, "dst": d,
+     "dep": at(dep), "arr": at(arr), "seats": seats}
+    for n, s, d, dep, arr, seats in schedule
+]
+client.new_change()
+client.query(
+    """
+    UNWIND $flights AS f
+    MERGE (a:Airport {code: f.src})
+    MERGE (b:Airport {code: f.dst})
+    CREATE (a)-[:FLIGHT {number: f.number, seats: f.seats,
+                         dep: f.dep, arr: f.arr}]->(b)
+    """,
+    {"flights": flights},
+)
+client.query("CHANGE SUBMIT")
+client.checkout()
+
+# One-stop connections with time to change planes,
+# and enough seats on both legs for the whole party
+client.query(
+    """
+    MATCH (o:Airport {code: $origin})-[f1:FLIGHT]->(hub)
+          -[f2:FLIGHT]->(d:Airport {code: $destination})
+    WHERE f1.dep >= $after
+      AND f2.dep >= f1.arr + $minConnection
+      AND f2.dep <= f1.arr + $maxConnection
+      AND f1.seats >= $party AND f2.seats >= $party
+    RETURN f1.number AS first, hub.code AS via,
+           f2.number AS second, f2.arr AS arrives
+    ORDER BY arrives
+    """,
+    {
+        "origin": "CDG",
+        "destination": "SFO",
+        "after": at("06:00"),
+        "minConnection": timedelta(minutes=45),
+        "maxConnection": timedelta(hours=4),
+        "party": 2,
+    },
+)
+```
+
+```js JavaScript
+// The same search. JavaScript sends the time as an ISO 8601
+// string and the connection times in minutes.
+const [[first, via, second]] = await client.queryData(
+    "MATCH (o:Airport {code: $origin})-[f1:FLIGHT]->(hub)" +
+    "-[f2:FLIGHT]->(d:Airport {code: $destination}) " +
+    "WHERE f1.dep >= datetime($after) " +
+    "AND f2.dep >= f1.arr + duration({minutes: $minConn}) " +
+    "AND f2.dep <= f1.arr + duration({minutes: $maxConn}) " +
+    "AND f1.seats >= $party AND f2.seats >= $party " +
+    "RETURN f1.number, hub.code, f2.number " +
+    "ORDER BY f2.arr",
+    {
+        parameters: {
+            origin: "CDG",
+            destination: "SFO",
+            after: "2026-11-12T06:00:00Z",
+            minConn: 45,
+            maxConn: 240,
+            party: 2,
+        },
+    },
+);
+```
+
+</CodeGroup>
+
+The search returns two connections, via Amsterdam and via Frankfurt, in order of arrival. The connection in London is too short (30 minutes, less than the minimum of 45), and the flight from Madrid has only one seat left for a party of two. In Python, a `datetime` and a `timedelta` become `DateTime` and `Duration` values, so the query can add a connection time to an arrival time.
+
+### Example: GraphSAGE sampling for GNN training
+
+A GNN training loop asks the server for the neighbourhood of each mini-batch with `gnn.graphSAGE`. The seed nodes of the batch are a parameter, so the query text is the same for every batch and only the values change. Before 3.1, each batch was a new query, with its node IDs written into the text.
+
+```python
+import numpy as np
+
+# Native node IDs of the training papers, read once
+train = client.query(
+    "MATCH (p:Paper) WHERE p.split = 'train' "
+    "RETURN id(p) AS id"
+)["id"].to_numpy()
+
+hops = ", ".join(
+    f"src_nodes{h}, tgt_nodes{h}" for h in range(3)
+)
+sample = (
+    "CALL gnn.graphSAGE($seeds, $fanouts, $rngSeed) "
+    f"YIELD {hops} RETURN {hops}"
+)
+
+rng = np.random.default_rng(0)
+batches = [
+    b.tolist()  # plain ints: numpy values are refused
+    for b in np.array_split(rng.permutation(train), 100)
+]
+
+for seeds in batches:
+    # One request per mini-batch, with the same query text
+    df = client.query(sample, {
+        "seeds": seeds,
+        "fanouts": [15, 10, 5],  # from the seeds outwards
+        "rngSeed": 7,            # optional, repeatable
+    })
+    # Hop h: sampled in-edges src_nodes{h} -> tgt_nodes{h}.
+    # The hops have different lengths, padded with nulls.
+    hop0 = df[["src_nodes0", "tgt_nodes0"]].dropna()
+```
+
+On a graph of 200,000 nodes and 400,000 edges, a batch of 1,000 seeds with fanouts of 15, 10 and 5 takes about 3 ms on the server. The same `rngSeed` gives the same sample for the same batch.
+
+`gnn.graphSAGE` now also reads its arguments from each row, so one request can sample several mini-batches. The `batch` column tells which mini-batch each row comes from:
+
+```python
+df = client.query(
+    "UNWIND range(0, size($batches) - 1) AS i "
+    "CALL gnn.graphSAGE($batches[i], $fanouts, $rngSeed) "
+    f"YIELD {hops} RETURN i AS batch, {hops}",
+    {
+        "batches": batches[:4],
+        "fanouts": [15, 10, 5],
+        "rngSeed": 7,
+    },
+)
+```
+
+A seed that is not a node is refused with `Invalid node ID: <id>`. See [Procedures](/query/procedures#procedures) for the arguments and the columns of `gnn.graphSAGE`.
+
 ## Binary protocol by default
 
 TuringDB's binary protocol is now the default, and the only protocol the server speaks, on port 6666. It runs over HTTP/1.1: a query is one request to `/query`, and its result streams back as binary packets, one per HTTP chunk, on a connection that stays open for the next query:
@@ -113,6 +277,16 @@ Connection: Keep-Alive
     one binary packet per chunk:
     the column header, the column chunks, the end
 ```
+
+**Benchmark.** The same queries on the same graph, from the Python SDK, with the JSON API of 3.0.2 and the binary protocol of 3.1:
+
+| Query | 3.0.2, JSON | 3.1, binary | Faster |
+| ----- | ----------- | ----------- | ------ |
+| One node by ID | 0.64 ms | 0.12 ms | 5.3× |
+| 1,000 nodes by ID, one query after the other | 551 ms | 126 ms | 4.4× |
+| 200,000 rows: an integer and a string | 34 ms | 31 ms | 1.1× |
+| 400,000 rows: two node IDs | 63 ms | 46 ms | 1.4× |
+| 1,000,000 rows: an integer and a double | 168 ms | 104 ms | 1.6× |
 
 - **Typed columns end to end.** A result streams as typed columns, in chunks of up to 65,536 rows, which each client turns straight into its own types: a pandas DataFrame in Python, typed arrays and `Column` objects in JavaScript.
 - **HTTP infrastructure works as is.** Standard reverse proxies such as nginx forward the protocol with a plain `proxy_pass`, browsers reach it with `fetch`, and authentication uses the standard `Authorization: Bearer` header, which a proxy can also add.
@@ -136,6 +310,8 @@ Use one of the clients rather than writing requests by hand. See [Connecting cli
 ## A TypeScript client on npm, built on WebAssembly
 
 The `turingdb` npm package queries TuringDB from TypeScript and JavaScript. It decodes the streamed columns with a WebAssembly build of the engine's own decoder, so the browser, Node.js and the server run the same decoding code. It runs in Node.js 18 or later and in the browser, has no dependencies, and ships with TypeScript declarations.
+
+![The TuringDB engine and the Wasm client use the same decoder](/images/releases/wasm-client.webp)
 
 ```ts
 import { TuringClient, TuringQueryError } from "turingdb";
@@ -226,6 +402,67 @@ RETURN p.name, COUNT {
 
 See [Subqueries](/query/subqueries) and [NEXT and WHEN](/query/composition#inside-exists-count-and-collect).
 
+### Example: drone fleet status
+
+A fleet dashboard shows each drone docked at a base: its battery, whether it can fly, its last two flights and its maintenance tasks. One query builds a document for each drone. The tasks come from two sources, open faults and parts due for service, joined by a `UNION` inside `COLLECT`. The graph has this structure:
+
+```mermaid
+graph LR
+    drone(["<b>:Drone</b><br/>id: String<br/>battery: Integer"])
+    base(["<b>:Base</b><br/>name: String"])
+    mission(["<b>:Mission</b><br/>id: String"])
+    part(["<b>:Part</b><br/>name: String<br/>hours: Integer<br/>serviceHours: Integer"])
+    fault(["<b>:Fault</b><br/>code: String<br/>open: Boolean"])
+    drone -->|DOCKED_AT| base
+    drone -->|"FLEW<br/>at: DateTime, km: Double"| mission
+    drone -->|HAS| part
+    fault -->|AFFECTS| part
+```
+
+The query:
+
+```cypher
+MATCH (d:Drone)-[:DOCKED_AT]->(:Base {name: $base})
+RETURN d {
+  .id, .battery,
+  ready: d.battery >= $minBattery AND NOT EXISTS {
+    MATCH (d)-[:HAS]->(:Part)
+          <-[:AFFECTS]-(:Fault {open: true})
+  },
+  lastFlights: COLLECT {
+    MATCH (d)-[f:FLEW]->(m:Mission)
+    RETURN m {.id, km: f.km} ORDER BY f.at DESC LIMIT 2
+  },
+  tasks: COLLECT {
+    MATCH (d)-[:HAS]->(p:Part)
+          <-[:AFFECTS]-(x:Fault {open: true})
+    RETURN 'repair ' + p.name + ' (' + x.code + ')' AS task
+    UNION
+    MATCH (d)-[:HAS]->(p:Part)
+    WHERE p.hours >= p.serviceHours
+    RETURN 'service ' + p.name AS task
+  }
+} AS drone
+ORDER BY drone.id
+```
+
+With `$base` set to `'Lyon-Nord'` and `$minBattery` to `30`, it returns one document for each drone:
+
+```json
+{"id": "D-101", "battery": 82, "ready": true,
+  "lastFlights": [{"id": "M-884", "km": 8.1},
+                  {"id": "M-881", "km": 12.4}],
+  "tasks": ["service camera"]}
+{"id": "D-102", "battery": 24, "ready": false,
+  "lastFlights": [{"id": "M-882", "km": 21.7}],
+  "tasks": []}
+{"id": "D-103", "battery": 67, "ready": false,
+  "lastFlights": [{"id": "M-861", "km": 5.2}],
+  "tasks": ["repair rotor 2 (E-17)", "service gimbal"]}
+```
+
+D-102 cannot fly because its battery is below 30%, and D-103 because of the open fault E-17 on a rotor. A drone with no flight or no task gets an empty list, and its row is kept.
+
 ## Points and haversine distance
 
 Points are a new property type, 2D or 3D, on a plane (cartesian) or on the Earth (WGS-84). `point.distance` gives the great-circle distance in metres between two WGS-84 points, by the haversine formula on a sphere of the mean Earth radius:
@@ -308,9 +545,31 @@ A hand-written recursive descent parser replaces the generated one. It is much f
 - `STARTS WITH`, `ENDS WITH` and `CONTAINS` bind more loosely than `+`, so `'a' + 'bc' ENDS WITH 'bc'` is `true`.
 - Dotted chains read through nested values: `m.a.b`, `m['key']`, `ms[1].a`.
 
+### Faster key-property matches
+
+A query often finds nodes by a key property for each row, for example in the edge pass of a `LOAD CSV`:
+
+```cypher
+LOAD CSV 'knows.csv' WITH HEADERS AS row
+MATCH (a:Person {pid: toInteger(row.src)}),
+  (b:Person {pid: toInteger(row.dst)})
+CREATE (a)-[:KNOWS]->(b)
+```
+
+In 3.0, each row scanned all the nodes with the label. In 3.1, the query scans the label one time and joins the rows to it with a hash join. Measured on the same graph of 200,000 nodes and 400,000 edges:
+
+| 1,000 rows | 3.0.2 | 3.1 |
+| ---------- | ----- | --- |
+| `LOAD CSV` that adds edges by key, as above | 5.7 s | 7 ms |
+| `UNWIND` of key pairs, with a match by key for each node of the pair | 7.6 s | 9 ms |
+| `UNWIND` of keys, with one match by key | 245 ms | 4 ms |
+
+Key pairs passed as a parameter (`UNWIND $pairs AS p`) also use a hash join. One key for each row from a parameter (`UNWIND $keys AS x MATCH (n:Person {pid: x})`) does not use a hash join yet. For this case, get the node IDs of the keys, and use `UNWIND $ids AS x MATCH (n) WHERE n = x`.
+
 ### More of what you write just works
 
 - Writes store values read from maps and lists directly: `CREATE (:City {name: row.name, pop: row.pop})` needs no `toString()` or `toInteger()`. A new property takes the type of its values.
+- Paths are values: lists and maps hold them, and `CASE` and `coalesce` return them, as in `collect(p)`, `{route: p}` and `coalesce(p, q)`.
 - `ORDER BY` after `DISTINCT` or beside an aggregate sorts by a key or a property of a returned item: `RETURN DISTINCT {age: n.age} AS m ORDER BY m.age`.
 - `WHERE n IN [0, 1, 2]` looks the nodes up by ID directly, like `UNWIND [0, 1, 2] AS x MATCH (n) WHERE n = x`.
 - `range()` takes bounds read from maps and lists, and `sum()` of integers read from maps stays an Integer.
