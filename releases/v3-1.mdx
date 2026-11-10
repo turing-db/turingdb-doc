@@ -4,6 +4,29 @@ sidebarTitle: "TuringDB 3.1"
 description: "We released TuringDB 3.1 on November 9, 2026. With this version, you can send values with your queries as parameters and use TuringDB from TypeScript. It also adds new Cypher features."
 ---
 
+## Highlights
+
+<CardGroup cols={2}>
+  <Card title="Query parameters" icon="/images/icons/pixel-dollar.png" href="#query-parameters">
+    Pass values next to the query, as in `WHERE n.age > $min` or `UNWIND $rows`: no quoting, no escaping, and faster bulk writes.
+  </Card>
+  <Card title="Binary protocol over HTTP/1.1" icon="/images/icons/pixel-bolt.png" href="#binary-protocol-by-default">
+    The default and only protocol: results stream as typed binary columns, through standard HTTP proxies.
+  </Card>
+  <Card title="TypeScript client on npm" icon="/images/icons/pixel-braces.png" href="#a-typescript-client-on-npm-built-on-webassembly">
+    `npm install turingdb` queries TuringDB from Node.js and the browser, decoding results in WebAssembly.
+  </Card>
+  <Card title="allReduce" icon="/images/icons/pixel-forall.png" href="#allreduce">
+    Fold a list and test a predicate after every step: a running total or an ordering along a path.
+  </Card>
+  <Card title="COLLECT and other subqueries" icon="/images/icons/pixel-nested.png" href="#collect-and-other-subqueries">
+    `UNION`, `NEXT` and `WHEN` inside `COLLECT`, `EXISTS`, `COUNT` and `CALL`, and `COLLECT` of maps and paths.
+  </Card>
+  <Card title="Points and haversine distance" icon="/images/icons/pixel-pin.png" href="#points-and-haversine-distance">
+    A point property type, cartesian or WGS-84, with great-circle distances in metres and bounding boxes.
+  </Card>
+</CardGroup>
+
 TuringDB 3.1 adds:
 
 - **Query parameters.** You can send values with a query. You do not have to write them into the query text. [See more](#query-parameters)
@@ -33,29 +56,6 @@ npm install turingdb
 </CodeGroup>
 
 Released **November 9, 2026** · [Release on GitHub](https://github.com/turing-db/turingdb/releases/tag/v3.1) · [All changes since 3.0.2](https://github.com/turing-db/turingdb/compare/v3.0.2...v3.1)
-
-## Highlights
-
-<CardGroup cols={2}>
-  <Card title="Query parameters" icon="/images/icons/pixel-dollar.png" href="#query-parameters">
-    Pass values next to the query, as in `WHERE n.age > $min` or `UNWIND $rows`: no quoting, no escaping, and faster bulk writes.
-  </Card>
-  <Card title="Binary protocol over HTTP/1.1" icon="/images/icons/pixel-bolt.png" href="#binary-protocol-by-default">
-    The default and only protocol: results stream as typed binary columns, through standard HTTP proxies.
-  </Card>
-  <Card title="TypeScript client on npm" icon="/images/icons/pixel-braces.png" href="#a-typescript-client-on-npm-built-on-webassembly">
-    `npm install turingdb` queries TuringDB from Node.js and the browser, decoding results in WebAssembly.
-  </Card>
-  <Card title="allReduce" icon="/images/icons/pixel-forall.png" href="#allreduce">
-    Fold a list and test a predicate after every step: a running total or an ordering along a path.
-  </Card>
-  <Card title="COLLECT and other subqueries" icon="/images/icons/pixel-nested.png" href="#collect-and-other-subqueries">
-    `UNION`, `NEXT` and `WHEN` inside `COLLECT`, `EXISTS`, `COUNT` and `CALL`, and `COLLECT` of maps and paths.
-  </Card>
-  <Card title="Points and haversine distance" icon="/images/icons/pixel-pin.png" href="#points-and-haversine-distance">
-    A point property type, cartesian or WGS-84, with great-circle distances in metres and bounding boxes.
-  </Card>
-</CardGroup>
 
 ## Query parameters
 
